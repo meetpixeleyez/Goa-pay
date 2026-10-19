@@ -22,7 +22,8 @@ import {
   Sparkles,
 } from "lucide-react";
 import {
-  isValidIndianPhone,
+  isValidPhone,
+  normalizePhone,
   isValidEmail,
   validateName,
   isValidUpiId,
@@ -123,8 +124,9 @@ export default function CreateOperatorPage() {
       return;
     }
 
-    if (phone && !isValidIndianPhone(phone)) {
-      setError("Please enter a valid 10-digit Indian mobile number");
+    const cleanPhone = phone.trim() ? normalizePhone(phone) : "";
+    if (cleanPhone && !isValidPhone(cleanPhone)) {
+      setError("Please enter a valid phone number (10-digit Indian mobile or International format with country code e.g. +1...)");
       return;
     }
 
@@ -148,7 +150,7 @@ export default function CreateOperatorPage() {
         body: JSON.stringify({
           name: name.trim(),
           email: email.trim().toLowerCase(),
-          phone: phone.trim() || undefined,
+          phone: cleanPhone || undefined,
           password,
           qrCodeIds: selectedQrIds,
         }),
@@ -285,7 +287,7 @@ export default function CreateOperatorPage() {
 
               <div>
                 <label className="block text-xs font-bold text-base-900 mb-1">
-                  Mobile Number (Optional)
+                  Contact Phone (Indian or International)
                 </label>
                 <div className="relative">
                   <Phone className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" />
@@ -293,11 +295,11 @@ export default function CreateOperatorPage() {
                     type="tel"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    placeholder="10-digit mobile number"
-                    maxLength={10}
+                    placeholder="e.g. 9876543210 or +14155552671"
                     className="w-full pl-9 pr-3.5 py-2 text-xs border border-base-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary bg-white font-medium"
                   />
                 </div>
+                <span className="text-[10px] text-gray-400 mt-1 block">10-digit Indian mobile or International format with country code (e.g. +1...)</span>
               </div>
 
               <div>

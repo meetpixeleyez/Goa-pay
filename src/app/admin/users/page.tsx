@@ -151,6 +151,8 @@ export default function UsersDirectoryPage() {
         return `/admin/agents/${u.id}`;
       case "OPERATOR":
         return `/admin/operators/${u.id}`;
+      case "OTHER":
+        return `/admin/others/${u.id}`;
       default:
         return null;
     }

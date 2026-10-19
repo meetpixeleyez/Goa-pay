@@ -5,23 +5,16 @@ import Link from "next/link";
 import PortalLayout from "@/components/layout/PortalLayout";
 import { User, Store, ShieldCheck, Check, AlertCircle, KeyRound } from "lucide-react";
 import {
-  isValidIndianPhone,
+  isValidPhone,
   isValidEmail,
   validateName,
-  validateAddress,
-  isValidUpiId,
-  isValidTelegramId,
-  normalizeIndianPhone,
-  normalizeTelegramId,
+  normalizePhone,
 } from "@/lib/validation";
 
 export default function MerchantProfilePage() {
   const [profile, setProfile] = useState<any>(null);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [address, setAddress] = useState("");
-  const [telegramId, setTelegramId] = useState("");
-  const [upiId, setUpiId] = useState("");
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -34,9 +27,6 @@ export default function MerchantProfilePage() {
           setProfile(data.profile);
           setName(data.profile.name || "");
           setPhone(data.profile.phone || "");
-          setAddress(data.profile.address || "");
-          setTelegramId(data.profile.telegramId || "");
-          setUpiId(data.profile.upiId || "");
         }
       });
   }, []);
@@ -52,31 +42,11 @@ export default function MerchantProfilePage() {
       return;
     }
 
-    const cleanPhone = phone.trim() ? normalizeIndianPhone(phone) : null;
-    if (cleanPhone && !isValidIndianPhone(cleanPhone)) {
-      setError("Please enter a valid 10-digit Indian mobile number (e.g. 9876543210, starting with 6-9 without +91)");
+    const cleanPhone = phone.trim() ? normalizePhone(phone) : null;
+    if (cleanPhone && !isValidPhone(cleanPhone)) {
+      setError("Please enter a valid phone number (10-digit Indian mobile or International format with country code e.g. +1...)");
       return;
     }
-
-    if (address.trim()) {
-      const addrCheck = validateAddress(address);
-      if (!addrCheck.valid) {
-        setError(addrCheck.error || "Invalid address");
-        return;
-      }
-    }
-
-    if (upiId.trim() && !isValidUpiId(upiId)) {
-      setError("Please enter a valid UPI ID (e.g. store@okaxis)");
-      return;
-    }
-
-    if (telegramId.trim() && !isValidTelegramId(telegramId)) {
-      setError("Please enter a valid Telegram username (4-32 characters)");
-      return;
-    }
-
-    const cleanTelegram = normalizeTelegramId(telegramId);
 
     setSaving(true);
     try {
@@ -86,9 +56,6 @@ export default function MerchantProfilePage() {
         body: JSON.stringify({
           name: name.trim(),
           phone: cleanPhone,
-          address: address.trim() || null,
-          telegramId: cleanTelegram,
-          upiId: upiId.trim() || null,
         }),
       });
 
@@ -166,55 +133,17 @@ export default function MerchantProfilePage() {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-base-900 mb-1">Telegram Support Handle</label>
+            <label className="block text-xs font-semibold text-base-900 mb-1">
+              Contact Phone (Indian or International)
+            </label>
             <input
-              type="text"
-              value={telegramId}
-              onChange={(e) => setTelegramId(e.target.value)}
-              placeholder="@store_support"
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="e.g. 9876543210 or +14155552671"
               className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg font-mono focus:outline-none focus:ring-2 focus:ring-primary"
             />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-base-900 mb-1">Store UPI ID</label>
-            <input
-              type="text"
-              value={upiId}
-              onChange={(e) => setUpiId(e.target.value)}
-              placeholder="store@okaxis"
-              className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg font-mono focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-base-900 mb-1">
-                Contact Phone (10-digit Indian Mobile)
-              </label>
-              <input
-                type="tel"
-                maxLength={10}
-                value={phone}
-                onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                placeholder="9876543210"
-                className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg font-mono focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-              <span className="text-[10px] text-gray-400 mt-0.5 block">10 digits, no +91</span>
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-base-900 mb-1">
-                Address / Location (Min 5 chars)
-              </label>
-              <input
-                type="text"
-                maxLength={250}
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder="Calangute, Goa"
-                className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
+            <span className="text-[10px] text-gray-400 mt-0.5 block">10-digit Indian mobile or International format with country code (e.g. +1...)</span>
           </div>
 
           <button

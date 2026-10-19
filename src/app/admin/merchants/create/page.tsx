@@ -27,12 +27,12 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import {
-  isValidIndianPhone,
+  isValidPhone,
+  normalizePhone,
   isValidEmail,
   validateName,
   isValidUpiId,
   isValidTelegramId,
-  normalizeIndianPhone,
   normalizeTelegramId,
 } from "@/lib/validation";
 
@@ -162,9 +162,9 @@ export default function CreateMerchantPage() {
         throw new Error("Password must be at least 6 characters long");
       }
 
-      const cleanPhone = phone.trim() ? normalizeIndianPhone(phone) : null;
-      if (cleanPhone && !isValidIndianPhone(cleanPhone)) {
-        throw new Error("Please enter a valid 10-digit Indian mobile number (e.g. 9876543210, starting with 6, 7, 8, or 9 without +91)");
+      const cleanPhone = phone.trim() ? normalizePhone(phone) : null;
+      if (cleanPhone && !isValidPhone(cleanPhone)) {
+        throw new Error("Please enter a valid phone number (10-digit Indian mobile or International format with country code e.g. +1...)");
       }
 
       if (upiId.trim() && !isValidUpiId(upiId)) {
@@ -383,20 +383,19 @@ export default function CreateMerchantPage() {
                 {/* Phone */}
                 <div>
                   <label className="block text-xs font-semibold text-base-900 mb-1">
-                    Contact Phone Number (10-digit Indian Mobile)
+                    Contact Phone (Indian or International)
                   </label>
                   <div className="relative">
                     <Phone className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
                     <input
                       type="tel"
-                      maxLength={10}
                       value={phone}
-                      onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                      placeholder="9876543210"
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="e.g. 9876543210 or +14155552671"
                       className="w-full pl-9 pr-3 py-2.5 text-xs sm:text-sm border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white font-mono"
                     />
                   </div>
-                  <p className="text-[10px] text-slate-500 mt-1">10 digits starting with 6-9, no +91 prefix</p>
+                  <p className="text-[10px] text-slate-500 mt-1">10-digit Indian mobile or International format with country code (e.g. +1...)</p>
                 </div>
               </div>
             </div>

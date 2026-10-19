@@ -37,14 +37,14 @@ import {
 import BankStatementTable from "@/components/wallet/BankStatementTable";
 import MerchantApiSettingsTab from "@/components/merchant/MerchantApiSettingsTab";
 import {
-  isValidIndianPhone,
   isValidEmail,
   validateName,
   validateAddress,
   isValidUpiId,
   isValidTelegramId,
-  normalizeIndianPhone,
   normalizeTelegramId,
+  isValidPhone,
+  normalizePhone,
 } from "@/lib/validation";
 
 export default function AdminMerchantDetailPage() {
@@ -302,35 +302,12 @@ export default function AdminMerchantDetailPage() {
       return;
     }
 
-    const cleanPhone = phone.trim() ? normalizeIndianPhone(phone) : null;
-    if (cleanPhone && !isValidIndianPhone(cleanPhone)) {
-      setInfoError("Please enter a valid 10-digit Indian mobile number (e.g. 9876543210, starting with 6, 7, 8, or 9 without +91)");
+    const cleanPhone = phone.trim() ? normalizePhone(phone) : null;
+    if (cleanPhone && !isValidPhone(cleanPhone)) {
+      setInfoError("Please enter a valid phone number (10-digit Indian mobile or International format with country code e.g. +1...)");
       setSavingInfo(false);
       return;
     }
-
-    if (address.trim()) {
-      const addrCheck = validateAddress(address);
-      if (!addrCheck.valid) {
-        setInfoError(addrCheck.error || "Invalid address");
-        setSavingInfo(false);
-        return;
-      }
-    }
-
-    if (upiId.trim() && !isValidUpiId(upiId)) {
-      setInfoError("Please enter a valid UPI ID (e.g. store@okaxis)");
-      setSavingInfo(false);
-      return;
-    }
-
-    if (telegramId.trim() && !isValidTelegramId(telegramId)) {
-      setInfoError("Please enter a valid Telegram handle (4-32 characters)");
-      setSavingInfo(false);
-      return;
-    }
-
-    const cleanTelegram = normalizeTelegramId(telegramId);
 
     try {
       const res = await fetch(`/api/admin/merchants/${merchantId}`, {
@@ -339,10 +316,6 @@ export default function AdminMerchantDetailPage() {
         body: JSON.stringify({
           name: name.trim(),
           phone: cleanPhone,
-          address: address.trim() || null,
-          telegramId: cleanTelegram,
-          upiId: upiId.trim() || null,
-          qrCodeUrl: qrCodeUrl || null,
           status,
           portalAccess,
           transactionAllowed,
@@ -728,7 +701,7 @@ export default function AdminMerchantDetailPage() {
                     </h3>
                   </div>
                   <p className="text-xs text-slate-500 mt-0.5 truncate">
-                    Store profile details, Telegram ID, and payment routing settings
+                    Store profile details and payment routing settings
                   </p>
                 </div>
 
@@ -822,133 +795,26 @@ export default function AdminMerchantDetailPage() {
                       )}
                     </div>
 
-                    {/* Telegram ID */}
-                    <div>
-                      <label className="text-[13px] font-semibold text-base-900 mb-1.5 flex items-center space-x-1">
-                        <Send className="w-3.5 h-3.5 text-primary shrink-0" />
-                        <span>Telegram ID <span className="text-red-500">*</span></span>
-                      </label>
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          required
-                          value={telegramId}
-                          onChange={(e) => setTelegramId(e.target.value)}
-                          placeholder="e.g. @merchant_support"
-                          className="w-full px-3.5 py-2.5 text-xs font-semibold border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
-                        />
-                      ) : (
-                        <div className="w-full px-3.5 py-2.5 text-xs font-mono font-semibold text-blue-700 bg-blue-50/50 rounded-lg border border-blue-200/60 flex items-center justify-between">
-                          <span className="truncate">{telegramId || "None"}</span>
-                          {telegramId && (
-                            <button
-                              type="button"
-                              onClick={() => handleCopy(telegramId, "telegram")}
-                              className="p-1 hover:bg-blue-100 rounded text-blue-600 transition shrink-0 ml-1"
-                              title="Copy Telegram ID"
-                            >
-                              {copiedField === "telegram" ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Login Email */}
-                    <div>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <label className="text-[13px] font-semibold text-base-900 flex items-center space-x-1">
-                          <Mail className="w-3.5 h-3.5 text-primary shrink-0" />
-                          <span>Login Email</span>
-                        </label>
-                      </div>
-                      <div className="w-full px-3.5 py-2.5 text-xs font-mono font-semibold text-gray-700 bg-gray-100/70 rounded-lg border border-gray-200 flex items-center justify-between">
-                        <span className="truncate">{merchant.email}</span>
-                        <button
-                          type="button"
-                          onClick={() => handleCopy(merchant.email, "email")}
-                          className="p-1 hover:bg-gray-200 rounded text-slate-500 transition shrink-0 ml-1"
-                          title="Copy Email"
-                        >
-                          {copiedField === "email" ? <Check className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5" />}
-                        </button>
-                      </div>
-                    </div>
-
                     {/* Contact Phone */}
                     <div>
                       <label className="text-[13px] font-semibold text-base-900 mb-1.5 flex items-center space-x-1">
                         <Phone className="w-3.5 h-3.5 text-primary shrink-0" />
-                        <span>Contact Phone <span className="font-normal text-slate-500 text-[11px]">(10-digit Mobile)</span></span>
+                        <span>Contact Phone <span className="font-normal text-slate-500 text-[11px]">(Indian or International)</span></span>
                       </label>
                       {isEditing ? (
                         <div>
                           <input
                             type="tel"
-                            maxLength={10}
                             value={phone}
-                            onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                            placeholder="9876543210"
+                            onChange={(e) => setPhone(e.target.value)}
+                            placeholder="e.g. 9876543210 or +14155552671"
                             className="w-full px-3.5 py-2.5 text-xs font-semibold font-mono border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
                           />
-                          <p className="text-[10px] text-slate-500 mt-1">10 digits starting with 6-9, no +91 prefix</p>
+                          <p className="text-[10px] text-slate-500 mt-1">10-digit Indian mobile or International format with country code (e.g. +1...)</p>
                         </div>
                       ) : (
                         <div className="w-full px-3.5 py-2.5 text-xs font-medium font-mono text-gray-800 bg-gray-50 rounded-lg border border-gray-200 truncate">
                           {phone || <span className="text-gray-400 italic">Not Provided</span>}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Store UPI ID */}
-                    <div>
-                      <label className="text-[13px] font-semibold text-base-900 mb-1.5 flex items-center space-x-1">
-                        <CreditCard className="w-3.5 h-3.5 text-primary shrink-0" />
-                        <span>Store UPI ID <span className="font-normal text-slate-500 text-[11px]">(Direct Payment)</span></span>
-                      </label>
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          value={upiId}
-                          onChange={(e) => setUpiId(e.target.value)}
-                          placeholder="e.g. merchant@icici"
-                          className="w-full px-3.5 py-2.5 text-xs font-mono font-semibold border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
-                        />
-                      ) : (
-                        <div className="w-full px-3.5 py-2.5 text-xs font-mono font-bold text-base-900 bg-gray-50 rounded-lg border border-gray-200 flex items-center justify-between">
-                          <span className="truncate">{upiId || <span className="text-gray-400 font-normal italic">None Configured</span>}</span>
-                          {upiId && (
-                            <button
-                              type="button"
-                              onClick={() => handleCopy(upiId, "upi")}
-                              className="p-1 hover:bg-gray-200 rounded text-slate-500 transition shrink-0 ml-1"
-                              title="Copy UPI ID"
-                            >
-                              {copiedField === "upi" ? <Check className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5" />}
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Business Address */}
-                    <div>
-                      <label className="text-[13px] font-semibold text-base-900 mb-1.5 flex items-center space-x-1">
-                        <MapPin className="w-3.5 h-3.5 text-primary shrink-0" />
-                        <span>Business Address <span className="font-normal text-slate-500 text-[11px]">(Min 5 chars)</span></span>
-                      </label>
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          maxLength={250}
-                          value={address}
-                          onChange={(e) => setAddress(e.target.value)}
-                          placeholder="e.g. Shop 12, Calangute, Goa"
-                          className="w-full px-3.5 py-2.5 text-xs font-semibold border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
-                        />
-                      ) : (
-                        <div className="w-full px-3.5 py-2.5 text-xs text-gray-800 bg-gray-50 rounded-lg border border-gray-200 truncate">
-                          {address || <span className="text-gray-400 italic">Not Provided</span>}
                         </div>
                       )}
                     </div>

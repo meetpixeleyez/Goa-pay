@@ -35,7 +35,8 @@ import {
   Power,
 } from "lucide-react";
 import {
-  isValidIndianPhone,
+  isValidPhone,
+  normalizePhone,
   validateName,
   isValidUpiId,
 } from "@/lib/validation";
@@ -195,8 +196,9 @@ export default function AdminOperatorDetailPage() {
       setError("Please provide a valid operator name");
       return;
     }
-    if (editPhone && !isValidIndianPhone(editPhone)) {
-      setError("Phone number must be a valid 10-digit Indian mobile number");
+    const cleanPhone = editPhone.trim() ? normalizePhone(editPhone) : "";
+    if (cleanPhone && !isValidPhone(cleanPhone)) {
+      setError("Please enter a valid phone number (10-digit Indian mobile or International format with country code e.g. +1...)");
       return;
     }
 
@@ -209,7 +211,7 @@ export default function AdminOperatorDetailPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: editName.trim(),
-          phone: editPhone ? editPhone.trim() : "",
+          phone: cleanPhone,
           status: editStatus,
           portalAccess: editPortalAccess,
           transactionAllowed: editTransactionAllowed,
@@ -590,14 +592,15 @@ export default function AdminOperatorDetailPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-base-900 mb-1">Phone Number (10 digits)</label>
+                  <label className="block text-xs font-bold text-base-900 mb-1">Contact Phone (Indian or International)</label>
                   <input
                     type="tel"
-                    maxLength={10}
                     value={editPhone}
-                    onChange={(e) => setEditPhone(e.target.value.replace(/\D/g, ""))}
+                    onChange={(e) => setEditPhone(e.target.value)}
+                    placeholder="e.g. 9876543210 or +14155552671"
                     className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg bg-white font-mono focus:outline-none focus:ring-2 focus:ring-primary"
                   />
+                  <span className="text-[10px] text-gray-400 mt-0.5 block">10-digit Indian mobile or International format with country code (e.g. +1...)</span>
                 </div>
 
                 <div className="md:col-span-2 min-w-0">

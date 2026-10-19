@@ -24,12 +24,9 @@ import {
   ChevronRight,
 } from "lucide-react";
 import {
-  isValidIndianPhone,
+  isValidPhone,
+  normalizePhone,
   validateName,
-  validateAddress,
-  isValidTelegramId,
-  normalizeIndianPhone,
-  normalizeTelegramId,
 } from "@/lib/validation";
 import { brokersApi } from "@/lib/api/brokers.api";
 
@@ -150,24 +147,9 @@ export default function AdminBrokersPage() {
       return;
     }
 
-    const cleanPhone = editPhone.trim() ? normalizeIndianPhone(editPhone) : null;
-    if (cleanPhone && !isValidIndianPhone(cleanPhone)) {
-      setEditError("Please enter a valid 10-digit Indian mobile number (e.g. 9876543210, starting with 6-9 without +91)");
-      setEditing(false);
-      return;
-    }
-
-    if (editAddress.trim()) {
-      const addrCheck = validateAddress(editAddress);
-      if (!addrCheck.valid) {
-        setEditError(addrCheck.error || "Invalid address");
-        setEditing(false);
-        return;
-      }
-    }
-
-    if (editTelegramId.trim() && !isValidTelegramId(editTelegramId)) {
-      setEditError("Please enter a valid Telegram username (4-32 characters)");
+    const cleanPhone = editPhone.trim() ? normalizePhone(editPhone) : null;
+    if (cleanPhone && !isValidPhone(cleanPhone)) {
+      setEditError("Please enter a valid phone number (10-digit Indian mobile or International format with country code e.g. +1...)");
       setEditing(false);
       return;
     }
@@ -179,8 +161,6 @@ export default function AdminBrokersPage() {
       return;
     }
 
-    const cleanTelegram = editTelegramId.trim() ? normalizeTelegramId(editTelegramId) : null;
-
     try {
       const res = await fetch(`/api/admin/users/${editBroker.id}`, {
         method: "PUT",
@@ -188,8 +168,6 @@ export default function AdminBrokersPage() {
         body: JSON.stringify({
           name: editName.trim(),
           phone: cleanPhone,
-          address: editAddress.trim() || null,
-          telegramId: cleanTelegram,
           commissionPercent: parsedComm,
           status: editStatus,
         }),
@@ -801,50 +779,17 @@ export default function AdminBrokersPage() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[12px] font-semibold mb-1">Telegram ID (Auto @)</label>
-                    <input
-                      type="text"
-                      value={editTelegramId}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        setEditTelegramId(v.trim() && !v.startsWith("@") ? "@" + v.trim() : v);
-                      }}
-                      onBlur={() => {
-                        if (editTelegramId.trim() && !editTelegramId.trim().startsWith("@")) {
-                          setEditTelegramId("@" + editTelegramId.trim());
-                        }
-                      }}
-                      placeholder="@broker"
-                      className="w-full px-3 py-2 border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
-                  </div>
-
-                  <div>
                     <label className="block text-[12px] font-semibold mb-1">
-                      Phone (10-digit Indian Mobile)
+                      Contact Phone (Indian or International)
                     </label>
                     <input
                       type="tel"
-                      maxLength={10}
                       value={editPhone}
-                      onChange={(e) => setEditPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                      placeholder="9876543210"
+                      onChange={(e) => setEditPhone(e.target.value)}
+                      placeholder="e.g. 9876543210 or +14155552671"
                       className="w-full px-3 py-2 border border-base-200 rounded-lg font-mono focus:outline-none focus:ring-2 focus:ring-primary"
                     />
-                    <span className="text-[10px] text-gray-400 mt-0.5 block">10 digits, no +91</span>
-                  </div>
-                  <div>
-                    <label className="block text-[12px] font-semibold mb-1">
-                      Address (Min 5 chars)
-                    </label>
-                    <input
-                      type="text"
-                      maxLength={250}
-                      value={editAddress}
-                      onChange={(e) => setEditAddress(e.target.value)}
-                      placeholder="Office address, city"
-                      className="w-full px-3 py-2 border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
+                    <span className="text-[10px] text-gray-400 mt-0.5 block">10-digit Indian mobile or International format with country code (e.g. +1...)</span>
                   </div>
 
                   <div>

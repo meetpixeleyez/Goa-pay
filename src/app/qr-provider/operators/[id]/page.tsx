@@ -34,7 +34,8 @@ import {
   Power,
 } from "lucide-react";
 import {
-  isValidIndianPhone,
+  isValidPhone,
+  normalizePhone,
   validateName,
   isValidUpiId,
 } from "@/lib/validation";
@@ -191,8 +192,9 @@ export default function OperatorDetailPage() {
       setError(nameCheck.error || "Invalid name");
       return;
     }
-    if (editPhone && !isValidIndianPhone(editPhone)) {
-      setError("Please enter a valid 10-digit Indian mobile number");
+    const cleanPhone = editPhone.trim() ? normalizePhone(editPhone) : "";
+    if (cleanPhone && !isValidPhone(cleanPhone)) {
+      setError("Please enter a valid phone number (10-digit Indian mobile or International format with country code e.g. +1...)");
       return;
     }
 
@@ -204,7 +206,7 @@ export default function OperatorDetailPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: editName.trim(),
-          phone: editPhone.trim() || null,
+          phone: cleanPhone || null,
           status: editStatus,
           portalAccess: editPortalAccess,
           transactionAllowed: editTransactionAllowed,
@@ -586,14 +588,15 @@ export default function OperatorDetailPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-base-900 mb-1">Mobile Number</label>
+                <label className="block text-xs font-bold text-base-900 mb-1">Contact Phone (Indian or International)</label>
                 <input
                   type="tel"
                   value={editPhone}
                   onChange={(e) => setEditPhone(e.target.value)}
-                  maxLength={10}
+                  placeholder="e.g. 9876543210 or +14155552671"
                   className="w-full px-3 py-2 text-xs border border-base-200 rounded-xl bg-white font-medium"
                 />
+                <span className="text-[10px] text-gray-400 mt-0.5 block">10-digit Indian mobile or International format with country code (e.g. +1...)</span>
               </div>
 
               <div className="sm:col-span-2 min-w-0">

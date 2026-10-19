@@ -28,6 +28,7 @@ import {
   Wifi,
   KeyRound,
   BookOpen,
+  CircleEllipsis,
 } from "lucide-react";
 import { useSocket } from "@/lib/socket-client";
 import RealtimeNotificationBanner from "@/components/notifications/RealtimeNotificationBanner";
@@ -155,6 +156,7 @@ export default function PortalLayout({
         { label: "QR Providers", href: "/admin/qr-providers", icon: QrCode },
         { label: "Operators", href: "/admin/operators", icon: UserCheck },
         { label: "Agents", href: "/admin/agents", icon: Users },
+        { label: "Others", href: "/admin/others", icon: CircleEllipsis },
         // { label: "Global Orders", href: "/admin/orders", icon: ShoppingBag },
         // { label: "Wallets & Ledger", href: "/admin/transactions", icon: Wallet },
         // { label: "Platform Settings", href: "/admin/settings", icon: Settings },

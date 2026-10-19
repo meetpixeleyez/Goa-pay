@@ -18,11 +18,11 @@ import {
   Send,
 } from "lucide-react";
 import {
-  isValidIndianPhone,
+  isValidPhone,
+  normalizePhone,
   isValidEmail,
   validateName,
   isValidTelegramId,
-  normalizeIndianPhone,
   normalizeTelegramId,
 } from "@/lib/validation";
 
@@ -94,9 +94,9 @@ export default function CreateBrokerPage() {
       return;
     }
 
-    const cleanPhone = phone.trim() ? normalizeIndianPhone(phone) : null;
-    if (cleanPhone && !isValidIndianPhone(cleanPhone)) {
-      setError("Please enter a valid 10-digit Indian mobile number (e.g. 9876543210, starting with 6, 7, 8, or 9 without +91)");
+    const cleanPhone = phone.trim() ? normalizePhone(phone) : null;
+    if (cleanPhone && !isValidPhone(cleanPhone)) {
+      setError("Please enter a valid phone number (10-digit Indian mobile or International format with country code e.g. +1...)");
       setSubmitting(false);
       return;
     }
@@ -321,21 +321,20 @@ export default function CreateBrokerPage() {
 
               <div>
                 <label className="block text-xs font-semibold text-base-900 mb-1.5">
-                  Phone Number (10-digit Indian Mobile)
+                  Contact Phone (Indian or International)
                 </label>
                 <div className="relative">
                   <Phone className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" />
                   <input
                     type="tel"
-                    maxLength={10}
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                    placeholder="9876543210"
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="e.g. 9876543210 or +14155552671"
                     className="w-full pl-9 pr-3.5 py-2 text-xs border border-base-200 rounded-lg bg-white font-mono focus:outline-none focus:ring-2 focus:ring-primary"
                   />
                 </div>
                 <p className="text-[11px] text-base-700 mt-1">
-                  10 digits starting with 6-9, no +91 prefix
+                  10-digit Indian mobile or International format with country code (e.g. +1...)
                 </p>
               </div>
             </div>

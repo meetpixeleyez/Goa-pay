@@ -34,6 +34,7 @@ import {
   ChevronRight,
   ChevronDown,
 } from "lucide-react";
+import { isValidPhone, normalizePhone } from "@/lib/validation";
 
 export default function QRProviderOperatorsPage() {
   const [operators, setOperators] = useState<any[]>([]);
@@ -221,13 +222,19 @@ export default function QRProviderOperatorsPage() {
     e.preventDefault();
     if (!editModalOperator) return;
 
+    const cleanPhone = editPhone.trim() ? normalizePhone(editPhone) : "";
+    if (cleanPhone && !isValidPhone(cleanPhone)) {
+      setEditError("Please enter a valid phone number (10-digit Indian mobile or International format with country code e.g. +1...)");
+      return;
+    }
+
     setSubmittingEdit(true);
     setEditError("");
 
     try {
       await qrProvidersApi.updateOperator(editModalOperator.id, {
         name: editName,
-        phone: editPhone,
+        phone: cleanPhone,
         status: editStatus,
         portalAccess: editPortalAccess,
         transactionAllowed: editTransactionAllowed,
@@ -1115,19 +1122,19 @@ export default function QRProviderOperatorsPage() {
               {/* Operator Phone Number */}
               <div>
                 <label className="block text-xs font-bold text-base-900 mb-1.5">
-                  Mobile Number (10 digits)
+                  Contact Phone (Indian or International)
                 </label>
                 <div className="relative">
                   <Phone className="w-4 h-4 text-gray-400 absolute left-3.5 top-3" />
                   <input
                     type="tel"
-                    maxLength={10}
                     value={editPhone}
-                    onChange={(e) => setEditPhone(e.target.value.replace(/\D/g, ""))}
-                    placeholder="e.g. 9876543210"
+                    onChange={(e) => setEditPhone(e.target.value)}
+                    placeholder="e.g. 9876543210 or +14155552671"
                     className="w-full pl-10 pr-3.5 py-2.5 text-xs border border-base-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary bg-white font-medium text-base-900 transition"
                   />
                 </div>
+                <span className="text-[10px] text-gray-400 mt-0.5 block">10-digit Indian mobile or International format with country code (e.g. +1...)</span>
               </div>
 
               {/* Login Email (Readonly) */}

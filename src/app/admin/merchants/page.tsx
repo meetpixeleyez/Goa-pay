@@ -850,14 +850,13 @@ export default function AdminMerchantsPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-semibold text-base-900 mb-1">
-                      Phone (10-digit Indian Mobile)
+                      Contact Phone (Indian or International)
                     </label>
                     <input
                       type="tel"
-                      maxLength={10}
                       value={phone}
-                      onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                      placeholder="9876543210"
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="e.g. 9876543210 or +14155552671"
                       className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg font-mono"
                     />
                   </div>

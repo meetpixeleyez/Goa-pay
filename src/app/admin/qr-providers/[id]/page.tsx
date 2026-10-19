@@ -34,7 +34,6 @@ import {
   Eye,
 } from "lucide-react";
 import {
-  isValidIndianPhone,
   isValidEmail,
   validateName,
   validateAddress,
@@ -42,6 +41,8 @@ import {
   isValidTelegramId,
   normalizeIndianPhone,
   normalizeTelegramId,
+  isValidPhone,
+  normalizePhone,
 } from "@/lib/validation";
 
 export default function QRProviderDetailPage() {
@@ -212,24 +213,9 @@ export default function QRProviderDetailPage() {
       return;
     }
 
-    const cleanPhone = phone.trim() ? normalizeIndianPhone(phone) : null;
-    if (cleanPhone && !isValidIndianPhone(cleanPhone)) {
-      setSaveError("Please enter a valid 10-digit Indian mobile number (e.g. 9876543210, starting with 6, 7, 8, or 9 without +91)");
-      setSaving(false);
-      return;
-    }
-
-    if (address.trim()) {
-      const addrCheck = validateAddress(address);
-      if (!addrCheck.valid) {
-        setSaveError(addrCheck.error || "Invalid address");
-        setSaving(false);
-        return;
-      }
-    }
-
-    if (telegramId.trim() && !isValidTelegramId(telegramId)) {
-      setSaveError("Please enter a valid Telegram username (4-32 characters)");
+    const cleanPhone = phone.trim() ? normalizePhone(phone) : null;
+    if (cleanPhone && !isValidPhone(cleanPhone)) {
+      setSaveError("Please enter a valid phone number (10-digit Indian mobile or International format with country code e.g. +1...)");
       setSaving(false);
       return;
     }
@@ -248,8 +234,6 @@ export default function QRProviderDetailPage() {
       return;
     }
 
-    const formattedTelegram = normalizeTelegramId(telegramId);
-
     try {
       const res = await fetch(`/api/admin/users/${providerId}`, {
         method: "PUT",
@@ -257,8 +241,6 @@ export default function QRProviderDetailPage() {
         body: JSON.stringify({
           name: name.trim(),
           phone: cleanPhone,
-          address: address.trim() || null,
-          telegramId: formattedTelegram,
           qrProviderFee: payinFeeNum,
           payinQrProviderFee: payinFeeNum,
           payoutQrProviderFee: payoutFeeNum,
@@ -852,64 +834,20 @@ export default function QRProviderDetailPage() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Email Address</label>
-                    <input
-                      type="email"
-                      disabled
-                      value={provider.email}
-                      className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg bg-gray-100 text-slate-500 cursor-not-allowed"
-                    />
-                    <span className="text-[11px] text-gray-400 mt-0.5 block">Email cannot be modified directly.</span>
-                  </div>
-
-                  {/* <div>
-                    <label className="block text-xs font-semibold text-base-900 mb-1">
-                      Telegram Username (Auto @)
-                    </label>
-                    <div className="relative">
-                      <Send className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" />
-                      <input
-                        type="text"
-                        value={telegramId}
-                        onChange={handleTelegramChange}
-                        onBlur={handleTelegramBlur}
-                        placeholder="@username"
-                        className="w-full pl-9 pr-3 py-2 text-xs border border-base-200 rounded-lg bg-white font-mono focus:outline-none focus:ring-2 focus:ring-primary"
-                      />
-                    </div>
-                  </div> */}
-
-                  <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Phone Number (10-digit Indian Mobile)
+                      Contact Phone
                     </label>
                     <div className="relative">
                       <Phone className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" />
                       <input
                         type="tel"
-                        maxLength={10}
                         value={phone}
-                        onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                        placeholder="9876543210"
+                        onChange={(e) => setPhone(e.target.value)}
+                        placeholder="e.g. 9876543210 or +1 202 555 0199"
                         className="w-full pl-9 pr-3 py-2 text-xs border border-slate-200 rounded-lg bg-white font-mono focus:outline-none focus:ring-2 focus:ring-primary"
                       />
                     </div>
-                    <span className="text-[11px] text-slate-400 mt-0.5 block">10 digits starting with 6-9, no +91 prefix</span>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">City / Address (Min 5 chars)</label>
-                    <div className="relative">
-                      <MapPin className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                      <input
-                        type="text"
-                        maxLength={250}
-                        value={address}
-                        onChange={(e) => setAddress(e.target.value)}
-                        placeholder="Margao, Goa"
-                        className="w-full pl-9 pr-3 py-2 text-xs border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
-                      />
-                    </div>
+                    <span className="text-[11px] text-slate-400 mt-0.5 block">Indian 10-digit mobile or International format with country code</span>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
