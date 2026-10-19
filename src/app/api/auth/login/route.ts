@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { verifyPassword, createSessionToken } from "@/lib/auth";
+import { normalizeIndianPhone } from "@/lib/validation";
 
 export async function POST(request: Request) {
   try {
@@ -8,18 +9,24 @@ export async function POST(request: Request) {
 
     if (!email || !password) {
       return NextResponse.json(
-        { error: "Email and password are required" },
+        { error: "Email/Phone and password are required" },
         { status: 400 }
       );
     }
 
     const cleanInput = email.trim().toLowerCase();
+    const cleanSlug = cleanInput.replace(/\s+/g, "_").replace(/[^a-z0-9_-]/g, "");
+    const cleanPhone = normalizeIndianPhone(cleanInput);
+
     const user = await prisma.user.findFirst({
       where: {
         OR: [
           { email: cleanInput },
           { email: cleanInput.includes("@") ? cleanInput : `${cleanInput}@goapay.internal` },
+          { email: cleanSlug ? `${cleanSlug}@goapay.internal` : cleanInput },
           { email: cleanInput.includes("@") ? cleanInput : `${cleanInput}@goapay.com` },
+          { name: { equals: email.trim() } },
+          ...(cleanPhone ? [{ phone: cleanPhone }] : []),
         ],
       },
     });
@@ -77,7 +84,7 @@ export async function POST(request: Request) {
 
     // Determine redirect path
     let redirectUrl = "/";
-    if (user.role === "ADMIN") redirectUrl = "/admin";
+    if (user.role === "ADMIN") redirectUrl = "/admin/users";
     else if (user.role === "MERCHANT") redirectUrl = "/merchant";
     else if (user.role === "QR_PROVIDER") redirectUrl = "/qr-provider";
     else if (user.role === "AGENT") redirectUrl = "/agent";

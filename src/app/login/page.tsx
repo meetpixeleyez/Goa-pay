@@ -71,16 +71,16 @@ export default function LoginPage() {
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
             <label className="block text-xs font-semibold text-base-900 mb-1">
-              Email Address
+              Email, Username, or Mobile Number
             </label>
             <div className="relative">
               <Mail className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
               <input
-                type="email"
+                type="text"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="name@example.com"
+                placeholder="Email, username, or 10-digit mobile"
                 className="w-full pl-9 pr-3 py-2 text-sm border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>

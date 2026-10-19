@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import PortalLayout from "@/components/layout/PortalLayout";
 import {
   Store,
@@ -46,6 +47,12 @@ function getInitials(name?: string) {
 }
 
 export default function AdminDashboard() {
+  const router = useRouter();
+
+  useEffect(() => {
+    router.replace("/admin/users");
+  }, [router]);
+
   const [data, setData] = useState<AdminDashboardData>({
     users: [],
     orders: [],

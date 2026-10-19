@@ -149,8 +149,7 @@ export default function PortalLayout({
     admin: {
       brand: "Admin Portal",
       items: [
-        { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
-        { label: "Create User", href: "/admin/users/create", icon: UserPlus },
+        { label: "Users", href: "/admin/users", icon: Users },
         { label: "Merchants", href: "/admin/merchants", icon: Store },
         { label: "Brokers", href: "/admin/brokers", icon: Briefcase },
         { label: "QR Providers", href: "/admin/qr-providers", icon: QrCode },
@@ -289,7 +288,7 @@ export default function PortalLayout({
               <nav className="space-y-1">
                 {portalConfig.items.map((item) => {
                   const Icon = item.icon;
-                  const isActive = pathname === item.href;
+                  const isActive = pathname === item.href || (item.href !== "/" && item.href !== "/admin" && pathname.startsWith(item.href + "/"));
                   const isAvailableOrdersItem = item.href.endsWith("/available-orders");
                   return (
                     <Link
@@ -354,7 +353,7 @@ export default function PortalLayout({
           <nav className="space-y-1">
             {portalConfig.items.map((item) => {
               const Icon = item.icon;
-              const isActive = pathname === item.href;
+              const isActive = pathname === item.href || (item.href !== "/" && item.href !== "/admin" && pathname.startsWith(item.href + "/"));
               const isAvailableOrdersItem = item.href.endsWith("/available-orders");
               return (
                 <Link

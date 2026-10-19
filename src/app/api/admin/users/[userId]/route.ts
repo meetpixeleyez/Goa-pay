@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
-import { validateUserData, normalizeIndianPhone, normalizeTelegramId } from "@/lib/validation";
+import { getSession, hashPassword } from "@/lib/auth";
+import {
+  validateUserData,
+  normalizePhone,
+  isValidPhone,
+  validateUsernameOrName,
+  normalizeTelegramId,
+} from "@/lib/validation";
 
 export async function GET(
   request: Request,
@@ -163,7 +169,25 @@ export async function PUT(
       return NextResponse.json({ error: "Invalid user ID" }, { status: 400 });
     }
 
-    const cleanPhone = phone !== undefined ? (phone ? normalizeIndianPhone(phone) : null) : undefined;
+    if (name !== undefined && name.trim()) {
+      const nameCheck = validateUsernameOrName(name, "Full Name / Username");
+      if (!nameCheck.valid) {
+        return NextResponse.json({ error: nameCheck.error }, { status: 400 });
+      }
+    }
+
+    let passwordHash: string | undefined = undefined;
+    if (data.password && data.password.trim()) {
+      if (data.password.trim().length < 6) {
+        return NextResponse.json(
+          { error: "Password must be at least 6 characters long." },
+          { status: 400 }
+        );
+      }
+      passwordHash = await hashPassword(data.password.trim());
+    }
+
+    const cleanPhone = phone !== undefined ? (phone ? normalizePhone(phone) : null) : undefined;
     const cleanTelegram = telegramId !== undefined ? normalizeTelegramId(telegramId) : undefined;
 
     const parseRelationId = (val: any) => {
@@ -177,6 +201,7 @@ export async function PUT(
       where: { id: userId },
       data: {
         name: name !== undefined ? name.trim() : undefined,
+        passwordHash: passwordHash !== undefined ? passwordHash : undefined,
         phone: cleanPhone,
         address: address !== undefined ? (address ? address.trim() : null) : undefined,
         telegramId: cleanTelegram,
@@ -410,6 +435,101 @@ export async function POST(
       { error: "Invalid action. Supported: ADD_BALANCE, CLEAR_BALANCE" },
       { status: 400 }
     );
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: { userId: string } }
+) {
+  try {
+    const session = await getSession();
+    if (!session || session.role !== "ADMIN") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
+
+    const userId = parseInt(params.userId, 10);
+    if (isNaN(userId)) {
+      return NextResponse.json({ error: "Invalid user ID" }, { status: 400 });
+    }
+
+    // Prevent deleting own admin session account
+    if (userId === session.userId) {
+      return NextResponse.json(
+        { error: "You cannot delete your own admin account." },
+        { status: 400 }
+      );
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    await prisma.$transaction(async (tx) => {
+      // 1. Unlink any assigned QR codes or relations
+      await tx.qRCode.updateMany({
+        where: { operatorId: userId },
+        data: { operatorId: null },
+      });
+
+      await tx.user.updateMany({
+        where: { brokerId: userId },
+        data: { brokerId: null },
+      });
+
+      await tx.user.updateMany({
+        where: { agentId: userId },
+        data: { agentId: null },
+      });
+
+      await tx.user.updateMany({
+        where: { qrProviderId: userId },
+        data: { qrProviderId: null },
+      });
+
+      // 2. Delete wallet and ledger entries
+      const userWallet = await tx.wallet.findUnique({ where: { userId } });
+      if (userWallet) {
+        await tx.ledgerEntry.deleteMany({ where: { walletId: userWallet.id } });
+        await tx.wallet.delete({ where: { id: userWallet.id } });
+      }
+
+      // 3. Delete QR codes if provider
+      await tx.qRCode.deleteMany({ where: { providerId: userId } });
+
+      // 4. Delete API keys & webhook deliveries
+      await tx.apiKey.deleteMany({ where: { userId } });
+      await tx.webhookDelivery.deleteMany({ where: { merchantId: userId } });
+
+      // 5. Delete user record
+      await tx.user.delete({ where: { id: userId } });
+
+      // 6. Record audit log
+      await tx.auditLog.create({
+        data: {
+          userId: session.userId,
+          action: "DELETE_USER",
+          entity: "User",
+          entityId: String(userId),
+          metadata: JSON.stringify({
+            deletedUserId: userId,
+            deletedUserName: user.name,
+            deletedUserRole: user.role,
+          }),
+        },
+      });
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: `User "${user.name}" has been permanently deleted.`,
+    });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

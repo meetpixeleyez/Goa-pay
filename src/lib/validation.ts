@@ -4,28 +4,90 @@
  */
 
 /**
- * Normalizes an Indian mobile number by stripping spaces, hyphens, and leading +91 / 91 / 0.
+ * Normalizes a phone number (supports Indian and International formats).
+ * Preserves leading '+' for international numbers, strips spaces, hyphens, brackets, dots.
  */
-export function normalizeIndianPhone(phone: string): string {
+export function normalizePhone(phone: string): string {
   if (!phone) return "";
-  let cleaned = phone.replace(/[\s\-\(\)\.]/g, "");
-  if (cleaned.startsWith("+91")) {
-    cleaned = cleaned.slice(3);
-  } else if (cleaned.startsWith("91") && cleaned.length === 12) {
-    cleaned = cleaned.slice(2);
-  } else if (cleaned.startsWith("0") && cleaned.length === 11) {
-    cleaned = cleaned.slice(1);
+  const trimmed = phone.trim();
+  const hasPlus = trimmed.startsWith("+");
+  const digitsOnly = trimmed.replace(/\D/g, "");
+
+  if (hasPlus) {
+    return `+${digitsOnly}`;
   }
-  return cleaned;
+
+  // Indian standard 10-digit
+  if (/^[6-9]\d{9}$/.test(digitsOnly)) {
+    return digitsOnly;
+  }
+
+  // Indian with leading 0 (11 digits: 0[6-9]\d{9})
+  if (/^0[6-9]\d{9}$/.test(digitsOnly)) {
+    return digitsOnly.slice(1);
+  }
+
+  // Indian with 91 prefix (12 digits: 91[6-9]\d{9})
+  if (/^91[6-9]\d{9}$/.test(digitsOnly)) {
+    return digitsOnly.slice(2);
+  }
+
+  return digitsOnly;
 }
 
 /**
- * Validates that a phone number is an Indian 10-digit mobile number (starts with 6, 7, 8, or 9).
+ * Validates whether a phone number is a valid Indian or International phone number.
+ * - Indian phone numbers: 10 digits starting with 6, 7, 8, or 9 (with or without +91 / 0 / 91).
+ * - International phone numbers: 7 to 15 digits (ITU-T E.164 standard), e.g. +1 202 555 0199, +44 7911 123456, +971 50 123 4567.
+ */
+export function isValidPhone(phone?: string | null): boolean {
+  if (!phone || !phone.trim()) return true; // Optional if not required
+  const trimmed = phone.trim();
+
+  // Strip common formatting symbols: spaces, dashes, parentheses, dots
+  const cleaned = trimmed.replace(/[\s\-\(\)\.]/g, "");
+
+  // International format with '+' prefix: + followed by 7 to 15 digits
+  if (cleaned.startsWith("+")) {
+    const withoutPlus = cleaned.slice(1);
+    return /^\d{7,15}$/.test(withoutPlus);
+  }
+
+  // Indian 10-digit mobile (starts with 6-9)
+  if (/^[6-9]\d{9}$/.test(cleaned)) {
+    return true;
+  }
+
+  // Indian 11 digits starting with 0 (0[6-9]\d{9})
+  if (/^0[6-9]\d{9}$/.test(cleaned)) {
+    return true;
+  }
+
+  // Indian 12 digits starting with 91 (91[6-9]\d{9})
+  if (/^91[6-9]\d{9}$/.test(cleaned)) {
+    return true;
+  }
+
+  // Generic international digits without leading + (7 to 15 digits)
+  if (/^\d{7,15}$/.test(cleaned)) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Backward-compatible helper for Indian & International phone validation.
  */
 export function isValidIndianPhone(phone?: string | null): boolean {
-  if (!phone || !phone.trim()) return true; // Optional if not required
-  const cleaned = normalizeIndianPhone(phone);
-  return /^[6-9]\d{9}$/.test(cleaned);
+  return isValidPhone(phone);
+}
+
+/**
+ * Backward-compatible normalization helper.
+ */
+export function normalizeIndianPhone(phone: string): string {
+  return normalizePhone(phone);
 }
 
 /**
@@ -54,6 +116,41 @@ export function validateName(name?: string | null, label = "Name"): { valid: boo
   }
   if (trimmed.length > 60) {
     return { valid: false, error: `${label} cannot exceed 60 characters` };
+  }
+  return { valid: true };
+}
+
+/**
+ * Validates Full Name / Username field.
+ * Strictly disallows email format (must not contain @).
+ * Min 3 chars, Max 60 chars.
+ * Allowed characters: letters, numbers, spaces, underscores, hyphens, and dots.
+ */
+export function validateUsernameOrName(
+  input?: string | null,
+  label = "Full Name / Username"
+): { valid: boolean; error?: string } {
+  const trimmed = (input || "").trim();
+  if (!trimmed) {
+    return { valid: false, error: `${label} is required` };
+  }
+  if (trimmed.includes("@")) {
+    return {
+      valid: false,
+      error: `${label} cannot be an email address. Please enter a person's name or username.`,
+    };
+  }
+  if (trimmed.length < 3) {
+    return { valid: false, error: `${label} must be at least 3 characters long` };
+  }
+  if (trimmed.length > 60) {
+    return { valid: false, error: `${label} cannot exceed 60 characters` };
+  }
+  if (!/^[a-zA-Z0-9_\-. ]+$/.test(trimmed)) {
+    return {
+      valid: false,
+      error: `${label} can only contain letters, numbers, spaces, underscores, and hyphens.`,
+    };
   }
   return { valid: true };
 }
@@ -172,10 +269,10 @@ export function validateUserData(
     }
   }
 
-  // Phone validation (Indian 10-digit mobile)
+  // Phone validation (Indian or International phone)
   if (data.phone !== undefined && data.phone !== null && data.phone.trim() !== "") {
-    if (!isValidIndianPhone(data.phone)) {
-      errors.push("Please enter a valid 10-digit Indian mobile number (e.g. 9876543210, starting with 6-9 without +91)");
+    if (!isValidPhone(data.phone)) {
+      errors.push("Please enter a valid phone number (10-digit Indian mobile or International format with country code e.g. +1...)");
     }
   }
 

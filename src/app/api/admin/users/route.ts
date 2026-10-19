@@ -288,16 +288,43 @@ export async function POST(request: Request) {
 
     const qrProviderId = rawQrProviderId || data.targetProviderId || data.providerId;
 
+    const cleanName = (name || "").trim();
+    if (cleanName.includes("@")) {
+      return NextResponse.json(
+        { error: "Full Name / Username cannot be an email address. Please enter a person's name or username." },
+        { status: 400 }
+      );
+    }
+
+    const baseSlug = cleanName
+      .toLowerCase()
+      .replace(/\s+/g, "_")
+      .replace(/[^a-z0-9_-]/g, "") || "user";
+
     const rawEmailOrUser = (data.email || data.username || data.userId || "").trim().toLowerCase();
-    const effectiveEmail = rawEmailOrUser.includes("@")
+    let effectiveEmail = rawEmailOrUser.includes("@")
       ? rawEmailOrUser
       : (rawEmailOrUser ? `${rawEmailOrUser}@goapay.internal` : "");
+
+    if (!effectiveEmail && cleanName) {
+      const preferredEmail = `${baseSlug}@goapay.internal`;
+      const existingUser = await prisma.user.findUnique({ where: { email: preferredEmail } });
+      if (existingUser) {
+        return NextResponse.json(
+          { error: `The username "${baseSlug}" is already taken. Please choose a different name or username.` },
+          { status: 400 }
+        );
+      }
+      effectiveEmail = preferredEmail;
+    }
+
     data.email = effectiveEmail;
+    data.username = baseSlug;
     email = effectiveEmail;
 
     if (!role || !name || !email || !password) {
       return NextResponse.json(
-        { error: "Role, Name, Username/Email, and Password are required" },
+        { error: "Role, Name, and Password are required" },
         { status: 400 }
       );
     }
