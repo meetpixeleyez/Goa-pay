@@ -1,0 +1,104 @@
+# Dependencies
+/node_modules
+/.pnp
+.pnp.js
+.yarn/install-state.gz
+
+# Next.js build output
+/.next/
+/out/
+/build
+/dist
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Environment variables
+.env
+.env*.local
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# SQLite Database & Prisma
+prisma/*.db
+prisma/*.db-journal
+*.sqlite
+*.sqlite-journal
+*.db
+*.db-journal
+
+# Uploads directory (keep .gitkeep)
+public/uploads/*
+!public/uploads/.gitkeep
+
+# IDEs & Editors
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS Generated Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*.tmp
+*.tmp.*
+
+# TypeScript build info
+*.tsbuildinfo
+
+/ui_issue
+
+# Local test & utility scripts
+/scripts/
+.mcp.json
+
+# Documentation, Features & Requirements
+/docs/
+docs/
+PRD*.md
+prd*.md
+*requirement*.md
+*REQUIREMENT*.md
+
+# Credentials & Sensitive Notes
+*credential*.md
+*credentials*.md
+/security/
+security/
+*security*.md
+*SECURITY*.md
+
+/theme
+
+# AI Agent Context, Tracking & Hand-off Files
+AGENTS.md
+*agent*.md
+*AGENT*.md
+*TRACKER*.md
+*tracker*.md
+*plan*.md
+*PLAN*.md
+*todo*.md
+*TODO*.md
+CLAUDE.md
+GEMINI.md
+COPILOT.md
+.cursorrules
+.cursor/
+.windsurfrules
+.gemini/
