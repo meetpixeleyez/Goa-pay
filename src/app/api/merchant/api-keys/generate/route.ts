@@ -10,6 +10,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    if (session.role !== "ADMIN" && session.portalAccess === false) {
+      return NextResponse.json(
+        { error: "Portal access is in read-only mode. Create, update, and delete operations are not allowed." },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json().catch(() => ({}));
     let merchantId = typeof session.userId === "number" ? session.userId : parseInt(session.userId as any, 10);
 

@@ -50,7 +50,7 @@ export default function AgentWalletPage() {
             ₹{wallet?.balance?.toFixed(2) || "0.00"}
           </span>
           <span className="text-[11px] text-gray-400 mt-1 block">
-            Commission Rate: <b>{wallet?.commissionPercent}%</b>
+            Accrued automatically from linked QR provider operations
           </span>
         </div>
         <div className="w-12 h-12 rounded-xl bg-primary/15 text-[#0c4a6e] flex items-center justify-center">

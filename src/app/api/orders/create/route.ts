@@ -4,7 +4,7 @@ import { OrderService } from "@/server/services/order.service";
 
 export async function POST(request: Request) {
   try {
-    const session = await requireAuth(["ADMIN", "MERCHANT"]);
+    const session = await requireAuth(["ADMIN", "MERCHANT"], { requireWrite: true });
     const data = await request.json();
 
     const order = await OrderService.createOrder(data, session);

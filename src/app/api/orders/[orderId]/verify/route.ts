@@ -8,7 +8,7 @@ export async function POST(
   { params }: { params: { orderId: string } }
 ) {
   try {
-    const session = await requireAuth(["ADMIN", "QR_PROVIDER", "OPERATOR"]);
+    const session = await requireAuth(["ADMIN", "QR_PROVIDER", "OPERATOR"], { requireWrite: true });
     const body = await request.json().catch(() => ({}));
     const { verifierUtr, verifierScreenshot } = body;
 

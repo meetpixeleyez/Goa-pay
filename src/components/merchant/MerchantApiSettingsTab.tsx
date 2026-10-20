@@ -591,7 +591,7 @@ export default function MerchantApiSettingsTab({
           </div>
         ) : (
           <div className="py-8 text-center text-xs text-slate-500 italic">
-            No webhook deliveries recorded yet. Use the "Send Test Webhook" button above to verify your endpoint.
+            No webhook deliveries recorded yet. Use the &quot;Send Test Webhook&quot; button above to verify your endpoint.
           </div>
         )}
       </div>

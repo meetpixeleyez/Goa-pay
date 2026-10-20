@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import PortalLayout from "@/components/layout/PortalLayout";
+import QuickCreateModal from "@/components/users/QuickCreateModal";
 import {
   UserPlus,
   ArrowLeft,
@@ -34,15 +36,18 @@ const ALLOWED_ROLES = [
 ];
 
 export default function CreateUserPage() {
+  const router = useRouter();
+
   // 1. Role Selection (Dropdown)
   const [role, setRole] = useState("MERCHANT");
+  const [lastSelectedRole, setLastSelectedRole] = useState("MERCHANT");
+  const [quickOtherModalOpen, setQuickOtherModalOpen] = useState(false);
+  const [otherCreated, setOtherCreated] = useState(false);
 
   // 2. Strict / Required Fields
   const [fullName, setFullName] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // 3. Optional Contact Info
   const [phone, setPhone] = useState("");
@@ -96,8 +101,8 @@ export default function CreateUserPage() {
         setLoadingAux(false);
       }
     }
-    loadAuxData();
   }, []);
+
 
   // Generate random strong password
   const handleGeneratePassword = () => {
@@ -107,11 +112,10 @@ export default function CreateUserPage() {
       pwd += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     setPassword(pwd);
-    setConfirmPassword(pwd);
+    setShowPassword(true);
     setFieldErrors((prev) => {
       const copy = { ...prev };
       delete copy.password;
-      delete copy.confirmPassword;
       return copy;
     });
   };
@@ -122,9 +126,6 @@ export default function CreateUserPage() {
     setCopiedKey(key);
     setTimeout(() => setCopiedKey(null), 2500);
   };
-
-  const isPasswordMatch = Boolean(password && confirmPassword && password === confirmPassword);
-  const isPasswordMismatch = Boolean(password && confirmPassword && password !== confirmPassword);
 
   // Handle Form Submit with Strict Validation
   const handleSubmit = async (e: React.FormEvent) => {
@@ -145,13 +146,6 @@ export default function CreateUserPage() {
       errors.password = "Password must be at least 6 characters long.";
     } else if (password.length > 128) {
       errors.password = "Password cannot exceed 128 characters.";
-    }
-
-    // 3. Strict Validation: Confirm Password
-    if (!confirmPassword) {
-      errors.confirmPassword = "Confirm Password is required.";
-    } else if (password !== confirmPassword) {
-      errors.confirmPassword = "Passwords do not match. Please verify.";
     }
 
     // 4. Optional Validation: Contact Phone (supports Indian and International numbers)
@@ -281,7 +275,6 @@ export default function CreateUserPage() {
     setSuccessData(null);
     setFullName("");
     setPassword("");
-    setConfirmPassword("");
     setPhone("");
     setPayinMerchantFee("0");
     setPayoutMerchantFee("0");
@@ -464,9 +457,17 @@ export default function CreateUserPage() {
               <select
                 value={role}
                 onChange={(e) => {
-                  setRole(e.target.value);
-                  setErrorMessage("");
-                  setFieldErrors({});
+                  const selectedRole = e.target.value;
+                  if (selectedRole === "OTHER") {
+                    setRole("OTHER");
+                    setQuickOtherModalOpen(true);
+                    setOtherCreated(false);
+                  } else {
+                    setLastSelectedRole(selectedRole);
+                    setRole(selectedRole);
+                    setErrorMessage("");
+                    setFieldErrors({});
+                  }
                 }}
                 className="w-full px-3.5 py-2.5 text-xs bg-white border border-slate-200 rounded-xl text-base-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-semibold transition cursor-pointer shadow-xs"
               >
@@ -478,25 +479,47 @@ export default function CreateUserPage() {
               </select>
             </div>
 
-            {/* 2. Full Name / Username (Strict Required Field - No Email) */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                Full Name / Username <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="text"
-                required
-                value={fullName}
-                onChange={(e) => {
-                  setFullName(e.target.value);
-                  if (fieldErrors.fullName) {
-                    setFieldErrors((prev) => {
-                      const copy = { ...prev };
-                      delete copy.fullName;
-                      return copy;
-                    });
-                  }
-                }}
+            {role === "OTHER" ? (
+              /* When Other role is selected, credentials are auto-generated without manual inputs */
+              <div className="p-6 bg-slate-50 border border-slate-200 rounded-2xl text-center space-y-3">
+                <div className="w-10 h-10 rounded-xl bg-slate-200 text-slate-700 flex items-center justify-center mx-auto">
+                  <UserPlus className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-slate-900">Other User Creation</h4>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    No manual inputs required. All credentials are generated automatically.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setQuickOtherModalOpen(true)}
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold transition cursor-pointer"
+                >
+                  Open Confirmation Modal
+                </button>
+              </div>
+            ) : (
+              <>
+                {/* 2. Full Name / Username (Strict Required Field - No Email) */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                    Full Name / Username <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={fullName}
+                    onChange={(e) => {
+                      setFullName(e.target.value);
+                      if (fieldErrors.fullName) {
+                        setFieldErrors((prev) => {
+                          const copy = { ...prev };
+                          delete copy.fullName;
+                          return copy;
+                        });
+                      }
+                    }}
                 placeholder="e.g. rajesh_kumar or Rajesh Kumar (No email address)"
                 className={`w-full px-3.5 py-2.5 text-xs bg-white border rounded-xl text-base-900 focus:outline-none focus:ring-2 transition shadow-xs font-medium ${
                   fieldErrors.fullName
@@ -512,106 +535,55 @@ export default function CreateUserPage() {
               )}
             </div>
 
-            {/* 3. Password & Confirm Password (Strict Required Fields) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-xs font-semibold text-slate-700">
-                    Password <span className="text-rose-500">*</span>
-                  </label>
-                  <button
-                    type="button"
-                    onClick={handleGeneratePassword}
-                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:text-primary-600 transition"
-                  >
-                    <Sparkles className="w-3 h-3" />
-                    <span>Auto-generate</span>
-                  </button>
-                </div>
-                <div className="relative">
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    required
-                    minLength={6}
-                    value={password}
-                    onChange={(e) => {
-                      setPassword(e.target.value);
-                      if (fieldErrors.password) {
-                        setFieldErrors((prev) => {
-                          const copy = { ...prev };
-                          delete copy.password;
-                          return copy;
-                        });
-                      }
-                    }}
-                    placeholder="Minimum 6 characters"
-                    className={`w-full pl-3.5 pr-10 py-2.5 text-xs bg-white border rounded-xl text-base-900 focus:outline-none focus:ring-2 font-mono transition shadow-xs ${
-                      fieldErrors.password
-                        ? "border-rose-300 focus:ring-rose-200 focus:border-rose-500"
-                        : "border-slate-200 focus:ring-primary/20 focus:border-primary"
-                    }`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600"
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-                {fieldErrors.password && (
-                  <p className="text-[11px] text-rose-600 mt-1">{fieldErrors.password}</p>
-                )}
+            {/* 3. Password (Strict Required Field) */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-semibold text-slate-700">
+                  Password <span className="text-rose-500">*</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={handleGeneratePassword}
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:text-primary-600 transition cursor-pointer"
+                >
+                  <Sparkles className="w-3 h-3" />
+                  <span>Auto-generate</span>
+                </button>
               </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-xs font-semibold text-slate-700">
-                    Confirm Password <span className="text-rose-500">*</span>
-                  </label>
-                  {isPasswordMatch && (
-                    <span className="text-[11px] font-bold text-emerald-600 flex items-center gap-1">
-                      <Check className="w-3 h-3 stroke-[3]" /> Match
-                    </span>
-                  )}
-                  {isPasswordMismatch && (
-                    <span className="text-[11px] font-bold text-rose-600">Mismatch</span>
-                  )}
-                </div>
-                <div className="relative">
-                  <input
-                    type={showConfirmPassword ? "text" : "password"}
-                    required
-                    value={confirmPassword}
-                    onChange={(e) => {
-                      setConfirmPassword(e.target.value);
-                      if (fieldErrors.confirmPassword) {
-                        setFieldErrors((prev) => {
-                          const copy = { ...prev };
-                          delete copy.confirmPassword;
-                          return copy;
-                        });
-                      }
-                    }}
-                    placeholder="Re-enter password"
-                    className={`w-full pl-3.5 pr-10 py-2.5 text-xs bg-white border rounded-xl text-base-900 focus:outline-none focus:ring-2 font-mono transition shadow-xs ${
-                      fieldErrors.confirmPassword || isPasswordMismatch
-                        ? "border-rose-300 focus:ring-rose-200 focus:border-rose-400"
-                        : "border-slate-200 focus:ring-primary/20 focus:border-primary"
-                    }`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600"
-                  >
-                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-                {fieldErrors.confirmPassword && (
-                  <p className="text-[11px] text-rose-600 mt-1">{fieldErrors.confirmPassword}</p>
-                )}
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  minLength={6}
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (fieldErrors.password) {
+                      setFieldErrors((prev) => {
+                        const copy = { ...prev };
+                        delete copy.password;
+                        return copy;
+                      });
+                    }
+                  }}
+                  placeholder="Minimum 6 characters"
+                  className={`w-full pl-3.5 pr-10 py-2.5 text-xs bg-white border rounded-xl text-base-900 focus:outline-none focus:ring-2 font-mono transition shadow-xs ${
+                    fieldErrors.password
+                      ? "border-rose-300 focus:ring-rose-200 focus:border-rose-500"
+                      : "border-slate-200 focus:ring-primary/20 focus:border-primary"
+                  }`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
+              {fieldErrors.password && (
+                <p className="text-[11px] text-rose-600 mt-1">{fieldErrors.password}</p>
+              )}
             </div>
 
             {/* 4. Contact Phone (Optional) */}
@@ -919,9 +891,28 @@ export default function CreateUserPage() {
                 )}
               </button>
             </div>
+            </>
+            )}
           </form>
         )}
       </div>
+
+      {/* Quick Create Confirmation Modal for OTHER role */}
+      <QuickCreateModal
+        isOpen={quickOtherModalOpen}
+        role="OTHER"
+        onClose={() => {
+          setQuickOtherModalOpen(false);
+          if (otherCreated) {
+            router.push("/admin/users");
+          } else {
+            setRole(lastSelectedRole);
+          }
+        }}
+        onSuccess={() => {
+          setOtherCreated(true);
+        }}
+      />
     </PortalLayout>
   );
 }

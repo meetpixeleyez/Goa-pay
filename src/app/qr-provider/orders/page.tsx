@@ -155,6 +155,8 @@ export default function QRProviderOrdersPage() {
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!selectedOrder || verifying || !!verifySuccess) return;
+
     const effectiveUtr = (selectedOrder.customerUtr || verifierUtr || "").trim();
     if (selectedOrder.type === "PAYOUT" && !verifierUtr.trim()) {
       setVerifyError("Please enter the UTR reference number");
@@ -204,11 +206,13 @@ export default function QRProviderOrdersPage() {
       );
       setTimeout(() => {
         setSelectedOrder(null);
+        setScreenshotFile(null);
+        setScreenshotPreview("");
+        setVerifying(false);
         fetchOrders();
-      }, 1200);
+      }, 900);
     } catch (err: any) {
       setVerifyError(err.message);
-    } finally {
       setVerifying(false);
     }
   };
@@ -814,10 +818,11 @@ export default function QRProviderOrdersPage() {
                     <input
                       type="text"
                       required
+                      disabled={verifying || !!verifySuccess}
                       value={verifierUtr}
                       onChange={(e) => setVerifierUtr(e.target.value.trim())}
                       placeholder="Enter 12-digit UTR reference ID"
-                      className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg font-mono font-bold bg-white"
+                      className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg font-mono font-bold bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
                     />
                     <p className="text-[10px] text-slate-500 mt-1">
                       Enter the UTR reference generated after transferring funds to customer.
@@ -831,7 +836,11 @@ export default function QRProviderOrdersPage() {
                     Upload Bank Confirmation Screenshot (Optional)
                   </label>
                   {!screenshotPreview ? (
-                    <label className="flex items-center space-x-2 cursor-pointer p-2.5 border border-dashed border-primary/60 rounded-xl hover:border-primary hover:bg-emerald-50/30 transition bg-white">
+                    <label className={`flex items-center space-x-2 p-2.5 border border-dashed border-primary/60 rounded-xl transition bg-white ${
+                      verifying || !!verifySuccess
+                        ? "opacity-50 cursor-not-allowed"
+                        : "cursor-pointer hover:border-primary hover:bg-emerald-50/30"
+                    }`}>
                       <div className="p-1.5 bg-primary/10 rounded-lg">
                         <Upload className="w-4 h-4 text-primary" />
                       </div>
@@ -841,6 +850,7 @@ export default function QRProviderOrdersPage() {
                       <input
                         type="file"
                         accept="image/*"
+                        disabled={verifying || !!verifySuccess}
                         className="hidden"
                         onChange={(e) => {
                           if (e.target.files && e.target.files[0]) {
@@ -860,11 +870,12 @@ export default function QRProviderOrdersPage() {
                         </span>
                         <button
                           type="button"
+                          disabled={verifying || !!verifySuccess}
                           onClick={() => {
                             setScreenshotFile(null);
                             setScreenshotPreview("");
                           }}
-                          className="text-xs text-red-600 hover:text-red-800 font-bold flex items-center space-x-1 p-1 hover:bg-red-50 rounded"
+                          className="text-xs text-red-600 hover:text-red-800 font-bold flex items-center space-x-1 p-1 hover:bg-red-50 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                           <span>Remove</span>
@@ -880,21 +891,22 @@ export default function QRProviderOrdersPage() {
                 <div className="flex space-x-2 pt-2">
                   <button
                     type="button"
+                    disabled={verifying || !!verifySuccess}
                     onClick={() => {
                       setSelectedOrder(null);
                       setScreenshotFile(null);
                       setScreenshotPreview("");
                     }}
-                    className="w-1/3 py-2 btn-secondary text-xs font-bold"
+                    className="w-1/3 py-2 btn-secondary text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Close
                   </button>
                   {selectedOrder.type === "PAYOUT" && (
                     <button
                       type="button"
-                      disabled={releasingId === selectedOrder.id}
+                      disabled={releasingId === selectedOrder.id || verifying || !!verifySuccess}
                       onClick={() => handleCancelAssignment(selectedOrder.id)}
-                      className="w-1/3 py-2 text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded-xl transition flex items-center justify-center space-x-1"
+                      className="w-1/3 py-2 text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded-xl transition flex items-center justify-center space-x-1 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {releasingId === selectedOrder.id ? (
                         <RefreshCw className="w-3.5 h-3.5 animate-spin text-red-600" />
@@ -906,14 +918,25 @@ export default function QRProviderOrdersPage() {
                   )}
                   <button
                     type="submit"
-                    disabled={verifying}
-                    className={`flex-1 py-2 text-xs font-bold shadow rounded-xl ${
+                    disabled={verifying || !!verifySuccess}
+                    className={`flex-1 py-2 text-xs font-bold shadow rounded-xl disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center space-x-1.5 ${
                       selectedOrder.type === "PAYOUT"
                         ? "bg-sky-600 hover:bg-sky-700 text-white"
                         : "btn-primary"
                     }`}
                   >
-                    {verifying ? "Verifying..." : selectedOrder.type === "PAYOUT" ? "Submit Payout Proof" : "Verify & Settle Deposit"}
+                    {verifying ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        <span>Verifying & Settling...</span>
+                      </>
+                    ) : verifySuccess ? (
+                      <span className="text-emerald-200 font-bold">✓ Settled Successfully</span>
+                    ) : selectedOrder.type === "PAYOUT" ? (
+                      "Submit Payout Proof"
+                    ) : (
+                      "Verify & Settle Deposit"
+                    )}
                   </button>
                 </div>
               </form>

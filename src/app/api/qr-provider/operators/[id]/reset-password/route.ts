@@ -7,7 +7,7 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await requireAuth(["ADMIN", "QR_PROVIDER"]);
+    const session = await requireAuth(["ADMIN", "QR_PROVIDER"], { requireWrite: true });
     const body = await request.json().catch(() => ({}));
 
     const result = await OperatorService.resetPassword(params.id, body.newPassword, session);

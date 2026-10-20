@@ -238,6 +238,8 @@ export default function AdminOrdersPage() {
 
   const handleAdminVerify = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!selectedOrder || verifying || verifySuccess) return;
+
     if (!verifierUtr.trim()) {
       setVerifyError("Please enter the received UTR ID");
       return;
@@ -292,10 +294,10 @@ export default function AdminOrdersPage() {
       setTimeout(() => {
         setSelectedOrder(null);
         fetchOrders();
-      }, 1200);
+        setVerifying(false);
+      }, 900);
     } catch (err: any) {
       setVerifyError(err.message);
-    } finally {
       setVerifying(false);
     }
   };
@@ -1191,10 +1193,11 @@ export default function AdminOrdersPage() {
                     <input
                       type="text"
                       required
+                      disabled={verifying || !!verifySuccess}
                       value={verifierUtr}
                       onChange={(e) => setVerifierUtr(e.target.value)}
                       placeholder="Enter 12-digit UTR reference"
-                      className="w-full px-3.5 py-2.5 text-xs font-mono font-bold border-2 border-base-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary shadow-inner"
+                      className="w-full px-3.5 py-2.5 text-xs font-mono font-bold border-2 border-base-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary shadow-inner disabled:opacity-60"
                     />
                   </div>
 
@@ -1204,7 +1207,9 @@ export default function AdminOrdersPage() {
                       Admin Confirmation Screenshot (Optional)
                     </label>
                     {!verifierScreenshotPreview ? (
-                      <label className="flex items-center space-x-2 cursor-pointer p-2.5 border border-dashed border-primary/60 rounded-xl hover:border-primary hover:bg-emerald-50/30 transition">
+                      <label className={`flex items-center space-x-2 p-2.5 border border-dashed border-primary/60 rounded-xl transition ${
+                        verifying || !!verifySuccess ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:border-primary hover:bg-emerald-50/30"
+                      }`}>
                         <div className="p-1.5 bg-primary/10 rounded-lg">
                           <Upload className="w-4 h-4 text-primary" />
                         </div>
@@ -1212,6 +1217,7 @@ export default function AdminOrdersPage() {
                         <input
                           type="file"
                           accept="image/*"
+                          disabled={verifying || !!verifySuccess}
                           className="hidden"
                           onChange={(e) => {
                             if (e.target.files && e.target.files[0]) {
@@ -1229,14 +1235,16 @@ export default function AdminOrdersPage() {
                             <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
                             <span>Screenshot selected</span>
                           </span>
-                          <button
-                            type="button"
-                            onClick={() => { setVerifierScreenshotFile(null); setVerifierScreenshotPreview(""); }}
-                            className="text-xs text-red-600 hover:text-red-800 font-bold flex items-center space-x-1 p-1 hover:bg-red-50 rounded"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                            <span>Remove</span>
-                          </button>
+                          {!verifying && !verifySuccess && (
+                            <button
+                              type="button"
+                              onClick={() => { setVerifierScreenshotFile(null); setVerifierScreenshotPreview(""); }}
+                              className="text-xs text-red-600 hover:text-red-800 font-bold flex items-center space-x-1 p-1 hover:bg-red-50 rounded"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span>Remove</span>
+                            </button>
+                          )}
                         </div>
                         <a href={verifierScreenshotPreview} target="_blank" rel="noreferrer" className="block rounded-lg overflow-hidden border border-green-300 relative group max-h-36">
                           <img src={verifierScreenshotPreview} alt="Screenshot Preview" className="w-full max-h-36 object-contain bg-black/5" />
@@ -1252,15 +1260,16 @@ export default function AdminOrdersPage() {
                   <div className="flex space-x-3 pt-1">
                     <button
                       type="button"
+                      disabled={verifying || !!verifySuccess}
                       onClick={() => setSelectedOrder(null)}
-                      className="flex-1 py-2.5 text-xs border border-gray-300 rounded-xl text-gray-600 hover:bg-gray-50 font-semibold"
+                      className="flex-1 py-2.5 text-xs border border-gray-300 rounded-xl text-gray-600 hover:bg-gray-50 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
-                      disabled={verifying}
-                      className={`flex-1 py-2.5 text-xs font-bold shadow-md rounded-xl flex items-center justify-center space-x-2 ${
+                      disabled={verifying || !!verifySuccess || !verifierUtr.trim()}
+                      className={`flex-1 py-2.5 text-xs font-bold shadow-md rounded-xl flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed ${
                         isPayout ? "bg-sky-600 hover:bg-sky-700 text-white" : "btn-primary"
                       }`}
                     >
@@ -1268,6 +1277,11 @@ export default function AdminOrdersPage() {
                         <>
                           <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                           <span>Processing...</span>
+                        </>
+                      ) : verifySuccess ? (
+                        <>
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>Settled Successfully</span>
                         </>
                       ) : isPayout ? (
                         <>

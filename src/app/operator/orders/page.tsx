@@ -101,6 +101,8 @@ export default function OperatorOrdersPage() {
 
   // Handle PAYIN Direct Verification
   const handleVerifyDeposit = async (order: any) => {
+    if (verifying || !!verifySuccess) return;
+
     const finalUtr = (verifierUtr || order.customerUtr || "").trim();
     if (!finalUtr) {
       setVerifyError("Customer must submit a UTR first before verification.");
@@ -122,11 +124,15 @@ export default function OperatorOrdersPage() {
       if (!res.ok) throw new Error(data.error || "Verification failed");
 
       setVerifySuccess(`Deposit order #${order.orderNumber} successfully verified & settled!`);
-      setSelectedPayinOrder(null);
-      fetchOrders();
+      setTimeout(() => {
+        setSelectedPayinOrder(null);
+        setVerifierUtr("");
+        setVerifySuccess("");
+        setVerifying(false);
+        fetchOrders();
+      }, 900);
     } catch (err: any) {
       setVerifyError(err.message || "Failed to verify order");
-    } finally {
       setVerifying(false);
     }
   };
@@ -585,22 +591,25 @@ export default function OperatorOrdersPage() {
               <div className="pt-4 border-t border-base-200 flex items-center justify-end space-x-2">
                 <button
                   type="button"
+                  disabled={verifying || !!verifySuccess}
                   onClick={() => setSelectedPayinOrder(null)}
-                  className="px-4 py-2 border border-base-200 rounded-lg text-gray-700 hover:bg-gray-50 font-semibold"
+                  className="px-4 py-2 border border-base-200 rounded-lg text-gray-700 hover:bg-gray-50 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
-                  disabled={verifying || (!selectedPayinOrder.customerUtr && !verifierUtr.trim())}
+                  disabled={verifying || !!verifySuccess || (!selectedPayinOrder.customerUtr && !verifierUtr.trim())}
                   onClick={() => handleVerifyDeposit(selectedPayinOrder)}
-                  className="btn-primary py-2 px-5 font-semibold flex items-center space-x-1.5 shadow"
+                  className="btn-primary py-2 px-5 font-semibold flex items-center space-x-1.5 shadow disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {verifying ? (
                     <>
                       <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-white"></div>
                       <span>Verifying & Settling...</span>
                     </>
+                  ) : verifySuccess ? (
+                    <span className="text-emerald-200 font-bold">✓ Settled Successfully</span>
                   ) : (
                     <>
                       <CheckCircle2 className="w-4 h-4" />

@@ -7,7 +7,7 @@ export async function POST(
   { params }: { params: { orderId: string } }
 ) {
   try {
-    const session = await requireAuth(["QR_PROVIDER", "ADMIN", "OPERATOR"]);
+    const session = await requireAuth(["QR_PROVIDER", "ADMIN", "OPERATOR"], { requireWrite: true });
     const numericOrderId = parseInt(params.orderId, 10);
     if (isNaN(numericOrderId)) {
       return NextResponse.json({ error: "Invalid order ID" }, { status: 400 });

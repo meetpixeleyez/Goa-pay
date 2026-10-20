@@ -42,7 +42,8 @@ export default function AdminAgentsPage() {
 
   // Quick Commission Adjust Modal
   const [commissionUser, setCommissionUser] = useState<any>(null);
-  const [newCommissionRate, setNewCommissionRate] = useState("");
+  const [newPayinAgentFee, setNewPayinAgentFee] = useState("");
+  const [newPayoutAgentFee, setNewPayoutAgentFee] = useState("");
   const [commissionNote, setCommissionNote] = useState("");
   const [adjustingCommission, setAdjustingCommission] = useState(false);
   const [commissionError, setCommissionError] = useState("");
@@ -190,9 +191,10 @@ export default function AdminAgentsPage() {
     setCommissionError("");
     setCommissionSuccess("");
 
-    const rateNum = parseFloat(newCommissionRate);
-    if (isNaN(rateNum) || rateNum < 0 || rateNum > 100) {
-      setCommissionError("Commission rate must be a valid number between 0% and 100%.");
+    const payinNum = parseFloat(newPayinAgentFee);
+    const payoutNum = parseFloat(newPayoutAgentFee);
+    if (isNaN(payinNum) || payinNum < 0 || payinNum > 100 || isNaN(payoutNum) || payoutNum < 0 || payoutNum > 100) {
+      setCommissionError("Payin and Payout rates must be valid numbers between 0% and 100%.");
       setAdjustingCommission(false);
       return;
     }
@@ -202,18 +204,21 @@ export default function AdminAgentsPage() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          commissionPercent: rateNum,
+          payinAgentFee: payinNum,
+          payoutAgentFee: payoutNum,
+          commissionPercent: payinNum,
         }),
       });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to update commission rate");
 
-      setCommissionSuccess("Commission rate updated successfully!");
+      setCommissionSuccess("Commission rates updated successfully!");
       fetchData();
       setTimeout(() => {
         setCommissionUser(null);
-        setNewCommissionRate("");
+        setNewPayinAgentFee("");
+        setNewPayoutAgentFee("");
         setCommissionNote("");
         setCommissionSuccess("");
       }, 1400);
@@ -359,7 +364,6 @@ export default function AdminAgentsPage() {
                 <tr className="bg-base-100/70 border-b border-base-200 text-base-900 font-semibold">
                   <th className="py-3 px-4 w-64 max-w-[260px]">AGENT NAME & CONTACT</th>
                   <th className="py-3 px-4 whitespace-nowrap">TELEGRAM HANDLE</th>
-                  <th className="py-3 px-4 text-center whitespace-nowrap">COMMISSION %</th>
                   <th className="py-3 px-4 text-center whitespace-nowrap">LINKED QR POOLS</th>
                   <th className="py-3 px-4 text-right whitespace-nowrap">WALLET BALANCE</th>
                   <th className="py-3 px-4 text-center whitespace-nowrap">STATUS</th>
@@ -424,12 +428,7 @@ export default function AdminAgentsPage() {
                           )}
                         </td>
 
-                        {/* Commission % */}
-                        <td className="py-3 px-4 text-center">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold font-mono bg-primary/15 text-[#0c4a6e] border border-primary/30">
-                            {Number(a.commissionPercent || 0).toFixed(2)}%
-                          </span>
-                        </td>
+
 
                         {/* Linked QR Pools */}
                         <td className="py-3 px-4 text-center">
@@ -476,20 +475,7 @@ export default function AdminAgentsPage() {
                               <Eye className="w-3.5 h-3.5 text-primary" />
                             </Link>
 
-                            {/* Quick Commission Adjust */}
-                            <button
-                              onClick={() => {
-                                setCommissionUser(a);
-                                setNewCommissionRate((a.commissionPercent || 0).toString());
-                                setCommissionNote("");
-                                setCommissionError("");
-                                setCommissionSuccess("");
-                              }}
-                              className="p-1.5 bg-white border border-base-200 hover:bg-base-100/60 text-gray-700 rounded-lg transition inline-flex items-center shadow-2xs"
-                              title="Quick Commission Adjust"
-                            >
-                              <Sliders className="w-3.5 h-3.5 text-blue-600" />
-                            </button>
+
 
                             {/* Reset Password */}
                             <button
@@ -567,16 +553,9 @@ export default function AdminAgentsPage() {
                     </div>
 
                     {/* Middle Metrics Badges */}
-                    <div className="grid grid-cols-2 gap-2 text-xs pt-1">
-                      <div className="p-2 bg-base-100/40 rounded-lg border border-base-200">
-                        <span className="text-[10px] text-slate-500 block">Commission Rate</span>
-                        <span className="font-bold text-[#0c4a6e] font-mono">
-                          {Number(a.commissionPercent || 0).toFixed(2)}%
-                        </span>
-                      </div>
-
-                      <div className="p-2 bg-base-100/40 rounded-lg border border-base-200">
-                        <span className="text-[10px] text-slate-500 block">Wallet Balance</span>
+                    <div className="text-xs pt-1">
+                      <div className="p-2 bg-base-100/40 rounded-lg border border-base-200 flex items-center justify-between">
+                        <span className="text-[11px] text-slate-500 font-medium">Wallet Balance</span>
                         <span className="font-bold text-base-900 font-mono">
                           ₹{walletBal.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                         </span>
@@ -605,19 +584,6 @@ export default function AdminAgentsPage() {
                           <Eye className="w-3 h-3 text-primary" />
                           <span>View</span>
                         </Link>
-                        <button
-                          onClick={() => {
-                            setCommissionUser(a);
-                            setNewCommissionRate((a.commissionPercent || 0).toString());
-                            setCommissionNote("");
-                            setCommissionError("");
-                            setCommissionSuccess("");
-                          }}
-                          className="px-2.5 py-1 text-xs border border-base-200 bg-white rounded-lg hover:bg-gray-50 text-gray-700 font-semibold inline-flex items-center space-x-1 shadow-2xs"
-                        >
-                          <Sliders className="w-3 h-3 text-blue-600" />
-                          <span>Rate</span>
-                        </button>
                         <button
                           onClick={() => {
                             setResetUser(a);
@@ -714,118 +680,7 @@ export default function AdminAgentsPage() {
         </div>
       </div>
 
-      {/* QUICK COMMISSION ADJUST MODAL (Matching Stitch UI Lines 592-691) */}
-      {commissionUser && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="card-theme max-w-md w-full p-6 rounded-2xl border border-base-200 shadow-2xl relative animate-in fade-in zoom-in-95 duration-150 space-y-4">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-base-200">
-              <div className="flex items-center space-x-2.5">
-                <div className="w-9 h-9 rounded-lg bg-primary/15 text-primary flex items-center justify-center shrink-0">
-                  <Sliders className="w-4 h-4 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-base text-base-900">Quick Commission Adjust</h3>
-                  <p className="text-xs text-base-700">
-                    {commissionUser.name} {commissionUser.telegramId ? `(${commissionUser.telegramId})` : ""}
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setCommissionUser(null)}
-                className="text-gray-400 hover:text-gray-600 p-1 rounded-lg"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
 
-            {commissionError && (
-              <div className="p-2.5 bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg flex items-center space-x-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{commissionError}</span>
-              </div>
-            )}
-
-            {commissionSuccess && (
-              <div className="p-2.5 bg-green-50 border border-green-200 text-green-700 text-xs rounded-lg flex items-center space-x-2">
-                <CheckCircle2 className="w-4 h-4 shrink-0" />
-                <span>{commissionSuccess}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleAdjustCommission} className="space-y-4">
-              {/* Current Tier Info */}
-              <div>
-                <label className="block text-xs font-semibold text-base-900 mb-1">Current Active Tier</label>
-                <div className="p-3 bg-base-100/50 border border-base-200 rounded-lg flex items-center justify-between text-xs">
-                  <span className="font-mono font-bold text-[#0c4a6e]">
-                    {Number(commissionUser.commissionPercent || 0).toFixed(2)}% Net Settlement Rate
-                  </span>
-                  <span className="text-[10px] font-bold bg-primary/20 text-base-900 px-2 py-0.5 rounded">
-                    Active Tier
-                  </span>
-                </div>
-              </div>
-
-              {/* New Rate Input */}
-              <div>
-                <label className="block text-xs font-semibold text-base-900 mb-1">
-                  New Commission Rate (%) *
-                </label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    step="0.05"
-                    min="0"
-                    max="100"
-                    required
-                    value={newCommissionRate}
-                    onChange={(e) => setNewCommissionRate(e.target.value)}
-                    placeholder="e.g. 1.25"
-                    className="w-full px-3 py-2 text-xs font-bold font-mono border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
-                  />
-                  <span className="absolute right-3 top-2 text-slate-500 font-bold text-xs">%</span>
-                </div>
-                <span className="text-[10px] text-slate-500 mt-1 block">
-                  Commission earned automatically on completed liquidity transactions.
-                </span>
-              </div>
-
-              {/* Optional Audit Reason / Note */}
-              <div>
-                <label className="block text-xs font-semibold text-base-900 mb-1">
-                  Audit Reason / Note (Optional)
-                </label>
-                <textarea
-                  rows={2}
-                  value={commissionNote}
-                  onChange={(e) => setCommissionNote(e.target.value)}
-                  placeholder="Enter reason for adjustment (e.g. quarterly volume tier upgrade)..."
-                  className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
-                />
-              </div>
-
-              {/* Modal Actions */}
-              <div className="flex items-center justify-end space-x-2 pt-2 border-t border-base-200">
-                <button
-                  type="button"
-                  onClick={() => setCommissionUser(null)}
-                  className="px-4 py-2 text-xs border border-base-200 rounded-lg text-gray-700 hover:bg-gray-100 transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={adjustingCommission}
-                  className="btn-primary px-4 py-2 text-xs font-bold rounded-lg shadow-sm"
-                >
-                  {adjustingCommission ? "Updating..." : "Confirm & Apply"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* PASSWORD RESET MODAL */}
       {resetUser && (

@@ -3,11 +3,45 @@ import { getSession, AuthSession } from "@/lib/auth";
 import { UserRole } from "@/types";
 import { ApiError } from "@/types/api";
 
+export interface RequireAuthOptions {
+  allowedRoles?: UserRole[];
+  requireWrite?: boolean;
+}
+
+/**
+ * Asserts that the user has write/mutation permissions.
+ * Non-admin users with portalAccess === false cannot create, update, or delete records.
+ */
+export function requireWritePermission(session: AuthSession): void {
+  if (session.role === "ADMIN") return;
+
+  if (session.portalAccess === false) {
+    throw new ApiError(
+      "Portal access is in read-only mode. Create, update, and delete operations are not allowed.",
+      403
+    );
+  }
+}
+
 /**
  * Asserts that the request has a valid authenticated session.
- * Optionally verifies that the session role is within `allowedRoles`.
+ * Optionally verifies that the session role is within `allowedRoles` and checks write permissions.
  */
-export async function requireAuth(allowedRoles?: UserRole[]): Promise<AuthSession> {
+export async function requireAuth(
+  allowedRolesOrOptions?: UserRole[] | RequireAuthOptions,
+  options?: { requireWrite?: boolean }
+): Promise<AuthSession> {
+  let allowedRoles: UserRole[] | undefined;
+  let requireWrite = false;
+
+  if (Array.isArray(allowedRolesOrOptions)) {
+    allowedRoles = allowedRolesOrOptions;
+    requireWrite = options?.requireWrite ?? false;
+  } else if (allowedRolesOrOptions && typeof allowedRolesOrOptions === "object") {
+    allowedRoles = allowedRolesOrOptions.allowedRoles;
+    requireWrite = allowedRolesOrOptions.requireWrite ?? false;
+  }
+
   const session = await getSession();
   if (!session) {
     throw new ApiError("Authentication required. Please sign in.", 401);
@@ -17,6 +51,10 @@ export async function requireAuth(allowedRoles?: UserRole[]): Promise<AuthSessio
     if (!allowedRoles.includes(session.role)) {
       throw new ApiError("Forbidden: You do not have permission to access this resource.", 403);
     }
+  }
+
+  if (requireWrite) {
+    requireWritePermission(session);
   }
 
   return session;

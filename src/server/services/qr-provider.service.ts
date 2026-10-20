@@ -182,7 +182,31 @@ export class QRProviderService {
       throw new ApiError("QR Provider not found", 404);
     }
 
-    return provider;
+    let totalCredit = 0;
+    let totalDebit = 0;
+    if (provider.wallet?.id) {
+      const [creditAgg, debitAgg] = await Promise.all([
+        prisma.ledgerEntry.aggregate({
+          where: { walletId: provider.wallet.id, type: "CR" },
+          _sum: { amount: true },
+        }),
+        prisma.ledgerEntry.aggregate({
+          where: { walletId: provider.wallet.id, type: "DR" },
+          _sum: { amount: true },
+        }),
+      ]);
+      totalCredit = Number((creditAgg._sum.amount || 0).toFixed(2));
+      totalDebit = Number((debitAgg._sum.amount || 0).toFixed(2));
+    }
+
+    const calculatedAvailable = Number(((provider.balance || 0) - (provider.exposure || 0)).toFixed(2));
+
+    return {
+      ...provider,
+      totalCredit,
+      totalDebit,
+      availableBalance: calculatedAvailable,
+    };
   }
 
   /**
@@ -423,13 +447,34 @@ export class QRProviderService {
 
     if (!user) throw new ApiError("QR Provider not found", 404);
 
+    let totalCredit = 0;
+    let totalDebit = 0;
+    if (user.wallet?.id) {
+      const [creditAgg, debitAgg] = await Promise.all([
+        prisma.ledgerEntry.aggregate({
+          where: { walletId: user.wallet.id, type: "CR" },
+          _sum: { amount: true },
+        }),
+        prisma.ledgerEntry.aggregate({
+          where: { walletId: user.wallet.id, type: "DR" },
+          _sum: { amount: true },
+        }),
+      ]);
+      totalCredit = Number((creditAgg._sum.amount || 0).toFixed(2));
+      totalDebit = Number((debitAgg._sum.amount || 0).toFixed(2));
+    }
+
+    const calculatedAvailable = Number(((user.balance || 0) - (user.exposure || 0)).toFixed(2));
+
     return {
       status: user.status,
       portalAccess: user.portalAccess,
       transactionAllowed: user.transactionAllowed,
       balance: user.balance,
       exposure: user.exposure,
-      availableBalance: user.availableBalance,
+      availableBalance: calculatedAvailable,
+      totalCredit,
+      totalDebit,
       feePercent: user.payinQrProviderFee ?? user.qrProviderFee ?? 0.0,
       payinFeePercent: user.payinQrProviderFee ?? user.qrProviderFee ?? 0.0,
       payoutFeePercent: user.payoutQrProviderFee ?? user.qrProviderFee ?? 0.0,

@@ -114,7 +114,45 @@ export async function GET(
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ success: true, user });
+    let totalCredit = 0;
+    let totalDebit = 0;
+    if (user.wallet?.id) {
+      const [creditAgg, debitAgg] = await Promise.all([
+        prisma.ledgerEntry.aggregate({
+          where: { walletId: user.wallet.id, type: "CR" },
+          _sum: { amount: true },
+        }),
+        prisma.ledgerEntry.aggregate({
+          where: { walletId: user.wallet.id, type: "DR" },
+          _sum: { amount: true },
+        }),
+      ]);
+      totalCredit = Number((creditAgg._sum.amount || 0).toFixed(2));
+      totalDebit = Number((debitAgg._sum.amount || 0).toFixed(2));
+    }
+
+    const calculatedAvailable = Number(((user.balance || 0) - (user.exposure || 0)).toFixed(2));
+
+    let userCredit = 0;
+    try {
+      const creditRows: any[] = await prisma.$queryRawUnsafe(
+        `SELECT credit FROM User WHERE id = ?`,
+        user.id
+      );
+      userCredit = Number((creditRows?.[0]?.credit ?? (user as any).credit ?? 0).toFixed(2));
+    } catch {
+      userCredit = Number(((user as any).credit || 0).toFixed(2));
+    }
+
+    const enhancedUser = {
+      ...user,
+      credit: userCredit,
+      totalCredit,
+      totalDebit,
+      availableBalance: calculatedAvailable,
+    };
+
+    return NextResponse.json({ success: true, user: enhancedUser });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
@@ -167,6 +205,17 @@ export async function PUT(
     const userId = parseInt(params.userId, 10);
     if (isNaN(userId)) {
       return NextResponse.json({ error: "Invalid user ID" }, { status: 400 });
+    }
+
+    const existingUser = await prisma.user.findUnique({ where: { id: userId } });
+    if (!existingUser) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+    if (existingUser.role === "OPERATOR") {
+      return NextResponse.json(
+        { error: "Operators are managed exclusively by their parent QR Provider and cannot be modified by Admin." },
+        { status: 403 }
+      );
     }
 
     if (name !== undefined && name.trim()) {
@@ -270,7 +319,7 @@ export async function POST(
     const body = await request.json();
     const { action, amount, description } = body;
 
-    if (action === "ADD_BALANCE") {
+    if (action === "ADD_BALANCE" || action === "DEPOSIT") {
       const numAmount = parseFloat(amount);
       if (isNaN(numAmount) || numAmount <= 0) {
         return NextResponse.json(
@@ -310,12 +359,12 @@ export async function POST(
           data: {
             walletId: wallet.id,
             type: "CR",
-            category: "MANUAL_CREDIT",
+            category: "DEPOSIT",
             amount: numAmount,
             balanceAfter: newBalance,
             description:
               description?.trim() ||
-              `Manual Balance Credit by Admin (${session.email})`,
+              `Manual Balance Deposit by Admin (${session.email})`,
           },
         });
 
@@ -332,7 +381,7 @@ export async function POST(
               amount: numAmount,
               previousBalance: currentBalance,
               newBalance,
-              description: description || "Manual Balance Credit",
+              description: description || "Manual Balance Deposit",
             }),
           },
         });
@@ -340,17 +389,30 @@ export async function POST(
         return { wallet: updatedWallet, user: updatedUser, entry };
       });
 
+      const [creditAgg, debitAgg] = await Promise.all([
+        prisma.ledgerEntry.aggregate({
+          where: { walletId: wallet.id, type: "CR" },
+          _sum: { amount: true },
+        }),
+        prisma.ledgerEntry.aggregate({
+          where: { walletId: wallet.id, type: "DR" },
+          _sum: { amount: true },
+        }),
+      ]);
+
       return NextResponse.json({
         success: true,
         message: `₹${numAmount.toLocaleString("en-IN", {
           minimumFractionDigits: 2,
-        })} added successfully`,
+        })} credited successfully`,
         balance: result.user.balance,
         availableBalance: result.user.availableBalance,
+        totalCredit: Number((creditAgg._sum.amount || 0).toFixed(2)),
+        totalDebit: Number((debitAgg._sum.amount || 0).toFixed(2)),
       });
     }
 
-    if (action === "CLEAR_BALANCE") {
+    if (action === "CLEAR_BALANCE" || action === "WITHDRAWAL" || action === "DEDUCT_BALANCE") {
       const numAmount = parseFloat(amount);
       if (isNaN(numAmount) || numAmount <= 0) {
         return NextResponse.json(
@@ -391,12 +453,12 @@ export async function POST(
           data: {
             walletId: wallet.id,
             type: "DR",
-            category: "MANUAL_DEBIT",
+            category: "WITHDRAWAL",
             amount: numAmount,
             balanceAfter: newBalance,
             description:
               description?.trim() ||
-              `Manual Balance Deduction (Clear Balance) by Admin (${session.email})`,
+              `Manual Balance Withdrawal by Admin (${session.email})`,
           },
         });
 
@@ -413,7 +475,7 @@ export async function POST(
               amount: numAmount,
               previousBalance: currentBalance,
               newBalance,
-              description: description || "Manual Balance Deduction (Clear Balance)",
+              description: description || "Manual Balance Withdrawal",
             }),
           },
         });
@@ -421,18 +483,128 @@ export async function POST(
         return { wallet: updatedWallet, user: updatedUser, entry, clearedAmount: numAmount };
       });
 
+      const [creditAgg, debitAgg] = await Promise.all([
+        prisma.ledgerEntry.aggregate({
+          where: { walletId: wallet.id, type: "CR" },
+          _sum: { amount: true },
+        }),
+        prisma.ledgerEntry.aggregate({
+          where: { walletId: wallet.id, type: "DR" },
+          _sum: { amount: true },
+        }),
+      ]);
+
       return NextResponse.json({
         success: true,
         message: `₹${result.clearedAmount.toLocaleString("en-IN", {
           minimumFractionDigits: 2,
-        })} cleared successfully`,
+        })} debited successfully`,
         balance: result.user.balance,
         availableBalance: result.user.availableBalance,
+        totalCredit: Number((creditAgg._sum.amount || 0).toFixed(2)),
+        totalDebit: Number((debitAgg._sum.amount || 0).toFixed(2)),
+      });
+    }
+
+    if (
+      action === "MANAGE_CREDIT" ||
+      action === "ADD_CREDIT" ||
+      action === "DEDUCT_CREDIT"
+    ) {
+      const numAmount = parseFloat(amount);
+      if (isNaN(numAmount) || numAmount <= 0) {
+        return NextResponse.json(
+          { error: "Amount must be a positive number greater than 0" },
+          { status: 400 }
+        );
+      }
+
+      const creditOperation =
+        action === "ADD_CREDIT"
+          ? "ADD"
+          : action === "DEDUCT_CREDIT"
+          ? "DEDUCT"
+          : (body.creditType || "ADD").toUpperCase(); // "ADD" or "DEDUCT"
+
+      let currentCredit = 0;
+      try {
+        const creditRows: any[] = await prisma.$queryRawUnsafe(
+          `SELECT credit FROM User WHERE id = ?`,
+          user.id
+        );
+        currentCredit = Number((creditRows?.[0]?.credit ?? 0).toFixed(2));
+      } catch {
+        currentCredit = Number(((user as any).credit || 0).toFixed(2));
+      }
+
+      if (creditOperation === "DEDUCT" && numAmount > currentCredit) {
+        return NextResponse.json(
+          { error: `Cannot deduct ₹${numAmount}. Current credit is only ₹${currentCredit.toLocaleString("en-IN", { minimumFractionDigits: 2 })}` },
+          { status: 400 }
+        );
+      }
+
+      const newCredit =
+        creditOperation === "ADD"
+          ? Number((currentCredit + numAmount).toFixed(2))
+          : Math.max(0, Number((currentCredit - numAmount).toFixed(2)));
+
+      // Update user credit directly via SQLite - STRICTLY does NOT touch balance, availableBalance, or wallet!
+      await prisma.$executeRawUnsafe(
+        `UPDATE User SET credit = ? WHERE id = ?`,
+        newCredit,
+        user.id
+      );
+
+      // Audit log
+      await prisma.auditLog.create({
+        data: {
+          userId: session.userId,
+          action: creditOperation === "ADD" ? "MANUAL_ADD_CREDIT" : "MANUAL_DEDUCT_CREDIT",
+          entity: "User",
+          entityId: String(user.id),
+          metadata: JSON.stringify({
+            targetUserId: user.id,
+            targetUserName: user.name,
+            targetUserRole: user.role,
+            creditOperation,
+            amount: numAmount,
+            previousCredit: currentCredit,
+            newCredit,
+            description: description || `Credit ${creditOperation === "ADD" ? "Added" : "Deducted"} by Admin`,
+          }),
+        },
+      });
+
+      // Also create a ledger entry so it appears in Liquidity Ledger & Statement
+      if (wallet?.id) {
+        await prisma.ledgerEntry.create({
+          data: {
+            walletId: wallet.id,
+            type: creditOperation === "ADD" ? "CR" : "DR",
+            category: creditOperation === "ADD" ? "ADD_CREDIT" : "DEDUCT_CREDIT",
+            amount: numAmount,
+            balanceAfter: user.balance,
+            description:
+              description?.trim() ||
+              `Credit ${creditOperation === "ADD" ? "Added (+₹" + numAmount.toFixed(2) + ")" : "Deducted (-₹" + numAmount.toFixed(2) + ")"} by Admin (${session.email})`,
+          },
+        });
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: `₹${numAmount.toLocaleString("en-IN", {
+          minimumFractionDigits: 2,
+        })} credit ${creditOperation === "ADD" ? "added" : "deducted"} successfully`,
+        credit: newCredit,
+        balance: user.balance,
+        availableBalance: user.availableBalance,
       });
     }
 
     return NextResponse.json(
-      { error: "Invalid action. Supported: ADD_BALANCE, CLEAR_BALANCE" },
+      { error: "Invalid action. Supported: ADD_BALANCE, DEPOSIT, CLEAR_BALANCE, WITHDRAWAL, DEDUCT_BALANCE, MANAGE_CREDIT" },
       { status: 400 }
     );
   } catch (error: any) {
@@ -469,6 +641,13 @@ export async function DELETE(
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    if (user.role === "OPERATOR") {
+      return NextResponse.json(
+        { error: "Operators are managed exclusively by their parent QR Provider and cannot be deleted by Admin." },
+        { status: 403 }
+      );
     }
 
     await prisma.$transaction(async (tx) => {

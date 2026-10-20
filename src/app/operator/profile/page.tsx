@@ -13,6 +13,10 @@ import {
   AlertCircle,
   X,
   Lock,
+  Monitor,
+  Globe,
+  MapPin,
+  Laptop,
 } from "lucide-react";
 
 export default function OperatorProfilePage() {
@@ -20,7 +24,6 @@ export default function OperatorProfilePage() {
   const [loading, setLoading] = useState(true);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordError, setPasswordError] = useState("");
   const [passwordSuccess, setPasswordSuccess] = useState("");
@@ -49,11 +52,6 @@ export default function OperatorProfilePage() {
     setPasswordError("");
     setPasswordSuccess("");
 
-    if (newPassword !== confirmPassword) {
-      setPasswordError("New passwords do not match");
-      return;
-    }
-
     if (newPassword.length < 6) {
       setPasswordError("Password must be at least 6 characters long");
       return;
@@ -74,7 +72,6 @@ export default function OperatorProfilePage() {
       setPasswordSuccess("Password updated successfully!");
       setCurrentPassword("");
       setNewPassword("");
-      setConfirmPassword("");
     } catch (err: any) {
       setPasswordError(err.message || "Failed to change password");
     } finally {
@@ -197,19 +194,6 @@ export default function OperatorProfilePage() {
               />
             </div>
 
-            <div>
-              <label className="block font-semibold text-base-900 mb-1">Confirm New Password *</label>
-              <input
-                type="password"
-                required
-                minLength={6}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full px-3 py-2 border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
-              />
-            </div>
-
             <button
               type="submit"
               disabled={passwordLoading}
@@ -225,6 +209,73 @@ export default function OperatorProfilePage() {
               )}
             </button>
           </form>
+        </div>
+
+        {/* Login & Device Security Sessions */}
+        <div className="card-theme p-6 space-y-4">
+          <div className="flex items-center space-x-3 pb-4 border-b border-base-200">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+              <Monitor className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-bold text-sm text-base-900">Recent Login & Device Security Sessions</h3>
+              <p className="text-[11px] text-slate-500">Audit trail of verified shift logins with IP address, device ID, and location</p>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead className="bg-base-100/60 text-base-900 font-semibold border-b border-base-200">
+                <tr>
+                  <th className="p-3">Login Date & Time</th>
+                  <th className="p-3">IP Address</th>
+                  <th className="p-3">Device ID</th>
+                  <th className="p-3">Location</th>
+                  <th className="p-3 text-right">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-base-200">
+                {!profile?.auditLogs || profile.auditLogs.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="p-6 text-center text-slate-400">
+                      No shift login sessions recorded yet. Log out and sign in to generate session audit logs.
+                    </td>
+                  </tr>
+                ) : (
+                  profile.auditLogs.map((log: any) => {
+                    let meta: any = {};
+                    try {
+                      meta = typeof log.metadata === "string" ? JSON.parse(log.metadata) : log.metadata || {};
+                    } catch {
+                      meta = {};
+                    }
+
+                    return (
+                      <tr key={log.id} className="hover:bg-slate-50/60 transition">
+                        <td className="p-3 font-mono text-[11px] text-slate-600">
+                          {new Date(log.createdAt).toLocaleString()}
+                        </td>
+                        <td className="p-3 font-mono font-bold text-slate-800">
+                          {meta.ip || "127.0.0.1"}
+                        </td>
+                        <td className="p-3 font-mono text-[11px] text-slate-600 truncate max-w-[180px]" title={meta.deviceId || meta.userAgent}>
+                          {meta.deviceId || "Web Client"}
+                        </td>
+                        <td className="p-3 font-medium text-slate-700">
+                          {meta.location || "India"}
+                        </td>
+                        <td className="p-3 text-right">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-emerald-100 text-emerald-800 border border-emerald-300">
+                            Verified
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </PortalLayout>

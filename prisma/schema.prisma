@@ -51,6 +51,7 @@ model User {
   balance         Float     @default(0.0)
   exposure        Float     @default(0.0)
   availableBalance Float    @default(0.0)
+  credit          Float     @default(0.0)
   qrProviderFee   Float     @default(3.0) // Percentage, e.g. 3%
 
   // Operator relationship (QR Provider <-> Operators)

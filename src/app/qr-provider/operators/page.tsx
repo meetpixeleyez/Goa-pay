@@ -26,6 +26,7 @@ import {
   Layers,
   Lock,
   Eye,
+  EyeOff,
   Power,
   Copy,
   Check,
@@ -33,10 +34,13 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronDown,
+  Sparkles,
 } from "lucide-react";
 import { isValidPhone, normalizePhone } from "@/lib/validation";
+import QuickCreateModal from "@/components/users/QuickCreateModal";
 
 export default function QRProviderOperatorsPage() {
+  const [quickCreateOpen, setQuickCreateOpen] = useState(false);
   const [operators, setOperators] = useState<any[]>([]);
   const [qrCodes, setQrCodes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,22 +59,6 @@ export default function QRProviderOperatorsPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  // Create Operator Modal State
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [createName, setCreateName] = useState("");
-  const [createEmail, setCreateEmail] = useState("");
-  const [createPhone, setCreatePhone] = useState("");
-  const [createPassword, setCreatePassword] = useState("");
-  const [createSelectedQrIds, setCreateSelectedQrIds] = useState<string[]>([]);
-  const [submittingCreate, setSubmittingCreate] = useState(false);
-  const [createError, setCreateError] = useState("");
-
-  // Assign QRs Modal State
-  const [assignModalOperator, setAssignModalOperator] = useState<any | null>(null);
-  const [assignSelectedQrIds, setAssignSelectedQrIds] = useState<string[]>([]);
-  const [submittingAssign, setSubmittingAssign] = useState(false);
-  const [assignError, setAssignError] = useState("");
-
   // Edit Operator Modal State
   const [editModalOperator, setEditModalOperator] = useState<any | null>(null);
   const [editName, setEditName] = useState("");
@@ -84,7 +72,8 @@ export default function QRProviderOperatorsPage() {
   // Reset Password Modal State
   const [resetModalOperator, setResetModalOperator] = useState<any | null>(null);
   const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showResetPassword, setShowResetPassword] = useState(false);
+  const [copiedResetPass, setCopiedResetPass] = useState(false);
   const [submittingReset, setSubmittingReset] = useState(false);
   const [resetError, setResetError] = useState("");
 
@@ -148,66 +137,6 @@ export default function QRProviderOperatorsPage() {
     fetchData();
   }, [fetchData]);
 
-  const handleCreateSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmittingCreate(true);
-    setCreateError("");
-
-    try {
-      await qrProvidersApi.createOperator({
-        name: createName,
-        email: createEmail,
-        phone: createPhone,
-        password: createPassword,
-        qrProviderId: "", // Will be assigned to session user on server
-        assignedQrIds: createSelectedQrIds,
-      });
-
-      setSuccess(`Operator "${createName}" created successfully!`);
-      setShowCreateModal(false);
-      setCreateName("");
-      setCreateEmail("");
-      setCreatePhone("");
-      setCreatePassword("");
-      setCreateSelectedQrIds([]);
-      fetchData();
-    } catch (err: any) {
-      setCreateError(err.message || "Failed to create operator");
-    } finally {
-      setSubmittingCreate(false);
-    }
-  };
-
-  const openAssignModal = (op: any) => {
-    setAssignModalOperator(op);
-    const currentAssigned = op.assignedQRCodes ? op.assignedQRCodes.map((q: any) => q.id) : [];
-    setAssignSelectedQrIds(currentAssigned);
-    setAssignError("");
-  };
-
-  const handleAssignSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!assignModalOperator) return;
-
-    setSubmittingAssign(true);
-    setAssignError("");
-
-    try {
-      await qrProvidersApi.assignQRCodesToOperator(
-        assignModalOperator.id,
-        assignSelectedQrIds
-      );
-
-      setSuccess(`QR codes assigned to operator "${assignModalOperator.name}" successfully!`);
-      setAssignModalOperator(null);
-      fetchData();
-    } catch (err: any) {
-      setAssignError(err.message || "Failed to update QR assignments");
-    } finally {
-      setSubmittingAssign(false);
-    }
-  };
-
   const openEditModal = (op: any) => {
     setEditModalOperator(op);
     setEditName(op.name);
@@ -250,21 +179,32 @@ export default function QRProviderOperatorsPage() {
     }
   };
 
+  const handleGenerateResetPassword = () => {
+    const chars = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    let pass = "";
+    for (let i = 0; i < 10; i++) {
+      pass += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setNewPassword(pass);
+    setShowResetPassword(true);
+    if (navigator?.clipboard) {
+      navigator.clipboard.writeText(pass);
+      setCopiedResetPass(true);
+      setTimeout(() => setCopiedResetPass(false), 2500);
+    }
+  };
+
   const openResetModal = (op: any) => {
     setResetModalOperator(op);
     setNewPassword("");
-    setConfirmPassword("");
+    setShowResetPassword(false);
+    setCopiedResetPass(false);
     setResetError("");
   };
 
   const handleResetSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!resetModalOperator) return;
-
-    if (newPassword !== confirmPassword) {
-      setResetError("Passwords do not match");
-      return;
-    }
 
     if (newPassword.length < 6) {
       setResetError("Password must be at least 6 characters long");
@@ -348,13 +288,13 @@ export default function QRProviderOperatorsPage() {
             <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
             <span className="hidden sm:inline">Refresh</span>
           </button>
-          <Link
-            href="/qr-provider/operators/create"
-            className="btn-primary flex items-center space-x-1.5 text-xs py-2 px-3.5 shadow"
+          <button
+            onClick={() => setQuickCreateOpen(true)}
+            className="btn-primary flex items-center space-x-1.5 text-xs py-2 px-3.5 shadow cursor-pointer"
           >
             <UserPlus className="w-4 h-4" />
-            <span>Create Operator</span>
-          </Link>
+            <span>+ Create Operator</span>
+          </button>
         </div>
       }
     >
@@ -385,7 +325,7 @@ export default function QRProviderOperatorsPage() {
         )}
 
         {/* Overview Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="card-theme p-4 flex items-center space-x-3">
             <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center text-[#0c4a6e]">
               <Users className="w-5 h-5" />
@@ -408,20 +348,6 @@ export default function QRProviderOperatorsPage() {
               </span>
               <span className="text-xl font-extrabold text-emerald-700">
                 {activeCount}
-              </span>
-            </div>
-          </div>
-
-          <div className="card-theme p-4 flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center text-blue-700">
-              <QrCode className="w-5 h-5" />
-            </div>
-            <div>
-              <span className="text-[11px] font-bold text-base-700 uppercase tracking-wider block">
-                Assigned QR Codes
-              </span>
-              <span className="text-xl font-extrabold text-blue-700">
-                {assignedQrsCount} / {qrCodes.length}
               </span>
             </div>
           </div>
@@ -475,8 +401,8 @@ export default function QRProviderOperatorsPage() {
               </p>
               {!search && statusFilter === "ALL" && (
                 <button
-                  onClick={() => setShowCreateModal(true)}
-                  className="btn-primary text-xs py-2 px-4 inline-flex items-center space-x-1.5 shadow"
+                  onClick={() => setQuickCreateOpen(true)}
+                  className="btn-primary text-xs py-2 px-4 inline-flex items-center space-x-1.5 shadow cursor-pointer"
                 >
                   <UserPlus className="w-4 h-4" />
                   <span>Create First Operator</span>
@@ -489,7 +415,7 @@ export default function QRProviderOperatorsPage() {
                 <thead className="bg-base-100/60 border-b border-base-200 text-base-700 uppercase text-[10px] tracking-wider font-extrabold">
                   <tr>
                     <th className="py-3 px-4 w-64 max-w-[260px]">Operator Details</th>
-                    <th className="py-3 px-4 min-w-[180px] max-w-[240px]">Assigned QR Codes</th>
+                    <th className="py-3 px-4 min-w-[180px] max-w-[240px]">Active QR</th>
                     <th className="py-3 px-4 whitespace-nowrap">Account Status</th>
                     <th className="py-3 px-4 whitespace-nowrap">Permissions</th>
                     <th className="py-3 px-4 whitespace-nowrap">Created Date</th>
@@ -517,13 +443,6 @@ export default function QRProviderOperatorsPage() {
                               >
                                 <span className="truncate block">{op.name}</span>
                               </Link>
-                              <div
-                                className="text-[11px] text-gray-600 flex items-center space-x-1 mt-0.5 font-mono"
-                                title={op.email}
-                              >
-                                <Mail className="w-3 h-3 text-gray-400 shrink-0" />
-                                <span className="truncate block flex-1">{op.email}</span>
-                              </div>
                               <div className="text-[11px] flex items-center space-x-1 mt-0.5">
                                 <Phone className="w-3 h-3 text-gray-400 shrink-0" />
                                 <span className={op.phone ? "font-mono text-gray-700 font-semibold truncate block max-w-[150px]" : "text-gray-400 italic"}>
@@ -534,68 +453,37 @@ export default function QRProviderOperatorsPage() {
                           </div>
                         </td>
 
-                        {/* Assigned QR Codes */}
+                        {/* Active QR Code */}
                         <td className="py-3.5 px-4">
-                          {assignedList.length === 0 ? (
-                            <span className="text-[11px] text-sky-700 bg-sky-50 border border-sky-200 px-2 py-0.5 rounded-md font-semibold inline-flex items-center space-x-1">
-                              <AlertCircle className="w-3 h-3 text-sky-500" />
-                              <span>0 Assigned (Idle)</span>
-                            </span>
-                          ) : (
-                            <div className="space-y-1 max-w-xs">
-                              {/* Clean clickable QR code icons with title=qr.upiId */}
-                              <div className="flex flex-wrap items-center gap-1.5">
-                                {assignedList.slice(0, 4).map((qr: any) => (
-                                  <button
-                                    key={qr.id}
-                                    type="button"
-                                    onClick={() =>
-                                      setSelectedQrDetails({
-                                        ...qr,
-                                        operatorName: op.name,
-                                        operatorEmail: op.email,
-                                      })
-                                    }
-                                    className="inline-flex items-center justify-center p-1.5 rounded-lg bg-primary/15 text-[#0c4a6e] hover:bg-primary hover:text-white border border-primary/30 transition shadow-2xs group cursor-pointer"
-                                    title={qr.upiId}
-                                  >
-                                    <QrCode className="w-4 h-4 transition-transform group-hover:scale-110" />
-                                  </button>
-                                ))}
-                                {assignedList.length > 4 && (
-                                  <button
-                                    type="button"
-                                    onClick={() => openAssignModal(op)}
-                                    className="inline-flex items-center px-1.5 py-1 rounded-md text-[10px] font-bold bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300 transition"
-                                    title={assignedList.slice(4).map((q: any) => q.upiId).join(", ")}
-                                  >
-                                    +{assignedList.length - 4} more
-                                  </button>
-                                )}
-                              </div>
-                              <div className="text-[10px] text-slate-500 flex items-center space-x-1">
-                                <span>{assignedList.length} Total QR{assignedList.length > 1 ? "s" : ""}</span>
-                                <span>•</span>
-                                <span>{assignedList.filter((q: any) => q.isActive).length} Active</span>
-                              </div>
-                            </div>
-                          )}
-                          <div className="flex items-center space-x-3 mt-1.5 whitespace-nowrap">
-                            <button
-                              onClick={() => openAssignModal(op)}
-                              className="text-[11px] text-[#0c4a6e] font-bold hover:underline flex items-center space-x-1"
-                            >
-                              <Layers className="w-3 h-3 shrink-0" />
-                              <span>Manage QRs</span>
-                            </button>
-                            <Link
-                              href={`/qr-provider/operators/${op.id}`}
-                              className="text-[11px] text-primary font-bold hover:underline flex items-center space-x-1"
-                            >
-                              <Eye className="w-3 h-3 shrink-0" />
-                              <span>View Info</span>
-                            </Link>
-                          </div>
+                          {(() => {
+                            const activeQr = (op.assignedQRCodes || []).find((q: any) => q.isActive);
+                            if (!activeQr) {
+                              return (
+                                <span className="text-[11px] text-slate-400 italic">
+                                  No Active QR
+                                </span>
+                              );
+                            }
+                            return (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setSelectedQrDetails({
+                                    ...activeQr,
+                                    operatorName: op.name,
+                                    operatorEmail: op.email,
+                                  })
+                                }
+                                className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 transition shadow-2xs group cursor-pointer max-w-full"
+                                title={`Active UPI: ${activeQr.upiId}`}
+                              >
+                                <QrCode className="w-3.5 h-3.5 text-emerald-600 transition-transform group-hover:scale-110 shrink-0" />
+                                <span className="font-mono font-bold text-xs truncate max-w-[150px]">
+                                  {activeQr.upiId}
+                                </span>
+                              </button>
+                            );
+                          })()}
                         </td>
 
                         {/* Status */}
@@ -663,13 +551,7 @@ export default function QRProviderOperatorsPage() {
                             >
                               <Eye className="w-3.5 h-3.5" />
                             </Link>
-                            <button
-                              onClick={() => openAssignModal(op)}
-                              className="p-1.5 rounded bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200"
-                              title="Assign / Unassign QR Codes"
-                            >
-                              <QrCode className="w-3.5 h-3.5" />
-                            </button>
+
                             <button
                               onClick={() => openResetModal(op)}
                               className="p-1.5 rounded bg-sky-50 text-sky-700 hover:bg-sky-100 border border-sky-200"
@@ -785,283 +667,7 @@ export default function QRProviderOperatorsPage() {
         </div>
       </div>
 
-      {/* CREATE OPERATOR MODAL */}
-      {showCreateModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-base-200 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-4 border-b border-base-200 mb-4">
-              <div className="flex items-center space-x-2">
-                <div className="w-9 h-9 rounded-lg bg-primary text-white flex items-center justify-center font-bold">
-                  <UserPlus className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-base text-base-900">Create New Operator</h3>
-                  <p className="text-[11px] text-base-700">
-                    Create a sub-user credentials under your QR provider account
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowCreateModal(false)}
-                className="text-gray-400 hover:text-gray-600 p-1"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
 
-            {createError && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-center space-x-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{createError}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleCreateSubmit} className="space-y-4 text-xs">
-              <div>
-                <label className="block font-semibold text-base-900 mb-1">Operator Full Name *</label>
-                <input
-                  type="text"
-                  required
-                  value={createName}
-                  onChange={(e) => setCreateName(e.target.value)}
-                  placeholder="e.g. Rahul Sharma"
-                  className="w-full px-3 py-2 border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-
-              <div>
-                <label className="block font-semibold text-base-900 mb-1">Email Address (Login ID) *</label>
-                <input
-                  type="email"
-                  required
-                  value={createEmail}
-                  onChange={(e) => setCreateEmail(e.target.value)}
-                  placeholder="e.g. rahul.operator@example.com"
-                  className="w-full px-3 py-2 border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-
-              <div>
-                <label className="block font-semibold text-base-900 mb-1">Phone Number (Optional)</label>
-                <input
-                  type="text"
-                  value={createPhone}
-                  onChange={(e) => setCreatePhone(e.target.value)}
-                  placeholder="e.g. 9876543210"
-                  className="w-full px-3 py-2 border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-
-              <div>
-                <label className="block font-semibold text-base-900 mb-1">Password *</label>
-                <input
-                  type="password"
-                  required
-                  minLength={6}
-                  value={createPassword}
-                  onChange={(e) => setCreatePassword(e.target.value)}
-                  placeholder="•••••••• (Min 6 characters)"
-                  className="w-full px-3 py-2 border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-
-              {/* Assign Initial QR Codes */}
-              <div>
-                <label className="block font-semibold text-base-900 mb-1">
-                  Assign Collection QR Codes (Optional)
-                </label>
-                <p className="text-[11px] text-base-700 mb-2">
-                  Select which of your collection QR codes this operator can monitor and fulfill orders for:
-                </p>
-
-                {qrCodes.length === 0 ? (
-                  <div className="p-3 bg-sky-50 border border-sky-200 text-sky-800 rounded-lg text-[11px]">
-                    You have no collection QR codes created yet. You can assign QR codes later.
-                  </div>
-                ) : (
-                  <div className="space-y-2 max-h-44 overflow-y-auto border border-base-200 rounded-lg p-2.5 bg-gray-50">
-                    {qrCodes.map((qr) => {
-                      const isSelected = createSelectedQrIds.includes(qr.id);
-                      return (
-                        <label
-                          key={qr.id}
-                          className={`flex items-center justify-between p-2 rounded-lg border cursor-pointer transition ${
-                            isSelected
-                              ? "bg-white border-primary shadow-sm"
-                              : "bg-white border-gray-200 hover:bg-gray-100"
-                          }`}
-                        >
-                          <div className="flex items-center space-x-2.5">
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setCreateSelectedQrIds([...createSelectedQrIds, qr.id]);
-                                } else {
-                                  setCreateSelectedQrIds(createSelectedQrIds.filter((id) => id !== qr.id));
-                                }
-                              }}
-                              className="rounded border-base-200 text-primary focus:ring-primary h-4 w-4"
-                            />
-                            <div>
-                              <div className="font-bold text-base-900">{qr.upiId}</div>
-                              <div className="text-[10px] text-slate-500">
-                                {qr.bankName || "Bank"} &bull; {qr.accountHolderName || "Holder"}
-                              </div>
-                            </div>
-                          </div>
-                          {qr.operator && (
-                            <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded font-semibold">
-                              Currently: {qr.operator.name}
-                            </span>
-                          )}
-                        </label>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              <div className="pt-4 border-t border-base-200 flex items-center justify-end space-x-2">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2 border border-base-200 rounded-lg text-gray-700 hover:bg-gray-50 font-semibold"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submittingCreate}
-                  className="btn-primary py-2 px-5 font-semibold flex items-center space-x-1.5 shadow"
-                >
-                  {submittingCreate ? (
-                    <>
-                      <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-white"></div>
-                      <span>Creating...</span>
-                    </>
-                  ) : (
-                    <span>Create Operator</span>
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ASSIGN / UNASSIGN QR CODES MODAL */}
-      {assignModalOperator && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-base-200">
-            <div className="flex items-center justify-between pb-4 border-b border-base-200 mb-4">
-              <div className="flex items-center space-x-2">
-                <div className="w-9 h-9 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
-                  <QrCode className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-base text-base-900">Manage Assigned QR Codes</h3>
-                  <p className="text-[11px] text-base-700">
-                    Operator: <strong className="text-base-900">{assignModalOperator.name}</strong>
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setAssignModalOperator(null)}
-                className="text-gray-400 hover:text-gray-600 p-1"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {assignError && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-center space-x-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{assignError}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleAssignSubmit} className="space-y-4 text-xs">
-              <p className="text-base-700">
-                Select which collection QR codes this operator can access and process orders for. Orders matching these QR codes will appear directly on their dashboard:
-              </p>
-
-              <div className="space-y-2 max-h-56 overflow-y-auto border border-base-200 rounded-lg p-2.5 bg-gray-50">
-                {qrCodes.length === 0 ? (
-                  <div className="text-slate-500 text-center py-4">No collection QR codes available.</div>
-                ) : (
-                  qrCodes.map((qr) => {
-                    const isChecked = assignSelectedQrIds.includes(qr.id);
-                    const isAssignedToOther = qr.operatorId && qr.operatorId !== assignModalOperator.id;
-
-                    return (
-                      <label
-                        key={qr.id}
-                        className={`flex items-center justify-between p-2.5 rounded-lg border cursor-pointer transition ${
-                          isChecked
-                            ? "bg-white border-primary shadow-sm"
-                            : "bg-white border-gray-200 hover:bg-gray-100"
-                        }`}
-                      >
-                        <div className="flex items-center space-x-2.5">
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setAssignSelectedQrIds([...assignSelectedQrIds, qr.id]);
-                              } else {
-                                setAssignSelectedQrIds(assignSelectedQrIds.filter((id) => id !== qr.id));
-                              }
-                            }}
-                            className="rounded border-base-200 text-primary focus:ring-primary h-4 w-4"
-                          />
-                          <div>
-                            <div className="font-bold text-base-900">{qr.upiId}</div>
-                            <div className="text-[10px] text-slate-500">
-                              {qr.bankName || "Bank"} &bull; {qr.accountHolderName || "Holder"}
-                            </div>
-                          </div>
-                        </div>
-                        {isAssignedToOther && (
-                          <span className="text-[9px] bg-sky-50 text-sky-800 border border-sky-200 px-1.5 py-0.5 rounded font-semibold">
-                            Reassigns from {qr.operator?.name || "Other"}
-                          </span>
-                        )}
-                      </label>
-                    );
-                  })
-                )}
-              </div>
-
-              <div className="pt-4 border-t border-base-200 flex items-center justify-end space-x-2">
-                <button
-                  type="button"
-                  onClick={() => setAssignModalOperator(null)}
-                  className="px-4 py-2 border border-base-200 rounded-lg text-gray-700 hover:bg-gray-50 font-semibold"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submittingAssign}
-                  className="btn-primary py-2 px-5 font-semibold flex items-center space-x-1.5 shadow"
-                >
-                  {submittingAssign ? (
-                    <>
-                      <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-white"></div>
-                      <span>Saving...</span>
-                    </>
-                  ) : (
-                    <span>Save Assignments</span>
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* EDIT OPERATOR MODAL */}
       {editModalOperator && (
@@ -1080,8 +686,8 @@ export default function QRProviderOperatorsPage() {
                       Sub-Operator
                     </span>
                   </div>
-                  <p className="text-xs text-base-700 mt-0.5 font-medium truncate" title={editModalOperator.email}>
-                    Operator: <span className="font-mono text-gray-700 font-semibold">{editModalOperator.email}</span>
+                  <p className="text-xs text-base-700 mt-0.5 font-medium truncate">
+                    Operator: <strong className="text-base-900 font-bold">{editModalOperator.name}</strong>
                   </p>
                 </div>
               </div>
@@ -1135,24 +741,6 @@ export default function QRProviderOperatorsPage() {
                   />
                 </div>
                 <span className="text-[10px] text-gray-400 mt-0.5 block">10-digit Indian mobile or International format with country code (e.g. +1...)</span>
-              </div>
-
-              {/* Login Email (Readonly) */}
-              <div className="min-w-0">
-                <label className="block text-xs font-bold text-base-900 mb-1.5">
-                  Email Address (Login ID)
-                </label>
-                <div className="relative min-w-0">
-                  <Mail className="w-4 h-4 text-gray-400 absolute left-3.5 top-3 shrink-0" />
-                  <input
-                    type="email"
-                    disabled
-                    value={editModalOperator.email}
-                    title={editModalOperator.email}
-                    className="w-full min-w-0 pl-10 pr-3.5 py-2.5 text-xs border border-base-200/80 rounded-xl bg-gray-50 text-slate-500 font-mono font-medium cursor-not-allowed select-all truncate"
-                  />
-                </div>
-                <span className="text-[10px] text-gray-400 mt-1 block">Login ID cannot be modified once registered.</span>
               </div>
 
               {/* Account Controls & Permissions Switch Box */}
@@ -1339,29 +927,40 @@ export default function QRProviderOperatorsPage() {
 
             <form onSubmit={handleResetSubmit} className="space-y-4 text-xs">
               <div>
-                <label className="block font-semibold text-base-900 mb-1">New Password *</label>
-                <input
-                  type="password"
-                  required
-                  minLength={6}
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="•••••••• (Min 6 characters)"
-                  className="w-full px-3 py-2 border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-
-              <div>
-                <label className="block font-semibold text-base-900 mb-1">Confirm New Password *</label>
-                <input
-                  type="password"
-                  required
-                  minLength={6}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full px-3 py-2 border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                />
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="font-semibold text-base-900">New Password *</label>
+                  <button
+                    type="button"
+                    onClick={handleGenerateResetPassword}
+                    className="text-[11px] font-bold text-sky-700 hover:text-sky-900 flex items-center space-x-1 cursor-pointer"
+                    title="Auto-generate a strong password"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-primary" />
+                    <span>Auto Generate</span>
+                    {copiedResetPass && (
+                      <span className="text-emerald-700 font-bold ml-1">(Copied!)</span>
+                    )}
+                  </button>
+                </div>
+                <div className="relative">
+                  <input
+                    type={showResetPassword ? "text" : "password"}
+                    required
+                    minLength={6}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="•••••••• (Min 6 characters)"
+                    className="w-full pl-3 pr-10 py-2 border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary font-mono text-xs"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowResetPassword(!showResetPassword)}
+                    className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600 transition cursor-pointer"
+                    title={showResetPassword ? "Hide password" : "Show password"}
+                  >
+                    {showResetPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
 
               <div className="pt-4 border-t border-base-200 flex items-center justify-end space-x-2">
@@ -1528,7 +1127,7 @@ export default function QRProviderOperatorsPage() {
                 </div>
                 <div>
                   <h3 className="font-bold text-base text-base-900">UPI ID Details</h3>
-                  <p className="text-xs text-base-700 mt-0.5">Assigned QR &amp; UPI Account Information</p>
+                  <p className="text-xs text-base-700 mt-0.5">Active QR &amp; UPI Account Information</p>
                 </div>
               </div>
               <button
@@ -1664,6 +1263,14 @@ export default function QRProviderOperatorsPage() {
           </div>
         </div>
       )}
+
+      {/* Quick Create Operator Modal */}
+      <QuickCreateModal
+        isOpen={quickCreateOpen}
+        onClose={() => setQuickCreateOpen(false)}
+        role="OPERATOR"
+        onSuccess={() => fetchData()}
+      />
     </PortalLayout>
   );
 }

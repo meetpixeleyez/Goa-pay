@@ -86,11 +86,7 @@ export default function AgentProfilePage() {
           </div>
         </div>
 
-        {/* Read-only commission display */}
-        <div className="p-4 bg-[#ffffff] border border-base-200 rounded-lg text-xs mb-6">
-          <span className="text-slate-500 block">Configured Commission Rate</span>
-          <span className="font-bold text-base text-primary">{profile?.commissionPercent}%</span>
-        </div>
+
 
         {error && (
           <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg flex items-center space-x-2">
@@ -120,7 +116,7 @@ export default function AgentProfilePage() {
 
           <div>
             <label className="block text-xs font-semibold text-base-900 mb-1">
-              Contact Phone (Indian or International)
+              Contact Phone
             </label>
             <input
               type="tel"

@@ -95,8 +95,17 @@ export class QRCodeService {
         throw new ApiError("Target Provider ID is required when created by Admin", 400);
       }
       targetProviderId = typeof input.providerId === "number" ? input.providerId : parseInt(input.providerId, 10);
+    } else if (user.role === "OPERATOR") {
+      const op = await prisma.user.findUnique({
+        where: { id: numericSessionUserId },
+        select: { qrProviderId: true },
+      });
+      if (!op || !op.qrProviderId) {
+        throw new ApiError("Operator is not linked to any QR Provider", 400);
+      }
+      targetProviderId = op.qrProviderId;
     } else if (user.role !== "QR_PROVIDER") {
-      throw new ApiError("Only QR Providers and Admins can create QR Codes", 403);
+      throw new ApiError("Only QR Providers, Operators, and Admins can create QR Codes", 403);
     }
 
     const cleanUpi = input.upiId?.trim() || "";
@@ -110,7 +119,9 @@ export class QRCodeService {
 
     // Verify operator belongs to this QR Provider if assigned
     let assignedOperatorId: number | null = null;
-    if (input.operatorId) {
+    if (user.role === "OPERATOR") {
+      assignedOperatorId = numericSessionUserId;
+    } else if (input.operatorId) {
       const numOpId = typeof input.operatorId === "number" ? input.operatorId : parseInt(input.operatorId, 10);
       const op = await prisma.user.findFirst({
         where: { id: numOpId, role: "OPERATOR" },
@@ -130,6 +141,15 @@ export class QRCodeService {
         : `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi://pay?pa=${encodeURIComponent(cleanUpi)}`;
 
     const activeBool = input.isActive !== undefined ? Boolean(input.isActive) : true;
+
+    // SINGLE ACTIVE QR CODE PER OPERATOR RULE:
+    // If assigned to an operator and active, deactivate all other QR codes for this operator
+    if (assignedOperatorId && activeBool) {
+      await prisma.qRCode.updateMany({
+        where: { operatorId: assignedOperatorId },
+        data: { isActive: false, status: "INACTIVE" },
+      });
+    }
 
     return await prisma.qRCode.create({
       data: {
@@ -154,12 +174,27 @@ export class QRCodeService {
 
   /**
    * Toggles QR Code activation status.
+   * If activating a QR code belonging to an operator, automatically deactivates all other QR codes of that operator.
    */
   static async toggleQRCodeStatus(id: number | string, user: SessionUser) {
     const numericId = typeof id === "number" ? id : parseInt(id, 10);
     const qrCode = await this.getQRCodeById(numericId, user);
 
     const newActiveState = !qrCode.isActive;
+
+    // SINGLE ACTIVE QR CODE PER OPERATOR RULE:
+    // If activating this QR code and it belongs to an operator, deactivate all other QR codes for this operator
+    if (newActiveState && qrCode.operatorId) {
+      const numOpId = typeof qrCode.operatorId === "number" ? qrCode.operatorId : parseInt(String(qrCode.operatorId), 10);
+      await prisma.qRCode.updateMany({
+        where: {
+          operatorId: numOpId,
+          id: { not: numericId },
+        },
+        data: { isActive: false, status: "INACTIVE" },
+      });
+    }
+
     return await prisma.qRCode.update({
       where: { id: numericId },
       data: {
@@ -175,11 +210,12 @@ export class QRCodeService {
 
   /**
    * Updates an existing QR Code record.
+   * If updating an operator QR code to active, automatically deactivates all other QR codes of that operator.
    */
   static async updateQRCode(id: number | string, input: UpdateQRCodeInput, user: SessionUser) {
     const numericId = typeof id === "number" ? id : parseInt(id, 10);
     const numericSessionUserId = typeof user.userId === "number" ? user.userId : parseInt(user.userId as any, 10);
-    await this.getQRCodeById(numericId, user);
+    const qrCode = await this.getQRCodeById(numericId, user);
 
     const data: any = {};
     if (input.upiId !== undefined) {
@@ -215,6 +251,22 @@ export class QRCodeService {
         }
         data.operatorId = op.id;
       }
+    }
+
+    const targetOperatorId = data.operatorId !== undefined ? data.operatorId : qrCode.operatorId;
+    const targetIsActive = data.isActive !== undefined ? data.isActive : qrCode.isActive;
+
+    // SINGLE ACTIVE QR CODE PER OPERATOR RULE:
+    // If setting active on an operator's QR code, deactivate all other QR codes for this operator
+    if (targetOperatorId && targetIsActive) {
+      const numTargetOpId = typeof targetOperatorId === "number" ? targetOperatorId : parseInt(String(targetOperatorId), 10);
+      await prisma.qRCode.updateMany({
+        where: {
+          operatorId: numTargetOpId,
+          id: { not: numericId },
+        },
+        data: { isActive: false, status: "INACTIVE" },
+      });
     }
 
     return await prisma.qRCode.update({

@@ -11,6 +11,8 @@ export async function GET() {
       success: true,
       balance: walletData.balance,
       commissionPercent: walletData.commissionPercent,
+      payinAgentFee: (walletData as any).payinAgentFee,
+      payoutAgentFee: (walletData as any).payoutAgentFee,
       entries: walletData.entries,
     });
   } catch (error) {

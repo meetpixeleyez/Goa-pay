@@ -28,10 +28,14 @@ import {
   Upload,
   Trash2,
   PlusCircle,
+  MinusCircle,
+  ArrowDownLeft,
+  ArrowUpRight,
   Edit3,
   Users,
   User,
   Eye,
+  CreditCard,
 } from "lucide-react";
 import {
   isValidEmail,
@@ -57,14 +61,14 @@ export default function QRProviderDetailPage() {
   const [error, setError] = useState("");
 
   // Tab state
-  const [activeTab, setActiveTab] = useState<"info" | "qrcodes" | "operators" | "orders" | "ledger">(
-    tabParam === "qrcodes" || tabParam === "operators" || tabParam === "orders" || tabParam === "ledger"
+  const [activeTab, setActiveTab] = useState<"info" | "operators" | "orders" | "ledger">(
+    tabParam === "operators" || tabParam === "orders" || tabParam === "ledger"
       ? (tabParam as any)
       : "info"
   );
 
   useEffect(() => {
-    if (tabParam && ["info", "qrcodes", "operators", "orders", "ledger"].includes(tabParam)) {
+    if (tabParam && ["info", "operators", "orders", "ledger"].includes(tabParam)) {
       setActiveTab(tabParam as any);
     }
   }, [tabParam]);
@@ -101,6 +105,15 @@ export default function QRProviderDetailPage() {
   const [clearError, setClearError] = useState("");
   const [clearSuccess, setClearSuccess] = useState("");
 
+  // Manage Credit States (Add / Deduct Credit Modal)
+  const [showCreditModal, setShowCreditModal] = useState(false);
+  const [creditType, setCreditType] = useState<"ADD" | "DEDUCT">("ADD");
+  const [creditAmount, setCreditAmount] = useState("");
+  const [creditDescription, setCreditDescription] = useState("");
+  const [managingCredit, setManagingCredit] = useState(false);
+  const [creditError, setCreditError] = useState("");
+  const [creditSuccess, setCreditSuccess] = useState("");
+
   // Add QR Code modal/inline state
   const [showAddQr, setShowAddQr] = useState(false);
   const [newUpiId, setNewUpiId] = useState("");
@@ -131,12 +144,7 @@ export default function QRProviderDetailPage() {
   // Individual QR toggling state
   const [togglingQrId, setTogglingQrId] = useState<string | null>(null);
 
-  // Reset Password Modal
-  const [showResetModal, setShowResetModal] = useState(false);
-  const [newPassword, setNewPassword] = useState("");
-  const [resetting, setResetting] = useState(false);
-  const [resetSuccess, setResetSuccess] = useState("");
-  const [resetError, setResetError] = useState("");
+
 
   const fetchProvider = async () => {
     try {
@@ -459,39 +467,13 @@ export default function QRProviderDetailPage() {
     }
   };
 
-  // Reset Password
-  const handleResetPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setResetting(true);
-    setResetSuccess("");
-    setResetError("");
 
-    try {
-      const res = await fetch(`/api/admin/users/${providerId}/reset-password`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ newPassword }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to reset password");
-
-      setResetSuccess(data.message || "Password updated successfully!");
-      setTimeout(() => {
-        setShowResetModal(false);
-        setNewPassword("");
-        setResetSuccess("");
-      }, 1500);
-    } catch (err: any) {
-      setResetError(err.message || "Failed to reset password");
-    } finally {
-      setResetting(false);
-    }
-  };
 
   // Handle Add Balance
   const handleAddBalance = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (addingBalance || addBalanceSuccess) return;
+
     const num = parseFloat(addAmount);
     if (isNaN(num) || num <= 0) {
       setAddBalanceError("Please enter a valid amount greater than ₹0");
@@ -521,10 +503,10 @@ export default function QRProviderDetailPage() {
         setAddAmount("");
         setAddDescription("");
         setAddBalanceSuccess("");
-      }, 1200);
+        setAddingBalance(false);
+      }, 900);
     } catch (err: any) {
       setAddBalanceError(err.message || "Failed to add balance");
-    } finally {
       setAddingBalance(false);
     }
   };
@@ -532,6 +514,8 @@ export default function QRProviderDetailPage() {
   // Handle Clear Balance (Withdrawal)
   const handleClearBalance = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (clearingBalance || clearSuccess) return;
+
     const num = parseFloat(clearAmount);
     if (isNaN(num) || num <= 0) {
       setClearError("Please enter a valid amount greater than ₹0");
@@ -562,11 +546,55 @@ export default function QRProviderDetailPage() {
         setClearAmount("");
         setClearDescription("");
         setClearSuccess("");
-      }, 1200);
+        setClearingBalance(false);
+      }, 900);
     } catch (err: any) {
       setClearError(err.message || "Failed to clear balance");
-    } finally {
       setClearingBalance(false);
+    }
+  };
+
+  // Handle Manage Credit (Add or Deduct Credit)
+  const handleManageCredit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (managingCredit || creditSuccess) return;
+
+    const num = parseFloat(creditAmount);
+    if (isNaN(num) || num <= 0) {
+      setCreditError("Please enter a valid amount greater than ₹0");
+      return;
+    }
+
+    setManagingCredit(true);
+    setCreditError("");
+    setCreditSuccess("");
+
+    try {
+      const res = await fetch(`/api/admin/users/${providerId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "MANAGE_CREDIT",
+          creditType,
+          amount: num,
+          description: creditDescription.trim() || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update credit");
+
+      setCreditSuccess(data.message || `Credit ${creditType === "ADD" ? "added" : "deducted"} successfully!`);
+      await fetchProvider();
+      setTimeout(() => {
+        setShowCreditModal(false);
+        setCreditAmount("");
+        setCreditDescription("");
+        setCreditSuccess("");
+        setManagingCredit(false);
+      }, 900);
+    } catch (err: any) {
+      setCreditError(err.message || "Failed to update credit");
+      setManagingCredit(false);
     }
   };
 
@@ -602,97 +630,218 @@ export default function QRProviderDetailPage() {
   const assignedOrders = provider.providerOrders || [];
   const walletEntries = provider.wallet?.entries || [];
 
+  // Calculate Credit & Debit totals from wallet entries if not explicitly provided
+  const totalCredit =
+    provider.totalCredit !== undefined
+      ? Number(provider.totalCredit)
+      : walletEntries
+          .filter((e: any) => e.type === "CR")
+          .reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0);
+
+  const totalDebit =
+    provider.totalDebit !== undefined
+      ? Number(provider.totalDebit)
+      : walletEntries
+          .filter((e: any) => e.type === "DR")
+          .reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0);
+
+  // Strictly enforce the rule: Available Balance = Balance - Exposure
+  const calculatedAvailableBalance = Number(
+    ((provider.balance || 0) - (provider.exposure || 0)).toFixed(2)
+  );
+
+  const getEntryTypeBadge = (entry: any) => {
+    const cat = (entry.category || "").toUpperCase();
+    const desc = (entry.description || "").toLowerCase();
+    const type = (entry.type || "").toUpperCase();
+
+    if (cat === "ADD_CREDIT" || type === "ADD_CREDIT" || desc.includes("credit added") || desc.includes("manual_add_credit")) {
+      return {
+        label: "+ ADD CREDIT",
+        className: "bg-sky-100 text-sky-800",
+        amountPrefix: "+",
+        amountColor: "text-sky-700",
+        displayCategory: "ADD_CREDIT",
+      };
+    }
+
+    if (cat === "DEDUCT_CREDIT" || type === "DEDUCT_CREDIT" || desc.includes("credit deducted") || desc.includes("manual_deduct_credit")) {
+      return {
+        label: "- DEDUCT CREDIT",
+        className: "bg-amber-100 text-amber-800",
+        amountPrefix: "-",
+        amountColor: "text-amber-700",
+        displayCategory: "DEDUCT_CREDIT",
+      };
+    }
+
+    if (cat === "DEPOSIT" || cat === "MANUAL_DEPOSIT" || cat === "MANUAL_CREDIT" || desc.includes("deposit")) {
+      return {
+        label: "+ DEPOSIT",
+        className: "bg-green-100 text-green-800",
+        amountPrefix: "+",
+        amountColor: "text-green-700",
+        displayCategory: "DEPOSIT",
+      };
+    }
+
+    if (cat === "WITHDRAWAL" || cat === "MANUAL_WITHDRAWAL" || cat === "MANUAL_DEBIT" || desc.includes("withdrawal")) {
+      return {
+        label: "- WITHDRAWAL",
+        className: "bg-red-100 text-red-800",
+        amountPrefix: "-",
+        amountColor: "text-red-700",
+        displayCategory: "WITHDRAWAL",
+      };
+    }
+
+    if (type === "CR") {
+      return {
+        label: "+ DEPOSIT",
+        className: "bg-green-100 text-green-800",
+        amountPrefix: "+",
+        amountColor: "text-green-700",
+        displayCategory: entry.category || "DEPOSIT",
+      };
+    }
+
+    return {
+      label: "- WITHDRAWAL",
+      className: "bg-red-100 text-red-800",
+      amountPrefix: "-",
+      amountColor: "text-red-700",
+      displayCategory: entry.category || "WITHDRAWAL",
+    };
+  };
+
   return (
     <PortalLayout
       portal="admin"
-      title={provider.name}
-      subtitle="Dedicated QR Provider Liquidity Profile, QR Code Management, and Orders"
+      title={
+        <div className="flex items-center gap-3">
+          <div className="size-10 sm:size-11 rounded-xl bg-primary/15 text-primary flex items-center justify-center font-bold text-base sm:text-lg border border-primary/30 shrink-0">
+            {provider.name.charAt(0).toUpperCase()}
+          </div>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-lg sm:text-xl font-bold text-slate-800">{provider.name}</span>
+              <span
+                className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+                  provider.status === "ACTIVE"
+                    ? "bg-green-50 text-green-600 border-green-200"
+                    : "bg-red-50 text-red-600 border-red-200"
+                }`}
+              >
+                {provider.status}
+              </span>
+              <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-[10px] font-mono">
+                ID: {provider.id}
+              </span>
+            </div>
+            {(provider.phone || provider.agent) && (
+              <div className="flex items-center gap-2 sm:gap-3 text-xs text-slate-500 mt-0.5 flex-wrap">
+                {provider.phone && (
+                  <span className="flex items-center gap-1 font-mono">
+                    <Phone className="size-3 text-slate-400" />
+                    <span>{provider.phone}</span>
+                  </span>
+                )}
+                {provider.agent && (
+                  <span className="flex items-center gap-1 text-slate-600">
+                    <span className="font-semibold text-slate-500">Agent:</span>
+                    <span>{provider.agent.name}</span>
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      }
       actions={
         <div className="flex items-center space-x-2">
           <button
-            onClick={() => {
-              setShowResetModal(true);
-              setNewPassword("");
-              setResetError("");
-              setResetSuccess("");
-            }}
-            className="px-3 py-1.5 border border-base-200 rounded-lg text-xs font-semibold bg-white hover:bg-gray-50 text-gray-700 flex items-center space-x-1.5 shadow-2xs"
+            onClick={fetchProvider}
+            disabled={loading}
+            className="p-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 transition cursor-pointer"
+            title="Refresh Provider Info"
           >
-            <KeyRound className="w-3.5 h-3.5" />
-            <span>Reset Password</span>
+            <RefreshCw className={`size-3.5 ${loading ? "animate-spin text-primary" : ""}`} />
           </button>
           <Link
-            href="/admin/qr-providers"
+            href="/admin/users"
             className="btn-secondary text-xs py-1.5 px-3 flex items-center space-x-1.5 shadow-2xs"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Back to Providers</span>
+            <span>Back to Users</span>
           </Link>
         </div>
       }
     >
       <div className="space-y-6">
-        {/* Header Metadata Card */}
-        <div className="card-theme p-5 sm:p-6 shadow-sm border border-slate-200">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center space-x-3">
-              <div className="size-12 rounded-xl bg-primary/15 text-slate-700 flex items-center justify-center font-bold text-lg border border-primary/30 shrink-0">
-                {provider.name.charAt(0).toUpperCase()}
-              </div>
-              <div>
-                <div className="flex items-center space-x-2 flex-wrap gap-y-1">
-                  <h1 className="text-lg sm:text-xl font-bold text-slate-700">{provider.name}</h1>
-                  <span
-                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${provider.status === "ACTIVE"
-                      ? "bg-green-50 text-green-500 border-green-200"
-                      : "bg-red-50 text-red-500 border-red-200"
-                      }`}
-                  >
-                    {provider.status}
-                  </span>
-                  <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-[10px] font-mono">
-                    ID: {provider.id}
-                  </span>
-                </div>
-                <div className="flex items-center space-x-4 text-xs text-base-700 mt-1 flex-wrap gap-y-1">
-                  <span className="flex items-center space-x-1">
-                    <Mail className="size-3.5 text-slate-400" />
-                    <span>{provider.email}</span>
-                  </span>
-                 {/*  {provider.telegramId && (
-                    <span className="flex items-center space-x-1 font-mono text-gray-600">
-                      <Send className="w-3.5 h-3.5 text-blue-500" />
-                      <span>{provider.telegramId}</span>
-                    </span>
-                  )} */}
-                  {provider.agent && (
-                    <span className="flex items-center space-x-1 text-slate-600">
-                      <span className="font-semibold text-slate-600">Agent:</span>
-                      <span>{provider.agent.name}</span>
-                    </span>
-                  )}
-                  <span className="flex items-center space-x-1">
-                    <Calendar className="w-3.5 h-3.5 text-gray-400" />
-                    <span>Joined {new Date(provider.createdAt).toLocaleDateString()}</span>
-                  </span>
-                </div>
-              </div>
-            </div>
 
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={fetchProvider}
-                className="p-2 border border-slate-200 rounded-lg text-base-900 hover:bg-primary-50 hover:border-primary-100 hover:text-primary transition"
-                title="Refresh Provider Info"
-              >
-                <RefreshCw className="size-3.5" />
-              </button>
-            </div>
+        {/* Toolbar: Deposit | Withdrawal | Manage Credit (Just above the cards) */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200 shadow-xs">
+          <div>
+            <span className="text-xs font-bold text-slate-800 uppercase tracking-wider block">
+              Liquidity & Credit Overview
+            </span>
+            <span className="text-[11px] text-slate-500">
+              Manage operational liquidity pool and independent credit line
+            </span>
+          </div>
+
+          <div className="flex items-center flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setShowAddBalanceModal(true);
+                setAddAmount("");
+                setAddDescription("");
+                setAddBalanceError("");
+                setAddBalanceSuccess("");
+              }}
+              className="px-3.5 py-2 rounded-lg text-xs font-bold bg-primary text-white hover:bg-primary-600 shadow-xs transition flex items-center space-x-1.5 cursor-pointer"
+            >
+              <PlusCircle className="w-3.5 h-3.5" />
+              <span>+ Deposit</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setShowClearModal(true);
+                setClearAmount("");
+                setClearDescription("");
+                setClearError("");
+                setClearSuccess("");
+              }}
+              className="px-3.5 py-2 rounded-lg text-xs font-bold bg-white border border-rose-200 text-rose-700 hover:bg-rose-50 shadow-xs transition flex items-center space-x-1.5 cursor-pointer"
+            >
+              <MinusCircle className="w-3.5 h-3.5 text-rose-600" />
+              <span>- Withdrawal</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setShowCreditModal(true);
+                setCreditAmount("");
+                setCreditDescription("");
+                setCreditType("ADD");
+                setCreditError("");
+                setCreditSuccess("");
+              }}
+              className="px-3.5 py-2 rounded-lg text-xs font-bold bg-white border border-emerald-300 text-emerald-700 hover:bg-emerald-50 shadow-xs transition flex items-center space-x-1.5 cursor-pointer"
+            >
+              <CreditCard className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Manage Credit</span>
+            </button>
           </div>
         </div>
 
-        {/* 3 Summary Metric Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {/* 4 Summary Metric Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          {/* Card 1: Total Balance */}
           <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col justify-between gap-2 hover:shadow-md transition">
             <div className="flex items-center justify-between">
               <span className="text-xs text-slate-500 font-medium">Total Balance</span>
@@ -700,15 +849,55 @@ export default function QRProviderDetailPage() {
                 <Wallet className="size-4 fill-primary-500/20" />
               </div>
             </div>
-            <div className={`text-xl font-bold ${(provider.balance || 0) < 0 ? "text-red-500" : "text-slate-800"
-              }`}>
+            <div
+              className={`text-lg sm:text-xl font-bold truncate ${
+                (provider.balance || 0) < 0 ? "text-red-500" : "text-slate-800"
+              }`}
+            >
               {(provider.balance || 0) < 0
-                ? `-₹${Math.abs(provider.balance || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                : `₹${(provider.balance || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                ? `-₹${Math.abs(provider.balance || 0).toLocaleString("en-IN", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}`
+                : `₹${(provider.balance || 0).toLocaleString("en-IN", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}`}
             </div>
-            <span className="text-[12px] text-slate-500 block">Allocated liquidity pool</span>
+            <span className="text-[11px] text-slate-500 block truncate" title="Allocated pool (+ Deposit / - Withdrawal)">
+              Allocated liquidity pool
+            </span>
           </div>
 
+          {/* Card 2: Available Balance */}
+          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col justify-between gap-2 hover:shadow-md transition">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-slate-500 font-medium">Available Balance</span>
+              <div className="size-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                <ShieldCheck className="size-4 fill-emerald-500/20" />
+              </div>
+            </div>
+            <div
+              className={`text-lg sm:text-xl font-bold truncate ${
+                calculatedAvailableBalance < 0 ? "text-red-500" : "text-primary"
+              }`}
+            >
+              {calculatedAvailableBalance < 0
+                ? `-₹${Math.abs(calculatedAvailableBalance).toLocaleString("en-IN", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}`
+                : `₹${calculatedAvailableBalance.toLocaleString("en-IN", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}`}
+            </div>
+            <span className="text-[11px] text-emerald-700 font-medium block truncate" title="• Available Balance = Balance - Exposure">
+              • Balance - Exposure
+            </span>
+          </div>
+
+          {/* Card 3: Locked Exposure */}
           <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col justify-between gap-2 hover:shadow-md transition">
             <div className="flex items-center justify-between">
               <span className="text-xs text-slate-500 font-medium">Locked Exposure</span>
@@ -716,26 +905,34 @@ export default function QRProviderDetailPage() {
                 <Lock className="size-4 fill-orange-500/20" />
               </div>
             </div>
-            <div className="text-xl font-bold text-orange-500">
-              ₹{(provider.exposure || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            <div className="text-lg sm:text-xl font-bold text-orange-500 truncate">
+              ₹{(provider.exposure || 0).toLocaleString("en-IN", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
             </div>
-            <span className="text-[12px] text-slate-700 block">Active pending sessions</span>
+            <span className="text-[11px] text-slate-700 block truncate" title="Active pending sessions">
+              Active pending sessions
+            </span>
           </div>
 
+          {/* Card 4: Credit */}
           <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col justify-between gap-2 hover:shadow-md transition">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-slate-500 font-medium">Available Balance</span>
-              <div className="size-8 rounded-lg bg-primary-100 text-primary flex items-center justify-center">
-                <ShieldCheck className="size-4 fill-primary-500/20" />
+              <span className="text-xs text-slate-500 font-medium">Credit</span>
+              <div className="size-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                <CreditCard className="size-4" />
               </div>
             </div>
-            <div className={`text-xl font-bold ${(provider.availableBalance || 0) < 0 ? "text-red-500" : "text-primary"
-              }`}>
-              {(provider.availableBalance || 0) < 0
-                ? `-₹${Math.abs(provider.availableBalance || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                : `₹${(provider.availableBalance || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+            <div className="text-lg sm:text-xl font-bold text-emerald-700 truncate">
+              ₹{(Number(provider.credit || 0)).toLocaleString("en-IN", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
             </div>
-            <span className="text-[12px] text-slate-500 block">Ready for incoming deposits</span>
+            <span className="text-[11px] text-emerald-600 font-medium block truncate" title="Independent credit line (separate from balance)">
+              Assigned credit line
+            </span>
           </div>
         </div>
 
@@ -752,16 +949,7 @@ export default function QRProviderDetailPage() {
             <span>Provider Info & Settings</span>
           </button>
 
-          <button
-            onClick={() => setActiveTab("qrcodes")}
-            className={`py-2.5 px-4 text-xs font-bold border-b-2 transition flex items-center space-x-1.5 shrink-0 ${activeTab === "qrcodes"
-              ? "border-primary text-slate-900"
-              : "border-transparent text-slate-500 hover:text-slate-700"
-              }`}
-          >
-            <QrCode className="size-3.5" />
-            <span>UPI QR Codes ({qrCodes.length})</span>
-          </button>
+
 
           <button
             onClick={() => setActiveTab("operators")}
@@ -1089,56 +1277,6 @@ export default function QRProviderDetailPage() {
 
             {/* Right Card: Exposure & Safeguards */}
             <div className="lg:col-span-4 space-y-4">
-              {/* Wallet Balance Actions Card */}
-              <div className="card-theme p-5 shadow-sm border border-base-200">
-                <div className="flex items-center justify-between pb-3 border-b border-base-200 mb-4">
-                  <div className="flex items-center space-x-2">
-                    <Wallet className="w-4 h-4 text-primary" />
-                    <h4 className="font-bold text-[16px] text-slate-700">Wallet Balance Management</h4>
-                  </div>
-                  <span className={`text-[11px] font-mono font-bold ${(provider.balance || 0) < 0 ? "text-red-600" : "text-base-900"
-                    }`}>
-                    {(provider.balance || 0) < 0
-                      ? `-₹${Math.abs(provider.balance || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                      : `₹${(provider.balance || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                  </span>
-                </div>
-
-                <p className="text-xs text-base-700 mb-4 leading-relaxed">
-                  Add liquidity funds or clear balance (withdrawal) from this QR Provider's wallet.
-                </p>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowAddBalanceModal(true);
-                      setAddAmount("");
-                      setAddDescription("");
-                      setAddBalanceError("");
-                      setAddBalanceSuccess("");
-                    }}
-                    className="btn-primary text-xs py-2 px-2 flex items-center justify-center space-x-1.5 shadow-xs cursor-pointer w-full"
-                  >
-                    <PlusCircle className="w-3.5 h-3.5 shrink-0" />
-                    <span className="truncate">Add Balance</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowClearModal(true);
-                      setClearAmount("");
-                      setClearDescription("");
-                      setClearError("");
-                      setClearSuccess("");
-                    }}
-                    className="px-2 py-2 text-xs bg-white border border-base-200 text-base-900 hover:bg-base-100/60 rounded-lg font-semibold flex items-center justify-center shadow-xs transition cursor-pointer w-full"
-                  >
-                    <span className="truncate">Clear Balance (Withdrawal)</span>
-                  </button>
-                </div>
-              </div>
-
               <div className="card-theme p-5 shadow-sm border border-base-200">
                 <div className="flex items-center space-x-2 pb-2 border-b border-base-200 mb-3">
                   <ShieldCheck className="w-4 h-4 text-primary" />
@@ -1146,255 +1284,25 @@ export default function QRProviderDetailPage() {
                 </div>
                 <div className="space-y-2.5 text-xs text-base-700">
                   <p>
-                    • Available Balance = <b>Balance - Exposure</b>.
+                    • <b>Available Balance = Total Balance - Locked Exposure</b> (Strictly enforced at all times).
                   </p>
                   <p>
-                    • Whenever a customer initiates a deposit session, exposure is locked for <b>5 minutes (300s)</b>.
+                    • <b>+ Deposit</b>: Immediately adds funds to Total Balance and Available Balance, logging an atomic Credit (CR) ledger entry.
                   </p>
                   <p>
-                    • If payment completes via Dual-UTR verification, exposure is deducted from total balance. If session expires or is rejected, exposure is released instantly.
+                    • <b>- Withdrawal</b>: Deducts funds from Total Balance and Available Balance, logging an atomic Debit (DR) ledger entry.
+                  </p>
+                  <p>
+                    • <b>Manage Credit</b>: Adjusts credit line independently without affecting liquidity balance.
+                  </p>
+                  <p>
+                    • <b>Atomic Exposure Lock</b>: Whenever a customer initiates a deposit session, exposure is locked for <b>5 minutes (300s)</b>, reducing available balance.
+                  </p>
+                  <p>
+                    • <b>Dual-UTR Settlement</b>: If payment completes, exposure is released, deposit order is fulfilled, and provider fees are credited atomically.
                   </p>
                 </div>
               </div>
-            </div>
-          </div>
-        )}
-
-        {/* TAB 2: UPI QR CODES */}
-        {activeTab === "qrcodes" && (
-          <div className="space-y-4">
-            <div className="card-theme p-4 shadow-sm border border-base-200 flex items-center justify-between">
-              <div>
-                <h3 className="font-bold text-[16px] text-base-900">Active Collection QR Codes</h3>
-                <p className="text-xs text-base-700">UPI payment QR endpoints assigned to {provider.name}</p>
-              </div>
-              <button
-                onClick={() => setShowAddQr(!showAddQr)}
-                className="btn-primary text-xs py-1.5 px-3 flex items-center space-x-1.5 shadow-xs"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>{showAddQr ? "Close Form" : "Add New QR Code"}</span>
-              </button>
-            </div>
-
-            {qrSuccess && (
-              <div className="p-3 bg-green-50 border border-green-200 text-green-700 text-xs rounded-lg flex items-center space-x-2">
-                <Check className="w-4 h-4" />
-                <span>{qrSuccess}</span>
-              </div>
-            )}
-
-            {/* Add QR Code inline form */}
-            {showAddQr && (
-              <div className="card-theme p-5 shadow-sm border border-base-200 animate-in fade-in duration-200">
-                <h4 className="font-bold text-xs text-base-900 mb-3">Register New UPI QR Code</h4>
-                {qrError && (
-                  <div className="mb-3 p-2.5 bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg">
-                    {qrError}
-                  </div>
-                )}
-                <form onSubmit={handleAddQr} className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-base-900 mb-1">UPI ID (VPA) *</label>
-                    <input
-                      type="text"
-                      required
-                      value={newUpiId}
-                      onChange={(e) => setNewUpiId(e.target.value)}
-                      placeholder="provider.pay@icici"
-                      className="w-full px-3 py-1.5 text-xs border border-base-200 rounded-lg font-mono"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-base-900 mb-1">Account Holder Name</label>
-                    <input
-                      type="text"
-                      value={newAccountHolder}
-                      onChange={(e) => setNewAccountHolder(e.target.value)}
-                      placeholder="FastPay Liquidity"
-                      className="w-full px-3 py-1.5 text-xs border border-base-200 rounded-lg"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-base-900 mb-1">Bank Name</label>
-                    <input
-                      type="text"
-                      value={newBankName}
-                      onChange={(e) => setNewBankName(e.target.value)}
-                      placeholder="ICICI Bank"
-                      className="w-full px-3 py-1.5 text-xs border border-base-200 rounded-lg"
-                    />
-                  </div>
-                  {/* QR Image Upload Section */}
-                  <div className="md:col-span-3 pt-3 border-t border-base-200/60">
-                    <label className="block text-xs font-semibold text-base-900 mb-1.5">
-                      Upload QR Code Image (or leave empty to auto-generate dynamic UPI QR)
-                    </label>
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                      <input
-                        type="file"
-                        ref={qrFileInputRef}
-                        accept="image/*"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) handleQrImageUpload(file);
-                        }}
-                        className="hidden"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => qrFileInputRef.current?.click()}
-                        disabled={uploadingQrImage}
-                        className="px-3.5 py-2 text-xs bg-white border border-base-200 hover:bg-base-100/40 text-base-900 font-semibold rounded-lg flex items-center space-x-1.5 transition shadow-xs shrink-0 cursor-pointer"
-                      >
-                        <Upload className="w-3.5 h-3.5 text-primary" />
-                        <span>{uploadingQrImage ? "Uploading..." : "Choose QR Image File"}</span>
-                      </button>
-
-                      {newQrImageUrl && (
-                        <div className="flex items-center space-x-2 text-xs text-green-700 bg-green-50 px-3 py-1.5 rounded-lg border border-green-200">
-                          <Check className="w-3.5 h-3.5 text-green-600 shrink-0" />
-                          <div className="flex items-center space-x-2">
-                            <img
-                              src={newQrImageUrl}
-                              alt="Uploaded QR Preview"
-                              className="w-8 h-8 object-contain rounded border border-green-300 bg-white"
-                            />
-                            <span className="font-mono text-[11px] truncate max-w-xs">{newQrImageUrl}</span>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => setNewQrImageUrl("")}
-                            className="text-red-500 hover:text-red-700 ml-1 p-1 hover:bg-red-50 rounded cursor-pointer"
-                            title="Remove image"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      )}
-
-                      {qrUploadError && <span className="text-xs text-red-600">{qrUploadError}</span>}
-                    </div>
-                  </div>
-
-                  <div className="md:col-span-3 flex justify-end space-x-2 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowAddQr(false);
-                        setNewQrImageUrl("");
-                        setQrUploadError("");
-                      }}
-                      className="px-3 py-1 text-xs border border-base-200 rounded-lg hover:bg-gray-100"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={addingQr}
-                      className="btn-primary px-4 py-1 text-xs font-bold"
-                    >
-                      {addingQr ? "Adding..." : "Save QR Code"}
-                    </button>
-                  </div>
-                </form>
-              </div>
-            )}
-
-            {/* QR Codes Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {qrCodes.length === 0 ? (
-                <div className="col-span-full card-theme p-8 text-center text-slate-500">
-                  No QR codes registered for this provider. Click "Add New QR Code" above.
-                </div>
-              ) : (
-                qrCodes.map((qr: any) => (
-                  <div key={qr.id} className="card-theme p-4 shadow-sm border border-base-200 flex flex-col justify-between space-y-3">
-                    <div className="flex space-x-3 items-start">
-                      <div className="relative group shrink-0">
-                        <img
-                          src={qr.imageUrl}
-                          alt={qr.upiId}
-                          className="w-20 h-20 object-contain rounded-lg border border-base-200 bg-white p-1"
-                        />
-                        <a
-                          href={qr.imageUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="absolute inset-0 bg-black/40 rounded-lg opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition text-[10px] font-semibold"
-                          title="View Full Image"
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                        </a>
-                      </div>
-                      <div className="space-y-1 min-w-0 flex-1">
-                        <div className="flex items-center justify-between">
-                          <span
-                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase inline-flex items-center space-x-1 ${qr.isActive
-                              ? "bg-green-100 text-green-700"
-                              : "bg-gray-100 text-slate-500"
-                              }`}
-                          >
-                            <span className={`w-1.5 h-1.5 rounded-full ${qr.isActive ? "bg-green-500" : "bg-gray-400"}`} />
-                            <span>{qr.isActive ? "Active" : "Inactive"}</span>
-                          </span>
-                        </div>
-                        <div className="font-mono text-xs font-bold text-base-900 truncate" title={qr.upiId}>
-                          {qr.upiId}
-                        </div>
-                        <div className="text-[11px] text-base-700 truncate" title={qr.accountHolderName}>
-                          {qr.accountHolderName || "Holder Name Not Set"}
-                        </div>
-                        <div className="text-[10px] text-gray-400 truncate" title={qr.bankName}>
-                          {qr.bankName || "Bank Name Not Set"}
-                        </div>
-                        {qr.operator && (
-                          <div className="text-[10px] text-purple-700 font-semibold truncate flex items-center space-x-1 mt-0.5" title={qr.operator.name}>
-                            <User className="w-2.5 h-2.5 shrink-0" />
-                            <span>Op: {qr.operator.name}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Card Actions: Active/Inactive Switch & Edit Button */}
-                    <div className="pt-2.5 border-t border-[#e0f2fe] flex items-center justify-between">
-                      {/* Active / Inactive Toggle Switch */}
-                      <div className="flex items-center space-x-2">
-                        <button
-                          type="button"
-                          role="switch"
-                          aria-checked={qr.isActive}
-                          disabled={togglingQrId === qr.id}
-                          onClick={() => handleToggleQrStatus(qr.id, qr.isActive)}
-                          className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${qr.isActive ? "bg-primary" : "bg-gray-300"
-                            } ${togglingQrId === qr.id ? "opacity-50 cursor-wait" : ""}`}
-                          title={`Click to ${qr.isActive ? "Deactivate" : "Activate"} this QR Code`}
-                        >
-                          <span
-                            aria-hidden="true"
-                            className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${qr.isActive ? "translate-x-4" : "translate-x-0"
-                              }`}
-                          />
-                        </button>
-                        <span className="text-[11px] font-semibold text-gray-600">
-                          {qr.isActive ? "Active" : "Inactive"}
-                        </span>
-                      </div>
-
-                      {/* Edit Button */}
-                      <button
-                        type="button"
-                        onClick={() => handleOpenEditQr(qr)}
-                        className="px-2.5 py-1 text-xs bg-white border border-base-200 text-base-900 hover:bg-base-100/60 rounded-md font-semibold flex items-center space-x-1 shadow-2xs transition cursor-pointer"
-                      >
-                        <Edit3 className="w-3 h-3 text-primary" />
-                        <span>Edit QR</span>
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
             </div>
           </div>
         )}
@@ -1411,13 +1319,6 @@ export default function QRProviderDetailPage() {
                 <span className="px-2.5 py-1 rounded-full bg-purple-50 text-purple-700 border border-purple-200 text-xs font-bold">
                   {operators.length} {operators.length === 1 ? "Operator" : "Operators"}
                 </span>
-                <Link
-                  href={`/admin/operators/create?providerId=${provider.id}`}
-                  className="btn-primary text-xs py-1.5 px-3 flex items-center space-x-1.5 shadow-xs"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Create Operator</span>
-                </Link>
               </div>
             </div>
 
@@ -1426,8 +1327,8 @@ export default function QRProviderDetailPage() {
                 <thead className="bg-base-100/60 text-base-900 font-semibold border-b border-base-200">
                   <tr>
                     <th className="p-3 w-48 max-w-[200px]">Operator Name</th>
-                    <th className="p-3 w-56 max-w-[220px]">Email & Contact</th>
-                    <th className="p-3 min-w-[180px] max-w-[240px]">Assigned QR Codes</th>
+                    <th className="p-3 w-56 max-w-[220px]">Contact Phone</th>
+                    <th className="p-3 min-w-[180px] max-w-[240px]">Active QR</th>
                     <th className="p-3 whitespace-nowrap">Status</th>
                     <th className="p-3 whitespace-nowrap">Permissions</th>
                     <th className="p-3 whitespace-nowrap">Created</th>
@@ -1442,7 +1343,9 @@ export default function QRProviderDetailPage() {
                       </td>
                     </tr>
                   ) : (
-                    operators.map((op: any) => (
+                    operators.map((op: any) => {
+                      const activeQr = (op.assignedQRCodes || []).find((q: any) => q.isActive);
+                      return (
                       <tr key={op.id} className="hover:bg-[#ffffff] transition">
                         <td className="p-3 font-bold text-base-900 w-48 max-w-[200px]">
                           <Link
@@ -1457,25 +1360,21 @@ export default function QRProviderDetailPage() {
                           </Link>
                         </td>
                         <td className="p-3 w-56 max-w-[220px]">
-                          <div className="font-medium text-gray-800 font-mono truncate" title={op.email}>{op.email}</div>
-                          {op.phone && <div className="text-[11px] text-slate-500 truncate">{op.phone}</div>}
+                          <div className={op.phone ? "font-mono font-medium text-gray-800 truncate" : "text-gray-400 italic"}>
+                            {op.phone || "No phone added"}
+                          </div>
                         </td>
                         <td className="p-3">
-                          <div className="flex flex-wrap gap-1 max-w-xs">
-                            {op.assignedQRCodes && op.assignedQRCodes.length > 0 ? (
-                              op.assignedQRCodes.map((q: any) => (
-                                <span
-                                  key={q.id}
-                                  className="px-2 py-0.5 rounded bg-gray-100 border border-gray-200 text-[11px] font-mono text-gray-700"
-                                  title={q.upiId}
-                                >
-                                  {q.upiId}
-                                </span>
-                              ))
-                            ) : (
-                              <span className="text-gray-400 italic text-[11px]">No QR codes assigned</span>
-                            )}
-                          </div>
+                          {activeQr ? (
+                            <span
+                              className="px-2 py-0.5 rounded bg-emerald-50 border border-emerald-200 text-[11px] font-mono font-bold text-emerald-800 inline-block truncate max-w-[200px]"
+                              title={activeQr.upiId}
+                            >
+                              {activeQr.upiId}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400 italic text-[11px]">No Active QR</span>
+                          )}
                         </td>
                         <td className="p-3">
                           <span
@@ -1516,7 +1415,8 @@ export default function QRProviderDetailPage() {
                           </Link>
                         </td>
                       </tr>
-                    ))
+                      );
+                    })
                   )}
                 </tbody>
               </table>
@@ -1604,18 +1504,21 @@ export default function QRProviderDetailPage() {
         {/* TAB 4: WALLET & LEDGER */}
         {activeTab === "ledger" && (
           <div className="card-theme overflow-hidden shadow-sm border border-base-200">
-            <div className="p-4 border-b border-base-200 flex items-center justify-between">
+            <div className="p-4 border-b border-base-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h3 className="font-bold text-[16px] text-base-900">Liquidity Ledger & Fee Statement</h3>
-                <p className="text-xs text-base-700">All credit and debit entries for {provider.name}</p>
+                <p className="text-xs text-base-700">Audit trail of all credit and debit entries for {provider.name}</p>
               </div>
-              <div className={`text-xs font-bold px-3 py-1.5 rounded-lg border ${(provider.wallet?.balance ?? provider.balance ?? 0) < 0
-                ? "text-red-700 bg-red-50 border-red-200"
-                : "text-base-900 bg-primary/15 border-primary/30"
-                }`}>
-                Wallet Balance: {(provider.wallet?.balance ?? provider.balance ?? 0) < 0
-                  ? `-₹${Math.abs(provider.wallet?.balance ?? provider.balance ?? 0).toFixed(2)}`
-                  : `₹${(provider.wallet?.balance ?? provider.balance ?? 0).toFixed(2)}`}
+              <div className="flex items-center space-x-2 flex-wrap gap-y-1">
+                <div className="text-xs font-semibold px-2.5 py-1 rounded-md bg-base-100 border border-base-200 text-slate-700">
+                  Total Bal: <b>₹{(provider.wallet?.balance ?? provider.balance ?? 0).toFixed(2)}</b>
+                </div>
+                <div className="text-xs font-semibold px-2.5 py-1 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-800">
+                  Avail: <b>₹{calculatedAvailableBalance.toFixed(2)}</b>
+                </div>
+                <div className="text-xs font-semibold px-2.5 py-1 rounded-md bg-sky-50 border border-sky-200 text-sky-800">
+                  Credit: <b>₹{(Number(provider.credit) || 0).toFixed(2)}</b>
+                </div>
               </div>
             </div>
 
@@ -1639,39 +1542,38 @@ export default function QRProviderDetailPage() {
                       </td>
                     </tr>
                   ) : (
-                    walletEntries.map((entry: any) => (
-                      <tr key={entry.id} className="hover:bg-[#ffffff] transition">
-                        <td className="p-3 font-mono text-[11px] text-gray-600">
-                          {new Date(entry.createdAt).toLocaleString()}
-                        </td>
-                        <td className="p-3">
-                          <span
-                            className={`px-2 py-0.5 rounded text-[10px] font-bold ${entry.type === "CR"
-                              ? "bg-green-100 text-green-800"
-                              : "bg-red-100 text-red-800"
-                              }`}
+                    walletEntries.map((entry: any) => {
+                      const typeBadge = getEntryTypeBadge(entry);
+                      return (
+                        <tr key={entry.id} className="hover:bg-[#ffffff] transition">
+                          <td className="p-3 font-mono text-[11px] text-gray-600">
+                            {new Date(entry.createdAt).toLocaleString()}
+                          </td>
+                          <td className="p-3">
+                            <span
+                              className={`px-2 py-0.5 rounded text-[10px] font-bold ${typeBadge.className}`}
+                            >
+                              {typeBadge.label}
+                            </span>
+                          </td>
+                          <td className="p-3 font-mono text-[11px] text-gray-600">
+                            {typeBadge.displayCategory}
+                          </td>
+                          <td className="p-3 font-medium text-base-900">{entry.description}</td>
+                          <td
+                            className={`p-3 text-right font-extrabold ${typeBadge.amountColor}`}
                           >
-                            {entry.type === "CR" ? "+ CREDIT" : "- DEBIT"}
-                          </span>
-                        </td>
-                        <td className="p-3 font-mono text-[11px] text-gray-600">
-                          {entry.category || "FEE"}
-                        </td>
-                        <td className="p-3 font-medium text-base-900">{entry.description}</td>
-                        <td
-                          className={`p-3 text-right font-extrabold ${entry.type === "CR" ? "text-green-700" : "text-red-700"
-                            }`}
-                        >
-                          {entry.type === "CR" ? "+" : "-"}₹
-                          {entry.amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                        </td>
-                        <td className={`p-3 text-right font-bold ${entry.balanceAfter < 0 ? "text-red-600" : "text-base-900"}`}>
-                          {entry.balanceAfter < 0
-                            ? `-₹${Math.abs(entry.balanceAfter).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`
-                            : `₹${entry.balanceAfter.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`}
-                        </td>
-                      </tr>
-                    ))
+                            {typeBadge.amountPrefix}₹
+                            {entry.amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                          </td>
+                          <td className={`p-3 text-right font-bold ${entry.balanceAfter < 0 ? "text-red-600" : "text-base-900"}`}>
+                            {entry.balanceAfter < 0
+                              ? `-₹${Math.abs(entry.balanceAfter).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`
+                              : `₹${entry.balanceAfter.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`}
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>
@@ -1679,68 +1581,9 @@ export default function QRProviderDetailPage() {
           </div>
         )}
 
-        {/* MODAL: RESET PASSWORD */}
-        {showResetModal && (
-          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="card-theme max-w-sm w-full p-6 shadow-xl relative animate-in fade-in zoom-in-95 duration-150">
-              <div className="flex items-center space-x-2 pb-3 border-b border-base-200 mb-4">
-                <KeyRound className="w-5 h-5 text-primary" />
-                <h3 className="font-bold text-[16px] text-base-900">Reset Provider Password</h3>
-              </div>
 
-              <p className="text-xs text-base-700 mb-4">
-                Enter a new password for <b>{provider.name}</b> ({provider.email}).
-              </p>
 
-              {resetError && (
-                <div className="mb-3 p-2.5 bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg">
-                  {resetError}
-                </div>
-              )}
-              {resetSuccess && (
-                <div className="mb-3 p-2.5 bg-green-50 border border-green-200 text-green-700 text-xs rounded-lg">
-                  {resetSuccess}
-                </div>
-              )}
-
-              <form onSubmit={handleResetPassword} className="space-y-3">
-                <div>
-                  <label className="block text-xs font-semibold text-base-900 mb-1">
-                    New Password (min 6 characters)
-                  </label>
-                  <input
-                    type="password"
-                    required
-                    minLength={6}
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full px-3 py-2 text-xs sm:text-sm border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
-                </div>
-
-                <div className="flex justify-end space-x-2 pt-3 border-t border-base-200">
-                  <button
-                    type="button"
-                    onClick={() => setShowResetModal(false)}
-                    className="px-3.5 py-1.5 border border-base-200 rounded-lg text-xs font-semibold hover:bg-gray-100"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={resetting}
-                    className="btn-primary px-4 py-1.5 text-xs font-semibold shadow-sm"
-                  >
-                    {resetting ? "Updating..." : "Update Password"}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {/* ADD BALANCE MODAL */}
+        {/* ADD BALANCE / DEPOSIT MODAL */}
         {showAddBalanceModal && (
           <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
             <div className="bg-white rounded-xl shadow-xl max-w-md w-full border border-base-200 overflow-hidden">
@@ -1748,8 +1591,8 @@ export default function QRProviderDetailPage() {
                 <div className="flex items-center space-x-2">
                   <PlusCircle className="w-4 h-4 text-emerald-100" />
                   <div>
-                    <h3 className="font-bold text-sm">Add Balance (Manual Credit)</h3>
-                    <p className="text-[11px] text-emerald-100">Deposit liquidity funds into QR Provider wallet</p>
+                    <h3 className="font-bold text-sm">+ Deposit (Add Balance)</h3>
+                    <p className="text-[11px] text-emerald-100">Credit liquidity funds into QR Provider's wallet & ledger</p>
                   </div>
                 </div>
                 <button
@@ -1802,10 +1645,11 @@ export default function QRProviderDetailPage() {
                       step="any"
                       required
                       min="0.01"
+                      disabled={addingBalance || !!addBalanceSuccess}
                       value={addAmount}
                       onChange={(e) => setAddAmount(e.target.value)}
                       placeholder="e.g. 50000"
-                      className="w-full pl-7 pr-3 py-2 text-xs border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                      className="w-full pl-7 pr-3 py-2 text-xs border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-100 disabled:cursor-not-allowed"
                     />
                   </div>
                 </div>
@@ -1816,16 +1660,18 @@ export default function QRProviderDetailPage() {
                   </label>
                   <input
                     type="text"
+                    disabled={addingBalance || !!addBalanceSuccess}
                     value={addDescription}
                     onChange={(e) => setAddDescription(e.target.value)}
                     placeholder="e.g. Liquidity top-up via Bank IMPS"
-                    className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-100 disabled:cursor-not-allowed"
                   />
                 </div>
 
                 <div className="flex space-x-3 pt-2">
                   <button
                     type="button"
+                    disabled={addingBalance || !!addBalanceSuccess}
                     onClick={() => {
                       setShowAddBalanceModal(false);
                       setAddAmount("");
@@ -1833,20 +1679,22 @@ export default function QRProviderDetailPage() {
                       setAddBalanceError("");
                       setAddBalanceSuccess("");
                     }}
-                    className="flex-1 py-2 text-xs border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50"
+                    className="flex-1 py-2 text-xs border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    disabled={addingBalance}
-                    className="flex-1 btn-primary py-2 text-xs font-bold shadow flex items-center justify-center space-x-1.5"
+                    disabled={addingBalance || !!addBalanceSuccess || !addAmount || parseFloat(addAmount) <= 0}
+                    className="flex-1 btn-primary py-2 text-xs font-bold shadow flex items-center justify-center space-x-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     {addingBalance ? (
                       <>
                         <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                         <span>Crediting...</span>
                       </>
+                    ) : addBalanceSuccess ? (
+                      <span className="text-emerald-300 font-bold">✓ Credited Successfully</span>
                     ) : (
                       <span>Credit ₹{parseFloat(addAmount) > 0 ? parseFloat(addAmount).toLocaleString("en-IN") : "0"}</span>
                     )}
@@ -1857,14 +1705,14 @@ export default function QRProviderDetailPage() {
           </div>
         )}
 
-        {/* CLEAR BALANCE MODAL (MANUAL WITHDRAWAL) */}
+        {/* CLEAR BALANCE / WITHDRAWAL MODAL */}
         {showClearModal && (
           <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
             <div className="bg-white rounded-xl shadow-xl max-w-md w-full border border-base-200 overflow-hidden">
               <div className="p-4 bg-[#0f172a] text-white flex items-center justify-between">
                 <div>
-                  <h3 className="font-bold text-sm text-white">Clear Balance (Withdrawal)</h3>
-                  <p className="text-[11px] text-[#f0f7fc]/80">Withdraw liquidity funds from QR Provider wallet</p>
+                  <h3 className="font-bold text-sm text-white">- Withdrawal (Clear Balance)</h3>
+                  <p className="text-[11px] text-[#f0f7fc]/80">Debit / deduct liquidity funds from QR Provider's wallet & ledger</p>
                 </div>
                 <button
                   onClick={() => {
@@ -1913,8 +1761,9 @@ export default function QRProviderDetailPage() {
                     {(provider?.balance || 0) > 0 && (
                       <button
                         type="button"
+                        disabled={clearingBalance || !!clearSuccess}
                         onClick={() => setClearAmount((provider?.balance || 0).toString())}
-                        className="text-[11px] font-bold text-primary hover:text-[#527e66] underline"
+                        className="text-[11px] font-bold text-primary hover:text-[#527e66] underline disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         Clear Exact Balance (₹{(provider?.balance || 0).toFixed(2)})
                       </button>
@@ -1927,10 +1776,11 @@ export default function QRProviderDetailPage() {
                       step="any"
                       required
                       min="0.01"
+                      disabled={clearingBalance || !!clearSuccess}
                       value={clearAmount}
                       onChange={(e) => setClearAmount(e.target.value)}
                       placeholder="e.g. 25000"
-                      className="w-full pl-7 pr-3 py-2 text-xs border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                      className="w-full pl-7 pr-3 py-2 text-xs border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-100 disabled:cursor-not-allowed"
                     />
                   </div>
                   <p className="text-[10px] text-slate-500 mt-1">
@@ -1944,16 +1794,18 @@ export default function QRProviderDetailPage() {
                   </label>
                   <input
                     type="text"
+                    disabled={clearingBalance || !!clearSuccess}
                     value={clearDescription}
                     onChange={(e) => setClearDescription(e.target.value)}
                     placeholder="e.g. Liquidity payout to Provider bank account"
-                    className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-100 disabled:cursor-not-allowed"
                   />
                 </div>
 
                 <div className="flex space-x-3 pt-2">
                   <button
                     type="button"
+                    disabled={clearingBalance || !!clearSuccess}
                     onClick={() => {
                       setShowClearModal(false);
                       setClearAmount("");
@@ -1961,20 +1813,22 @@ export default function QRProviderDetailPage() {
                       setClearError("");
                       setClearSuccess("");
                     }}
-                    className="flex-1 py-2 text-xs border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 font-medium"
+                    className="flex-1 py-2 text-xs border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    disabled={clearingBalance}
-                    className="flex-1 py-2 text-xs font-bold text-white bg-[#0f172a] hover:bg-[#2c3e34] rounded-lg shadow flex items-center justify-center space-x-1.5 transition"
+                    disabled={clearingBalance || !!clearSuccess || !clearAmount || parseFloat(clearAmount) <= 0}
+                    className="flex-1 py-2 text-xs font-bold text-white bg-[#0f172a] hover:bg-[#2c3e34] rounded-lg shadow flex items-center justify-center space-x-1.5 transition disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     {clearingBalance ? (
                       <>
                         <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                         <span>Processing...</span>
                       </>
+                    ) : clearSuccess ? (
+                      <span className="text-emerald-300 font-bold">✓ Settled Successfully</span>
                     ) : (
                       <span>Clear ₹{parseFloat(clearAmount) > 0 ? parseFloat(clearAmount).toLocaleString("en-IN") : "0"}</span>
                     )}
@@ -1985,209 +1839,178 @@ export default function QRProviderDetailPage() {
           </div>
         )}
 
-        {/* EDIT QR CODE MODAL */}
-        {editingQr && (
-          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="bg-white rounded-xl shadow-xl max-w-lg w-full border border-base-200 overflow-hidden animate-in fade-in duration-200">
-              <div className="p-4 bg-primary text-white flex items-center justify-between">
+        {/* MANAGE CREDIT MODAL */}
+        {showCreditModal && (
+          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl shadow-xl max-w-md w-full border border-base-200 overflow-hidden">
+              <div className="p-4 bg-emerald-700 text-white flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <QrCode className="w-5 h-5 text-white" />
-                  <h3 className="font-bold text-sm">Edit QR Code ({editingQr.upiId})</h3>
+                  <CreditCard className="w-4 h-4 text-emerald-100" />
+                  <div>
+                    <h3 className="font-bold text-sm">Manage Credit</h3>
+                    <p className="text-[11px] text-emerald-100">
+                      Add or deduct separate credit line for this QR Provider
+                    </p>
+                  </div>
                 </div>
                 <button
-                  type="button"
                   onClick={() => {
-                    setEditingQr(null);
-                    setEditQrError("");
-                    setEditQrSuccess("");
+                    setShowCreditModal(false);
+                    setCreditAmount("");
+                    setCreditDescription("");
+                    setCreditError("");
+                    setCreditSuccess("");
                   }}
-                  className="text-white hover:text-gray-200 text-sm font-bold cursor-pointer"
+                  className="text-white hover:text-gray-200 text-sm font-bold"
                 >
                   ✕
                 </button>
               </div>
 
-              <form onSubmit={handleSaveEditQr} className="p-5 space-y-4 max-h-[85vh] overflow-y-auto">
-                {editQrError && (
-                  <div className="p-2.5 bg-red-50 text-red-700 text-xs rounded-lg border border-red-200 flex items-center space-x-2">
-                    <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
-                    <span>{editQrError}</span>
-                  </div>
-                )}
-
-                {editQrSuccess && (
-                  <div className="p-2.5 bg-green-50 text-green-700 text-xs rounded-lg border border-green-200 flex items-center space-x-2">
-                    <CheckCircle2 className="w-4 h-4 shrink-0 text-green-600" />
-                    <span>{editQrSuccess}</span>
-                  </div>
-                )}
-
-                {/* Status Switch (Active / Inactive) */}
-                <div className="p-3 rounded-xl border border-base-200 bg-[#ffffff] flex items-center justify-between">
-                  <div>
-                    <span className="text-xs font-bold text-base-900 block">QR Code Status</span>
-                    <p className="text-[11px] text-base-700 mt-0.5">
-                      {editIsActive
-                        ? "Active: Eligible for dynamic order deposit routing."
-                        : "Inactive: Paused from receiving new deposit orders."}
-                    </p>
-                  </div>
-                  <div className="flex items-center space-x-3 shrink-0 ml-4">
+              <form onSubmit={handleManageCredit} className="p-5 space-y-4">
+                {/* Credit Action Selector: Add vs Deduct */}
+                <div>
+                  <label className="block text-xs font-semibold text-base-900 mb-1.5">
+                    Credit Action *
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
-                      role="switch"
-                      aria-checked={editIsActive}
-                      onClick={() => setEditIsActive(!editIsActive)}
-                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${editIsActive ? "bg-primary" : "bg-gray-300"
-                        }`}
+                      disabled={managingCredit || !!creditSuccess}
+                      onClick={() => setCreditType("ADD")}
+                      className={`py-2 px-3 rounded-lg text-xs font-bold border transition flex items-center justify-center space-x-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+                        creditType === "ADD"
+                          ? "bg-emerald-50 border-emerald-500 text-emerald-700 ring-1 ring-emerald-500"
+                          : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                      }`}
                     >
-                      <span
-                        aria-hidden="true"
-                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${editIsActive ? "translate-x-5" : "translate-x-0"
-                          }`}
-                      />
+                      <PlusCircle className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>+ Add Credit</span>
                     </button>
-                    <div className="flex items-center space-x-1.5 min-w-[70px]">
-                      <span className={`w-2 h-2 rounded-full ${editIsActive ? "bg-green-500 animate-pulse" : "bg-gray-400"}`} />
-                      <span className={`text-xs font-bold uppercase tracking-wider ${editIsActive ? "text-green-700" : "text-slate-500"}`}>
-                        {editIsActive ? "ACTIVE" : "INACTIVE"}
-                      </span>
-                    </div>
+                    <button
+                      type="button"
+                      disabled={managingCredit || !!creditSuccess}
+                      onClick={() => setCreditType("DEDUCT")}
+                      className={`py-2 px-3 rounded-lg text-xs font-bold border transition flex items-center justify-center space-x-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+                        creditType === "DEDUCT"
+                          ? "bg-rose-50 border-rose-500 text-rose-700 ring-1 ring-rose-500"
+                          : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                      }`}
+                    >
+                      <MinusCircle className="w-3.5 h-3.5 text-rose-600" />
+                      <span>- Deduct Credit</span>
+                    </button>
                   </div>
                 </div>
 
-                {/* Form fields */}
+                <div className="p-3 bg-base-100/40 border border-base-200 rounded-lg flex items-center justify-between text-xs font-mono">
+                  <span className="text-base-700 font-semibold font-sans">Current Credit Line:</span>
+                  <span className="font-extrabold text-sm text-emerald-700">
+                    ₹{(Number(provider?.credit || 0)).toLocaleString("en-IN", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </span>
+                </div>
+
+                {creditError && (
+                  <div className="p-2.5 bg-red-50 text-red-700 text-xs rounded-lg border border-red-200 flex items-center space-x-2">
+                    <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
+                    <span>{creditError}</span>
+                  </div>
+                )}
+
+                {creditSuccess && (
+                  <div className="p-2.5 bg-green-50 text-green-700 text-xs rounded-lg border border-green-200 flex items-center space-x-2">
+                    <CheckCircle2 className="w-4 h-4 shrink-0 text-green-600" />
+                    <span>{creditSuccess}</span>
+                  </div>
+                )}
+
                 <div>
                   <label className="block text-xs font-semibold text-base-900 mb-1">
-                    UPI ID (VPA) *
+                    Amount to {creditType === "ADD" ? "Add" : "Deduct"} (₹) *
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2.5 text-xs text-slate-500 font-bold">₹</span>
+                    <input
+                      type="number"
+                      step="any"
+                      required
+                      min="0.01"
+                      disabled={managingCredit || !!creditSuccess}
+                      value={creditAmount}
+                      onChange={(e) => setCreditAmount(e.target.value)}
+                      placeholder="e.g. 25000"
+                      className="w-full pl-7 pr-3 py-2 text-xs border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-base-900 mb-1">
+                    Description / Note (Optional)
                   </label>
                   <input
                     type="text"
-                    required
-                    value={editUpiId}
-                    onChange={(e) => setEditUpiId(e.target.value)}
-                    placeholder="e.g. provider.pay@icici"
-                    className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg font-mono focus:outline-none focus:ring-2 focus:ring-primary"
+                    disabled={managingCredit || !!creditSuccess}
+                    value={creditDescription}
+                    onChange={(e) => setCreditDescription(e.target.value)}
+                    placeholder={
+                      creditType === "ADD"
+                        ? "e.g. Approved credit line top-up"
+                        : "e.g. Credit adjustment / settlement"
+                    }
+                    className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                   />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-base-900 mb-1">
-                      Account Holder Name
-                    </label>
-                    <input
-                      type="text"
-                      value={editAccountHolder}
-                      onChange={(e) => setEditAccountHolder(e.target.value)}
-                      placeholder="e.g. FastPay Liquidity"
-                      className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-base-900 mb-1">
-                      Bank Name
-                    </label>
-                    <input
-                      type="text"
-                      value={editBankName}
-                      onChange={(e) => setEditBankName(e.target.value)}
-                      placeholder="e.g. ICICI Bank"
-                      className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
-                  </div>
+                <div className="p-2.5 bg-sky-50 rounded-lg border border-sky-200 text-[11px] text-sky-800 flex items-start space-x-2">
+                  <ShieldCheck className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
+                  <p>
+                    <b>Independent Credit Line:</b> Managing credit is completely separate from liquidity balance. It will not affect Total Balance or Available Balance.
+                  </p>
                 </div>
 
-                {/* QR Image Update */}
-                <div className="pt-2 border-t border-base-200">
-                  <label className="block text-xs font-semibold text-base-900 mb-1.5">
-                    QR Code Image
-                  </label>
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                    <input
-                      type="file"
-                      ref={editQrFileInputRef}
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handleEditQrImageUpload(file);
-                      }}
-                      className="hidden"
-                    />
-
-                    {editQrImageUrl && (
-                      <div className="relative group shrink-0">
-                        <img
-                          src={editQrImageUrl}
-                          alt="QR Preview"
-                          className="w-20 h-20 object-contain rounded-lg border border-base-200 bg-white p-1"
-                        />
-                      </div>
-                    )}
-
-                    <div className="space-y-2 flex-1">
-                      <button
-                        type="button"
-                        onClick={() => editQrFileInputRef.current?.click()}
-                        disabled={uploadingEditQrImage}
-                        className="px-3 py-1.5 text-xs bg-white border border-base-200 hover:bg-base-100/40 text-base-900 font-semibold rounded-lg flex items-center space-x-1.5 transition shadow-xs cursor-pointer"
-                      >
-                        <Upload className="w-3.5 h-3.5 text-primary" />
-                        <span>{uploadingEditQrImage ? "Uploading..." : "Upload New QR Image"}</span>
-                      </button>
-
-                      {editQrImageUrl && (
-                        <div className="flex items-center space-x-2">
-                          <span className="font-mono text-[10px] text-slate-500 truncate max-w-[220px]">
-                            {editQrImageUrl}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => setEditQrImageUrl("")}
-                            className="text-red-500 hover:text-red-700 p-1 hover:bg-red-50 rounded cursor-pointer"
-                            title="Reset to dynamic UPI QR code"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      )}
-
-                      {editQrUploadError && (
-                        <span className="text-xs text-red-600 block">{editQrUploadError}</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex space-x-3 pt-3 border-t border-base-200">
+                <div className="flex space-x-3 pt-2">
                   <button
                     type="button"
+                    disabled={managingCredit || !!creditSuccess}
                     onClick={() => {
-                      setEditingQr(null);
-                      setEditQrError("");
-                      setEditQrSuccess("");
+                      setShowCreditModal(false);
+                      setCreditAmount("");
+                      setCreditDescription("");
+                      setCreditError("");
+                      setCreditSuccess("");
                     }}
-                    className="flex-1 py-2 text-xs border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 font-medium cursor-pointer"
+                    className="flex-1 py-2 text-xs border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    disabled={updatingQr}
-                    className="flex-1 py-2 text-xs font-bold text-white bg-primary hover:bg-[#57876c] rounded-lg shadow flex items-center justify-center space-x-1.5 transition cursor-pointer"
+                    disabled={managingCredit || !!creditSuccess || !creditAmount || parseFloat(creditAmount) <= 0}
+                    className={`flex-1 py-2 text-xs font-bold text-white rounded-lg shadow flex items-center justify-center space-x-1.5 transition disabled:opacity-60 disabled:cursor-not-allowed ${
+                      creditType === "ADD"
+                        ? "bg-emerald-600 hover:bg-emerald-700"
+                        : "bg-rose-600 hover:bg-rose-700"
+                    }`}
                   >
-                    {updatingQr ? (
+                    {managingCredit ? (
                       <>
                         <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                        <span>Saving...</span>
+                        <span>Updating...</span>
                       </>
+                    ) : creditSuccess ? (
+                      <span className="text-emerald-200 font-bold">✓ Updated Successfully</span>
                     ) : (
-                      <>
-                        <Save className="w-3.5 h-3.5" />
-                        <span>Save Changes</span>
-                      </>
+                      <span>
+                        {creditType === "ADD" ? "+ Add" : "- Deduct"} ₹
+                        {parseFloat(creditAmount) > 0
+                          ? parseFloat(creditAmount).toLocaleString("en-IN")
+                          : "0"}{" "}
+                        Credit
+                      </span>
                     )}
                   </button>
                 </div>
@@ -2195,6 +2018,8 @@ export default function QRProviderDetailPage() {
             </div>
           </div>
         )}
+
+
       </div>
     </PortalLayout>
   );

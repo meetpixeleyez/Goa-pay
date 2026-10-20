@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import PortalLayout from "@/components/layout/PortalLayout";
 import {
@@ -16,7 +17,6 @@ import {
   ExternalLink,
   RefreshCw,
   X,
-  Building,
   User,
   Copy,
   ShieldCheck,
@@ -27,6 +27,11 @@ import { isValidUpiId } from "@/lib/validation";
 import { qrProvidersApi } from "@/lib/api/qr-providers.api";
 
 export default function QRProviderQRCodesPage() {
+  const router = useRouter();
+  useEffect(() => {
+    router.replace("/qr-provider/operators");
+  }, [router]);
+
   const [qrCodes, setQrCodes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -179,20 +184,20 @@ export default function QRProviderQRCodesPage() {
       setAddModalError("Please enter a valid UPI ID (e.g. name@bank, user@okaxis)");
       return;
     }
+    if (!addQrImageUrl) {
+      setAddModalError("Custom QR Code Image is required. Please upload a UPI QR screenshot.");
+      return;
+    }
 
     setSubmittingAdd(true);
     setAddModalError("");
 
-    const finalImage =
-      addQrImageUrl ||
-      `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi://pay?pa=${encodeURIComponent(cleanUpi)}`;
+    const finalImage = addQrImageUrl;
 
     try {
       await qrProvidersApi.createQRCode({
         upiId: cleanUpi,
         imageUrl: finalImage,
-        accountHolderName: addAccountHolder.trim() || undefined,
-        bankName: addBankName.trim() || undefined,
         isActive: addIsActive,
         operatorId: addOperatorId ? addOperatorId : undefined,
       });
@@ -200,8 +205,6 @@ export default function QRProviderQRCodesPage() {
       setSuccess("New collection QR code created successfully!");
       setShowAddModal(false);
       setAddUpiId("");
-      setAddAccountHolder("");
-      setAddBankName("");
       setAddQrImageUrl("");
       setAddIsActive(true);
       setAddOperatorId("");
@@ -244,16 +247,18 @@ export default function QRProviderQRCodesPage() {
     setSubmittingEdit(true);
     setEditModalError("");
 
-    const finalImage =
-      editQrImageUrl ||
-      `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi://pay?pa=${encodeURIComponent(cleanUpi)}`;
+    if (!editQrImageUrl) {
+      setEditModalError("QR Code Image is required. Please upload a UPI QR screenshot.");
+      setSubmittingEdit(false);
+      return;
+    }
+
+    const finalImage = editQrImageUrl;
 
     try {
       await qrProvidersApi.updateQRCode(editingQr.id, {
         upiId: cleanUpi,
         imageUrl: finalImage,
-        accountHolderName: editAccountHolder.trim() || undefined,
-        bankName: editBankName.trim() || undefined,
         isActive: editIsActive,
         operatorId: editOperatorId || undefined,
       });
@@ -346,7 +351,7 @@ export default function QRProviderQRCodesPage() {
             <div>
               <h3 className="font-bold text-base text-base-900">No QR Codes Added Yet</h3>
               <p className="text-xs text-slate-500 mt-1">
-                You haven't added any UPI collection QR codes. Create your first QR code to start receiving payin deposit volume.
+                You haven&apos;t added any UPI collection QR codes. Create your first QR code to start receiving payin deposit volume.
               </p>
             </div>
             <button
@@ -450,21 +455,6 @@ export default function QRProviderQRCodesPage() {
                         </div>
                       </div>
 
-                      {/* Account & Bank Info */}
-                      <div className="grid grid-cols-2 gap-2 text-[11px]">
-                        <div className="p-2 bg-white/70 border border-base-200/70 rounded-lg">
-                          <span className="text-[10px] text-gray-400 block font-medium">Account Name</span>
-                          <span className="font-bold text-gray-800 truncate block">
-                            {qr.accountHolderName || "—"}
-                          </span>
-                        </div>
-                        <div className="p-2 bg-white/70 border border-base-200/70 rounded-lg">
-                          <span className="text-[10px] text-gray-400 block font-medium">Bank</span>
-                          <span className="font-bold text-gray-800 truncate block">
-                            {qr.bankName || "—"}
-                          </span>
-                        </div>
-                      </div>
 
                       {/* Assigned Operator Badge */}
                       <div className="p-2 bg-white/70 border border-base-200/70 rounded-lg flex items-center justify-between text-[11px]">
@@ -560,39 +550,7 @@ export default function QRProviderQRCodesPage() {
                 </p>
               </div>
 
-              {/* Account Holder Name */}
-              <div>
-                <label className="block text-xs font-bold text-base-900 mb-1">
-                  Account Holder Name (Optional)
-                </label>
-                <div className="relative">
-                  <User className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" />
-                  <input
-                    type="text"
-                    value={addAccountHolder}
-                    onChange={(e) => setAddAccountHolder(e.target.value)}
-                    placeholder="e.g. FastPay Services Pvt Ltd"
-                    className="w-full pl-9 pr-3.5 py-2 text-xs border border-base-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary bg-white"
-                  />
-                </div>
-              </div>
 
-              {/* Bank Name */}
-              <div>
-                <label className="block text-xs font-bold text-base-900 mb-1">
-                  Bank Name (Optional)
-                </label>
-                <div className="relative">
-                  <Building className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" />
-                  <input
-                    type="text"
-                    value={addBankName}
-                    onChange={(e) => setAddBankName(e.target.value)}
-                    placeholder="e.g. HDFC Bank, Axis Bank, ICICI"
-                    className="w-full pl-9 pr-3.5 py-2 text-xs border border-base-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary bg-white"
-                  />
-                </div>
-              </div>
 
               {/* Assign to Operator (Optional) */}
               {operators.length > 0 && (
@@ -608,20 +566,20 @@ export default function QRProviderQRCodesPage() {
                     <option value="">-- Unassigned (Direct Provider Handling) --</option>
                     {operators.map((op) => (
                       <option key={op.id} value={op.id}>
-                        {op.name} ({op.email})
+                        {op.name}
                       </option>
                     ))}
                   </select>
                 </div>
               )}
 
-              {/* QR Image Upload */}
+              {/* QR Image Upload — Required */}
               <div className="space-y-1.5 pt-1">
                 <label className="block text-xs font-bold text-base-900">
-                  Custom QR Code Image (Optional)
+                  Custom QR Code Image <span className="text-red-500">*</span>
                 </label>
                 <p className="text-[11px] text-slate-500">
-                  Upload your app's UPI QR screenshot, or leave blank to auto-generate from the UPI ID.
+                  Upload your UPI QR screenshot. This image is shown to customers during checkout.
                 </p>
 
                 <div className="flex items-center gap-3 pt-1">
@@ -664,11 +622,9 @@ export default function QRProviderQRCodesPage() {
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
-                  ) : addUpiId.trim() ? (
-                    <span className="text-[11px] text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200">
-                      Auto-generating dynamic QR for {addUpiId.trim()}
-                    </span>
-                  ) : null}
+                  ) : (
+                    <span className="text-[11px] text-red-500 font-medium">No image uploaded yet. Image is required.</span>
+                  )}
                 </div>
               </div>
 
@@ -746,7 +702,7 @@ export default function QRProviderQRCodesPage() {
                     Edit Collection QR Code
                   </h3>
                   <p className="text-[11px] text-base-700">
-                    Update UPI ID, account name, bank, or active routing status
+                    Update UPI ID, QR image, or active routing status
                   </p>
                 </div>
               </div>
@@ -783,39 +739,7 @@ export default function QRProviderQRCodesPage() {
                 />
               </div>
 
-              {/* Account Holder Name */}
-              <div>
-                <label className="block text-xs font-bold text-base-900 mb-1">
-                  Account Holder Name
-                </label>
-                <div className="relative">
-                  <User className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" />
-                  <input
-                    type="text"
-                    value={editAccountHolder}
-                    onChange={(e) => setEditAccountHolder(e.target.value)}
-                    placeholder="e.g. FastPay Services"
-                    className="w-full pl-9 pr-3.5 py-2 text-xs border border-base-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary bg-white"
-                  />
-                </div>
-              </div>
 
-              {/* Bank Name */}
-              <div>
-                <label className="block text-xs font-bold text-base-900 mb-1">
-                  Bank Name
-                </label>
-                <div className="relative">
-                  <Building className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" />
-                  <input
-                    type="text"
-                    value={editBankName}
-                    onChange={(e) => setEditBankName(e.target.value)}
-                    placeholder="e.g. ICICI Bank"
-                    className="w-full pl-9 pr-3.5 py-2 text-xs border border-base-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary bg-white"
-                  />
-                </div>
-              </div>
 
               {/* Assigned Operator */}
               {operators.length > 0 && (
@@ -831,7 +755,7 @@ export default function QRProviderQRCodesPage() {
                     <option value="">-- Unassigned (Direct Provider Handling) --</option>
                     {operators.map((op) => (
                       <option key={op.id} value={op.id}>
-                        {op.name} ({op.email})
+                        {op.name}
                       </option>
                     ))}
                   </select>

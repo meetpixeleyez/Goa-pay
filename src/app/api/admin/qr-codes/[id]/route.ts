@@ -110,6 +110,17 @@ export async function PUT(
       }
     }
 
+    const targetOperatorId = updateData.operatorId !== undefined ? updateData.operatorId : existing.operatorId;
+    const targetIsActive = updateData.isActive !== undefined ? updateData.isActive : existing.isActive;
+
+    // SINGLE ACTIVE QR CODE PER OPERATOR RULE:
+    if (targetOperatorId && targetIsActive === true) {
+      await prisma.qRCode.updateMany({
+        where: { operatorId: targetOperatorId, id: { not: qrCodeId } },
+        data: { isActive: false, status: "INACTIVE" },
+      });
+    }
+
     const updated = await prisma.qRCode.update({
       where: { id: qrCodeId },
       data: updateData,
@@ -159,6 +170,15 @@ export async function POST(
     }
 
     const newActive = !qrCode.isActive;
+
+    // SINGLE ACTIVE QR CODE PER OPERATOR RULE:
+    if (newActive && qrCode.operatorId) {
+      await prisma.qRCode.updateMany({
+        where: { operatorId: qrCode.operatorId, id: { not: qrCodeId } },
+        data: { isActive: false, status: "INACTIVE" },
+      });
+    }
+
     const updated = await prisma.qRCode.update({
       where: { id: qrCodeId },
       data: {

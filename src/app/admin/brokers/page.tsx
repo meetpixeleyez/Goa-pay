@@ -49,7 +49,8 @@ export default function AdminBrokersPage() {
   const [editPhone, setEditPhone] = useState("");
   const [editAddress, setEditAddress] = useState("");
   const [editTelegramId, setEditTelegramId] = useState("");
-  const [editCommissionPercent, setEditCommissionPercent] = useState("1.0");
+  const [editPayinBrokerFee, setEditPayinBrokerFee] = useState("0.0");
+  const [editPayoutBrokerFee, setEditPayoutBrokerFee] = useState("0.0");
   const [editStatus, setEditStatus] = useState("ACTIVE");
   const [editing, setEditing] = useState(false);
   const [editError, setEditError] = useState("");
@@ -127,7 +128,8 @@ export default function AdminBrokersPage() {
     setEditPhone(broker.phone || "");
     setEditAddress(broker.address || "");
     setEditTelegramId(broker.telegramId || "");
-    setEditCommissionPercent(broker.commissionPercent?.toString() || "1.0");
+    setEditPayinBrokerFee((broker.payinBrokerFee ?? broker.commissionPercent ?? 0).toString());
+    setEditPayoutBrokerFee((broker.payoutBrokerFee ?? 0).toString());
     setEditStatus(broker.status || "ACTIVE");
     setEditError("");
     setEditSuccess("");
@@ -154,13 +156,6 @@ export default function AdminBrokersPage() {
       return;
     }
 
-    const parsedComm = parseFloat(editCommissionPercent);
-    if (isNaN(parsedComm) || parsedComm < 0 || parsedComm > 100) {
-      setEditError("Commission rate must be between 0% and 100%");
-      setEditing(false);
-      return;
-    }
-
     try {
       const res = await fetch(`/api/admin/users/${editBroker.id}`, {
         method: "PUT",
@@ -168,7 +163,6 @@ export default function AdminBrokersPage() {
         body: JSON.stringify({
           name: editName.trim(),
           phone: cleanPhone,
-          commissionPercent: parsedComm,
           status: editStatus,
         }),
       });
@@ -279,9 +273,9 @@ export default function AdminBrokersPage() {
           {/* Responsive Broker Summary Quick Box */}
           <div className="my-3 p-3 bg-[#ffffff] rounded-lg border border-base-200 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
             <div>
-              <span className="text-slate-500 block text-[11px]">Commission Rate</span>
+              <span className="text-slate-500 block text-[11px]">Brokered Stores</span>
               <span className="font-mono font-bold text-[#0c4a6e] whitespace-nowrap">
-                {selectedBroker.commissionPercent ?? 1.0}% / txn
+                {storeCount} {storeCount === 1 ? "Store" : "Stores"}
               </span>
             </div>
             <div className="sm:text-right">
@@ -498,7 +492,6 @@ export default function AdminBrokersPage() {
                   <tr>
                     <th className="py-3 px-4 font-semibold whitespace-nowrap">Broker / Company</th>
                     <th className="py-3 px-4 font-semibold whitespace-nowrap">Contact Details</th>
-                    <th className="py-3 px-4 font-semibold text-center whitespace-nowrap">Commission</th>
                     <th className="py-3 px-4 font-semibold text-center whitespace-nowrap">Linked Stores</th>
                     <th className="py-3 px-4 font-semibold text-right whitespace-nowrap">Commission Wallet</th>
                     <th className="py-3 px-4 font-semibold text-center whitespace-nowrap">Status</th>
@@ -571,12 +564,7 @@ export default function AdminBrokersPage() {
                           </div>
                         </td>
 
-                        {/* Commission Rate (Never wraps) */}
-                        <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-mono font-semibold bg-primary/15 whitespace-nowrap">
-                            {broker.commissionPercent ?? 0}%
-                          </span>
-                        </td>
+
 
                         {/* Linked Stores Button - Clear & Easy to Understand as a Button */}
                         <td className="py-3.5 px-4 text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
@@ -763,22 +751,6 @@ export default function AdminBrokersPage() {
                   </div>
 
                   <div>
-                    <label className="block text-[12px] font-semibold mb-1">Commission Rate (%)</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      min="0"
-                      max="100"
-                      required
-                      value={editCommissionPercent}
-                      onChange={(e) => setEditCommissionPercent(e.target.value)}
-                      className="w-full px-3 py-2 border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
                     <label className="block text-[12px] font-semibold mb-1">
                       Contact Phone (Indian or International)
                     </label>
@@ -791,6 +763,7 @@ export default function AdminBrokersPage() {
                     />
                     <span className="text-[10px] text-gray-400 mt-0.5 block">10-digit Indian mobile or International format with country code (e.g. +1...)</span>
                   </div>
+                </div>
 
                   <div>
                     <label className="block text-[12px] font-semibold mb-2">Account Status</label>
@@ -823,8 +796,6 @@ export default function AdminBrokersPage() {
                       </div>
                     </div>
                   </div>
-                </div>
-
 
                 <div className="flex justify-end space-x-2 pt-4">
                   <button

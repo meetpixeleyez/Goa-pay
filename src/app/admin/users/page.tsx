@@ -15,16 +15,20 @@ import {
   AlertCircle,
   X,
   Lock,
+  Eye,
+  EyeOff,
   Phone,
   User,
   Check,
   Percent,
   ExternalLink,
+  Sparkles,
 } from "lucide-react";
 import {
   isValidPhone,
   validateUsernameOrName,
 } from "@/lib/validation";
+import QuickCreateModal from "@/components/users/QuickCreateModal";
 
 export default function UsersDirectoryPage() {
   const router = useRouter();
@@ -33,11 +37,16 @@ export default function UsersDirectoryPage() {
   const [roleFilter, setRoleFilter] = useState("ALL");
   const [searchTerm, setSearchTerm] = useState("");
 
+  // Quick Create Modal State
+  const [quickModalOpen, setQuickModalOpen] = useState(false);
+  const [quickRole, setQuickRole] = useState<"OPERATOR" | "OTHER">("OTHER");
+
   // Edit User State
   const [editingUser, setEditingUser] = useState<any | null>(null);
   const [editName, setEditName] = useState("");
   const [editPhone, setEditPhone] = useState("");
   const [editPassword, setEditPassword] = useState("");
+  const [showEditPassword, setShowEditPassword] = useState(false);
   const [editError, setEditError] = useState("");
   const [showEditConfirm, setShowEditConfirm] = useState(false);
   const [updating, setUpdating] = useState(false);
@@ -98,7 +107,7 @@ export default function UsersDirectoryPage() {
   const availableBrokers = useMemo(() => users.filter((u) => u.role === "BROKER"), [users]);
   const availableAgents = useMemo(() => users.filter((u) => u.role === "AGENT"), [users]);
 
-  const ALLOWED_DIRECTORY_ROLES = useMemo(() => ["MERCHANT", "QR_PROVIDER", "AGENT", "BROKER", "OTHER"], []);
+  const ALLOWED_DIRECTORY_ROLES = useMemo(() => ["MERCHANT", "QR_PROVIDER", "OPERATOR", "AGENT", "BROKER", "OTHER"], []);
 
   const filteredUsers = useMemo(() => {
     return users
@@ -164,6 +173,7 @@ export default function UsersDirectoryPage() {
     setEditName(user.name || "");
     setEditPhone(user.phone || "");
     setEditPassword("");
+    setShowEditPassword(false);
     setEditError("");
     setShowEditConfirm(false);
 
@@ -196,6 +206,7 @@ export default function UsersDirectoryPage() {
     setEditName("");
     setEditPhone("");
     setEditPassword("");
+    setShowEditPassword(false);
     setEditError("");
     setShowEditConfirm(false);
     setUpdating(false);
@@ -371,13 +382,26 @@ export default function UsersDirectoryPage() {
           >
             <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-primary" : ""}`} />
           </button>
-          <Link
-            href="/admin/users/create"
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-primary hover:bg-primary-600 text-white rounded-lg text-xs font-bold shadow-xs transition"
-          >
-            <UserPlus className="w-3.5 h-3.5" />
-            <span>+ Create User</span>
-          </Link>
+          {roleFilter === "OPERATOR" ? (
+            <button
+              onClick={() => {
+                setQuickRole("OPERATOR");
+                setQuickModalOpen(true);
+              }}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-xs transition cursor-pointer"
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+              <span>+ Create Operator</span>
+            </button>
+          ) : (
+            <Link
+              href="/admin/users/create"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-primary hover:bg-primary-600 text-white rounded-lg text-xs font-bold shadow-xs transition"
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+              <span>+ Create User</span>
+            </Link>
+          )}
         </div>
       }
     >
@@ -413,6 +437,7 @@ export default function UsersDirectoryPage() {
               { id: "ALL", label: "All Roles" },
               { id: "MERCHANT", label: "Merchant" },
               { id: "QR_PROVIDER", label: "QR Provider" },
+              { id: "OPERATOR", label: "Operator" },
               { id: "AGENT", label: "Agent" },
               { id: "BROKER", label: "Broker" },
               { id: "OTHER", label: "Other" },
@@ -456,7 +481,31 @@ export default function UsersDirectoryPage() {
                 ) : filteredUsers.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="py-12 text-center text-slate-400">
-                      No users found matching your filters.
+                      <p className="mb-2">No users found matching your filters.</p>
+                      {roleFilter === "OTHER" && (
+                        <button
+                          onClick={() => {
+                            setQuickRole("OTHER");
+                            setQuickModalOpen(true);
+                          }}
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-bold shadow-xs transition cursor-pointer"
+                        >
+                          <UserPlus className="w-3.5 h-3.5" />
+                          <span>+ Create First Other User</span>
+                        </button>
+                      )}
+                      {roleFilter === "OPERATOR" && (
+                        <button
+                          onClick={() => {
+                            setQuickRole("OPERATOR");
+                            setQuickModalOpen(true);
+                          }}
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-xs transition cursor-pointer"
+                        >
+                          <UserPlus className="w-3.5 h-3.5" />
+                          <span>+ Create First Operator</span>
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ) : (
@@ -515,25 +564,19 @@ export default function UsersDirectoryPage() {
                                 <span>Profile</span>
                               </Link>
                             )}
-                            <button
-                              onClick={() => handleOpenEdit(u)}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold text-primary hover:bg-primary-50 border border-primary/20 transition cursor-pointer"
-                              title="Edit User"
-                            >
-                              <Pencil className="w-3 h-3" />
-                              <span>Edit</span>
-                            </button>
-                            <button
-                              onClick={() => {
-                                setDeletingUser(u);
-                                setDeleteError("");
-                              }}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold text-rose-600 hover:bg-rose-50 border border-rose-200 transition cursor-pointer"
-                              title="Delete User"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                              <span>Delete</span>
-                            </button>
+                            {u.role !== "OPERATOR" && (
+                              <button
+                                onClick={() => {
+                                  setDeletingUser(u);
+                                  setDeleteError("");
+                                }}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold text-rose-600 hover:bg-rose-50 border border-rose-200 transition cursor-pointer"
+                                title="Delete User"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                                <span>Delete</span>
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -630,13 +673,21 @@ export default function UsersDirectoryPage() {
                 <div className="relative">
                   <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                   <input
-                    type="password"
+                    type={showEditPassword ? "text" : "password"}
                     value={editPassword}
                     onChange={(e) => setEditPassword(e.target.value)}
                     placeholder="Enter new password or leave blank to keep unchanged"
                     minLength={6}
-                    className="w-full pl-9 pr-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl text-base-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-mono"
+                    className="w-full pl-9 pr-10 py-2 text-xs bg-white border border-slate-200 rounded-xl text-base-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-mono"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowEditPassword(!showEditPassword)}
+                    className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 transition cursor-pointer"
+                    title={showEditPassword ? "Hide password" : "Show password"}
+                  >
+                    {showEditPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
                 <p className="text-[10px] text-slate-400 mt-1">
                   Leave empty if you do not wish to reset the user's password.
@@ -1111,6 +1162,14 @@ export default function UsersDirectoryPage() {
           </div>
         </div>
       )}
+
+      {/* Quick Create Series Modal for Other & Operator */}
+      <QuickCreateModal
+        isOpen={quickModalOpen}
+        onClose={() => setQuickModalOpen(false)}
+        role={quickRole}
+        onSuccess={fetchUsers}
+      />
     </PortalLayout>
   );
 }

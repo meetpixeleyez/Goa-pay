@@ -92,6 +92,13 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: "Access denied" }, { status: 403 });
     }
 
+    if (session.role !== "ADMIN" && session.portalAccess === false) {
+      return NextResponse.json(
+        { error: "Portal access is in read-only mode. Create, update, and delete operations are not allowed." },
+        { status: 403 }
+      );
+    }
+
     const { webhookUrl, defaultSuccessUrl, defaultFailureUrl } = body;
 
     // Validate URL schemes

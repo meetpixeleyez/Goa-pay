@@ -15,6 +15,11 @@ export async function GET() {
         agent: { select: { id: true, name: true, email: true } },
         qrProvider: { select: { id: true, name: true, email: true, phone: true } },
         wallet: true,
+        auditLogs: {
+          where: { action: "OPERATOR_LOGIN" },
+          orderBy: { createdAt: "desc" },
+          take: 10,
+        },
       },
     });
 
@@ -28,6 +33,12 @@ export async function POST(request: Request) {
   try {
     const session = await getSession();
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (session.role !== "ADMIN" && session.portalAccess === false) {
+      return NextResponse.json(
+        { error: "Portal access is in read-only mode. Create, update, and delete operations are not allowed." },
+        { status: 403 }
+      );
+    }
 
     const body = await request.json().catch(() => ({}));
     const { currentPassword, newPassword } = body;
@@ -79,6 +90,12 @@ export async function PUT(request: Request) {
   try {
     const session = await getSession();
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (session.role !== "ADMIN" && session.portalAccess === false) {
+      return NextResponse.json(
+        { error: "Portal access is in read-only mode. Create, update, and delete operations are not allowed." },
+        { status: 403 }
+      );
+    }
 
     const body = await request.json();
     const validation = validateUserData(body, { isCreate: false });

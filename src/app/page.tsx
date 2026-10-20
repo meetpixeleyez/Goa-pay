@@ -136,7 +136,7 @@ export default function HomePage() {
             <div>
               <h4 className="font-semibold text-sm text-base-900">Strict Dual UTR Match</h4>
               <p className="text-xs text-base-700 mt-1">
-                Orders settle only when Customer UTR matches Provider/Admin UTR. Any mismatch rejects with <i>"not valid UTR ID"</i>.
+                Orders settle only when Customer UTR matches Provider/Admin UTR. Any mismatch rejects with <i>&quot;not valid UTR ID&quot;</i>.
               </p>
             </div>
           </div>

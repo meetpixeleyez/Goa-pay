@@ -151,10 +151,12 @@ export interface UpdateQRCodeInput {
 
 export interface CreateOperatorInput {
   name: string;
-  email: string;
+  username?: string;
+  email?: string;
   password: string;
+  confirmPassword?: string;
   phone?: string | null;
-  qrProviderId: string | number;
+  qrProviderId?: string | number;
   assignedQrIds?: (string | number)[];
   initialUpiId?: string | null;
   initialQrImageUrl?: string | null;

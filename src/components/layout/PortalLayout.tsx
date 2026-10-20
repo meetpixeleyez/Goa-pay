@@ -151,15 +151,6 @@ export default function PortalLayout({
       brand: "Admin Portal",
       items: [
         { label: "Users", href: "/admin/users", icon: Users },
-        { label: "Merchants", href: "/admin/merchants", icon: Store },
-        { label: "Brokers", href: "/admin/brokers", icon: Briefcase },
-        { label: "QR Providers", href: "/admin/qr-providers", icon: QrCode },
-        { label: "Operators", href: "/admin/operators", icon: UserCheck },
-        { label: "Agents", href: "/admin/agents", icon: Users },
-        { label: "Others", href: "/admin/others", icon: CircleEllipsis },
-        // { label: "Global Orders", href: "/admin/orders", icon: ShoppingBag },
-        // { label: "Wallets & Ledger", href: "/admin/transactions", icon: Wallet },
-        // { label: "Platform Settings", href: "/admin/settings", icon: Settings },
       ],
     },
     merchant: {
@@ -179,12 +170,7 @@ export default function PortalLayout({
       brand: "QR Provider Portal",
       items: [
         { label: "Dashboard", href: "/qr-provider", icon: LayoutDashboard },
-        // { label: "Assigned Orders", href: "/qr-provider/orders", icon: ShoppingBag },
-        // { label: "Available Orders", href: "/qr-provider/available-orders", icon: UserCheck },
-        { label: "Collection QR Codes", href: "/qr-provider/qr-codes", icon: QrCode },
         { label: "Operators", href: "/qr-provider/operators", icon: Users },
-        // { label: "Wallet & Fees", href: "/qr-provider/wallet", icon: Wallet },
-        // { label: "Transactions", href: "/qr-provider/transactions", icon: Receipt },
         { label: "Provider Profile", href: "/qr-provider/profile", icon: User },
       ],
     },
@@ -320,10 +306,16 @@ export default function PortalLayout({
             <div className="pt-4 border-t border-[#e4e6eb] space-y-3">
               <div className="text-xs">
                 <div className="font-bold text-[#050505]">{user?.name}</div>
-                <div className="text-[#65676b] text-[11px] truncate">{user?.email}</div>
-                <span className="inline-block mt-1 text-[10px] px-2 py-0.5 rounded-full bg-[#e7f3ff] text-[#0866ff] border border-[#cbe5ff] font-bold uppercase">
-                  {user?.role}
-                </span>
+                <div className="flex items-center gap-1.5 mt-1">
+                  <span className="inline-block text-[10px] px-2 py-0.5 rounded-full bg-[#e7f3ff] text-[#0866ff] border border-[#cbe5ff] font-bold uppercase">
+                    {user?.role}
+                  </span>
+                  {user?.portalAccess === false && (
+                    <span className="inline-block text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300 font-bold uppercase">
+                      Read-Only
+                    </span>
+                  )}
+                </div>
               </div>
               <button
                 onClick={handleLogout}
@@ -393,8 +385,12 @@ export default function PortalLayout({
                 <span className="inline-block text-[10px] px-1.5 py-[2px] rounded-full bg-primary text-primary-50 font-semibold uppercase">
                   {user?.role}
                 </span>
+                {user?.portalAccess === false && (
+                  <span className="inline-block text-[10px] px-1.5 py-[2px] rounded-full bg-amber-500/20 text-amber-300 font-semibold uppercase border border-amber-500/30">
+                    Read-Only
+                  </span>
+                )}
               </div>
-              <div className="text-[12px] text-slate-300/75 truncate">{user?.email}</div>
             </div>
           </div>
           <button
@@ -409,6 +405,23 @@ export default function PortalLayout({
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-w-0 overflow-y-auto">
+        {/* Read-Only Mode Banner */}
+        {user && user.role !== "ADMIN" && user.portalAccess === false && (
+          <div className="bg-amber-50 border-b border-amber-200 px-4 sm:px-8 py-2.5 flex items-center justify-between text-amber-900 text-xs font-medium sticky top-0 z-30 backdrop-blur-md shadow-sm">
+            <div className="flex items-center space-x-2">
+              <span className="flex h-2 w-2 relative">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+              </span>
+              <span className="font-bold">Read-Only Mode:</span>
+              <span>Portal access is in read-only mode. You can view all records and data, but Create, Update, and Delete operations are disabled.</span>
+            </div>
+            <span className="hidden sm:inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+              Read-Only
+            </span>
+          </div>
+        )}
+
         {/* Top Header Bar */}
         <div className="bg-white/80 border-b border-[#e4e6eb] px-4 sm:px-8 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sticky top-0 z-20 backdrop-blur-md">
           <div>

@@ -24,7 +24,7 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await requireAuth(["ADMIN", "QR_PROVIDER"]);
+    const session = await requireAuth(["QR_PROVIDER"], { requireWrite: true });
     const body = await request.json().catch(() => ({}));
 
     const updated = await OperatorService.updateOperator(params.id, body, session);

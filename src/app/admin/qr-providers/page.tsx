@@ -41,7 +41,6 @@ export default function AdminQRProvidersPage() {
   // Reset Password Modal
   const [resetUser, setResetUser] = useState<any>(null);
   const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [resetError, setResetError] = useState("");
@@ -174,11 +173,6 @@ export default function AdminQRProvidersPage() {
       return;
     }
 
-    if (confirmPassword && newPassword !== confirmPassword) {
-      setResetError("Passwords do not match");
-      return;
-    }
-
     setResetting(true);
     try {
       const data = await apiClient.post<{ success: boolean; message: string }>(
@@ -190,7 +184,6 @@ export default function AdminQRProvidersPage() {
       setTimeout(() => {
         setResetUser(null);
         setNewPassword("");
-        setConfirmPassword("");
         setResetSuccess("");
       }, 1500);
     } catch (err: any) {
@@ -486,7 +479,6 @@ export default function AdminQRProvidersPage() {
                                 onClick={() => {
                                   setResetUser(p);
                                   setNewPassword("");
-                                  setConfirmPassword("");
                                   setResetError("");
                                   setResetSuccess("");
                                 }}
@@ -646,7 +638,6 @@ export default function AdminQRProvidersPage() {
                           onClick={() => {
                             setResetUser(p);
                             setNewPassword("");
-                            setConfirmPassword("");
                             setResetError("");
                             setResetSuccess("");
                           }}
@@ -805,17 +796,6 @@ export default function AdminQRProvidersPage() {
                       {showPassword ? "Hide" : "Show"}
                     </button>
                   </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-base-900 mb-1">Confirm Password</label>
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Re-type password"
-                    className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white text-base-900"
-                  />
                 </div>
 
                 {/* Informational security note */}

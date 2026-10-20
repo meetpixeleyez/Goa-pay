@@ -31,6 +31,13 @@ export async function POST(
       return NextResponse.json({ error: "Access denied" }, { status: 403 });
     }
 
+    if (session.role !== "ADMIN" && session.portalAccess === false) {
+      return NextResponse.json(
+        { error: "Portal access is in read-only mode. Create, update, and delete operations are not allowed." },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json().catch(() => ({}));
     const newStatus =
       body.status || (apiKey.status === "ACTIVE" ? "INACTIVE" : "ACTIVE");

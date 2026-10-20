@@ -7,7 +7,7 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await requireAuth(["ADMIN", "QR_PROVIDER"]);
+    const session = await requireAuth(["ADMIN", "QR_PROVIDER"], { requireWrite: true });
     const updated = await QRCodeService.toggleQRCodeStatus(params.id, session);
 
     return NextResponse.json({

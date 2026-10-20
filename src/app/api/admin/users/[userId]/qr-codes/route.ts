@@ -48,10 +48,21 @@ export async function POST(
       return NextResponse.json({ error: "Invalid user ID" }, { status: 400 });
     }
 
-    // Only Admin or the QR Provider themselves can create QR codes
-    if (session.role !== "ADMIN" && (session.role !== "QR_PROVIDER" || session.userId !== providerId)) {
+    const userTarget = await prisma.user.findUnique({
+      where: { id: providerId },
+      select: { id: true, role: true, qrProviderId: true },
+    });
+
+    if (!userTarget) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    // Only Admin, or parent QR Provider, or operator themselves can create QR codes
+    const isOwner = session.userId === providerId;
+    const isParentProvider = userTarget.role === "OPERATOR" && session.userId === userTarget.qrProviderId;
+    if (session.role !== "ADMIN" && !isOwner && !isParentProvider) {
       return NextResponse.json(
-        { error: "Forbidden: Unauthorized to create QR codes for this provider" },
+        { error: "Forbidden: Unauthorized to create QR codes for this user" },
         { status: 403 }
       );
     }
@@ -65,14 +76,32 @@ export async function POST(
       );
     }
 
+    let actualProviderId = providerId;
+    let actualOperatorId: number | null = null;
+    if (userTarget.role === "OPERATOR") {
+      actualProviderId = userTarget.qrProviderId || providerId;
+      actualOperatorId = userTarget.id;
+    }
+
+    // SINGLE ACTIVE QR CODE PER OPERATOR RULE:
+    // If assigned to an operator, deactivate all other QR codes for this operator
+    if (actualOperatorId) {
+      await prisma.qRCode.updateMany({
+        where: { operatorId: actualOperatorId },
+        data: { isActive: false, status: "INACTIVE" },
+      });
+    }
+
     const qrCode = await prisma.qRCode.create({
       data: {
-        providerId,
+        providerId: actualProviderId,
+        operatorId: actualOperatorId,
         upiId,
         imageUrl,
         accountHolderName: accountHolderName || null,
         bankName: bankName || null,
         isActive: true,
+        status: "ACTIVE",
       },
     });
 
@@ -93,7 +122,7 @@ export async function PUT(
       return NextResponse.json({ error: "Invalid user ID" }, { status: 400 });
     }
 
-    if (!session || (session.role !== "ADMIN" && (session.role !== "QR_PROVIDER" || session.userId !== providerId))) {
+    if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
@@ -108,12 +137,12 @@ export async function PUT(
       return NextResponse.json({ error: "Invalid qrCodeId" }, { status: 400 });
     }
 
-    const existing = await prisma.qRCode.findFirst({
-      where: { id: parsedQrCodeId, providerId },
+    const existing = await prisma.qRCode.findUnique({
+      where: { id: parsedQrCodeId },
     });
 
     if (!existing) {
-      return NextResponse.json({ error: "QR Code not found for this provider" }, { status: 404 });
+      return NextResponse.json({ error: "QR Code not found" }, { status: 404 });
     }
 
     const updateData: any = {};
@@ -122,14 +151,27 @@ export async function PUT(
     if (accountHolderName !== undefined) updateData.accountHolderName = accountHolderName ? accountHolderName.trim() : null;
     if (bankName !== undefined) updateData.bankName = bankName ? bankName.trim() : null;
 
+    let targetIsActive: boolean | undefined = undefined;
     if (isActive !== undefined) {
-      const activeBool = Boolean(isActive);
-      updateData.isActive = activeBool;
-      updateData.status = activeBool ? "ACTIVE" : "INACTIVE";
+      targetIsActive = Boolean(isActive);
+      updateData.isActive = targetIsActive;
+      updateData.status = targetIsActive ? "ACTIVE" : "INACTIVE";
     } else if (status !== undefined) {
-      const activeBool = status === "ACTIVE";
+      targetIsActive = status === "ACTIVE";
       updateData.status = status;
-      updateData.isActive = activeBool;
+      updateData.isActive = targetIsActive;
+    }
+
+    // SINGLE ACTIVE QR CODE PER OPERATOR RULE:
+    // If activating this QR code and it belongs to an operator, deactivate all other QR codes of that operator
+    if (existing.operatorId && targetIsActive === true) {
+      await prisma.qRCode.updateMany({
+        where: {
+          operatorId: existing.operatorId,
+          id: { not: parsedQrCodeId },
+        },
+        data: { isActive: false, status: "INACTIVE" },
+      });
     }
 
     const updated = await prisma.qRCode.update({

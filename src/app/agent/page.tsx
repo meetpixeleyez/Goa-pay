@@ -51,7 +51,7 @@ export default function AgentDashboard() {
       }
     >
       {/* Metrics Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="card-theme p-5 border-l-4 border-l-primary">
           <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
             Commission Wallet
@@ -64,21 +64,6 @@ export default function AgentDashboard() {
           </div>
           <span className="text-[11px] text-gray-400 mt-1 block">
             Accumulated deposit commission earnings
-          </span>
-        </div>
-
-        <div className="card-theme p-5">
-          <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
-            Commission Rate
-          </span>
-          <div className="mt-2 flex items-baseline justify-between">
-            <span className="text-2xl font-extrabold text-primary">
-              {wallet?.commissionPercent || 1.0}%
-            </span>
-            <TrendingUp className="w-5 h-5 text-primary" />
-          </div>
-          <span className="text-[11px] text-gray-400 mt-1 block">
-            Credited on completed transactions
           </span>
         </div>
 

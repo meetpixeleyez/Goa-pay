@@ -270,6 +270,14 @@ export async function settleCompletedOrder(
       data: { balance: merchantBalanceAfterDebit },
     });
 
+    await tx.user.update({
+      where: { id: order.merchantId },
+      data: {
+        balance: merchantBalanceAfterDebit,
+        availableBalance: merchantBalanceAfterDebit,
+      },
+    });
+
     // 3. QR Provider balance and exposure adjustment
     // Opening balance decreases by order amount, exposure clears, fee gets credited
     const newExposure = Math.max(0, order.qrProvider.exposure - order.amount);
@@ -340,6 +348,13 @@ export async function settleCompletedOrder(
         where: { id: agentWallet.id },
         data: { balance: agentNewBal },
       });
+      await tx.user.update({
+        where: { id: order.qrProvider.agentId },
+        data: {
+          balance: agentNewBal,
+          availableBalance: agentNewBal,
+        },
+      });
     }
 
     // 5. Broker commission if assigned to merchant
@@ -361,6 +376,13 @@ export async function settleCompletedOrder(
       await tx.wallet.update({
         where: { id: brokerWallet.id },
         data: { balance: brokerNewBal },
+      });
+      await tx.user.update({
+        where: { id: order.merchant.brokerId },
+        data: {
+          balance: brokerNewBal,
+          availableBalance: brokerNewBal,
+        },
       });
     }
 
@@ -525,6 +547,14 @@ export async function settleCompletedPayoutOrder({
       data: { balance: merchantFinalBal },
     });
 
+    await tx.user.update({
+      where: { id: order.merchantId },
+      data: {
+        balance: merchantFinalBal,
+        availableBalance: merchantFinalBal,
+      },
+    });
+
     // 2. If QR Provider fulfilled: Credit reimbursement + fee to QR Provider
     if (!paidByAdmin && order.qrProviderId && order.qrProvider) {
       const providerWallet = await getOrCreateWallet(order.qrProviderId);
@@ -596,6 +626,13 @@ export async function settleCompletedPayoutOrder({
           where: { id: agentWallet.id },
           data: { balance: agentNewBal },
         });
+        await tx.user.update({
+          where: { id: order.qrProvider.agentId },
+          data: {
+            balance: agentNewBal,
+            availableBalance: agentNewBal,
+          },
+        });
       }
     }
 
@@ -618,6 +655,13 @@ export async function settleCompletedPayoutOrder({
       await tx.wallet.update({
         where: { id: brokerWallet.id },
         data: { balance: brokerNewBal },
+      });
+      await tx.user.update({
+        where: { id: order.merchant.brokerId },
+        data: {
+          balance: brokerNewBal,
+          availableBalance: brokerNewBal,
+        },
       });
     }
 

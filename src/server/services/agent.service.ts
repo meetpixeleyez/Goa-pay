@@ -258,12 +258,14 @@ export class AgentService {
 
     const agentUser = await prisma.user.findUnique({
       where: { id: numericAgentId },
-      select: { commissionPercent: true },
+      select: { commissionPercent: true, payinAgentFee: true, payoutAgentFee: true },
     });
 
     return {
       balance: wallet?.balance || 0.0,
       commissionPercent: agentUser?.commissionPercent || 1.0,
+      payinAgentFee: agentUser?.payinAgentFee ?? agentUser?.commissionPercent ?? 0.0,
+      payoutAgentFee: agentUser?.payoutAgentFee ?? 0.0,
       entries: wallet?.entries || [],
     };
   }

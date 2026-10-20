@@ -158,13 +158,6 @@ export default function QRProviderDashboard() {
             <span className="hidden sm:inline">Operators</span>
           </Link>
 
-          <Link
-            href="/qr-provider/qr-codes"
-            className="p-2 border border-base-200 rounded-lg bg-white hover:bg-gray-50 text-gray-700 text-xs font-semibold flex items-center space-x-1"
-          >
-            <PlusCircle className="w-3.5 h-3.5 text-primary" />
-            <span className="hidden sm:inline">QR Codes</span>
-          </Link>
 
           <button
             onClick={fetchData}

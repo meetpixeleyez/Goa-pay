@@ -168,6 +168,11 @@ export class OperatorService {
             providerId: true,
           },
         },
+        auditLogs: {
+          where: { action: "OPERATOR_LOGIN" },
+          orderBy: { createdAt: "desc" },
+          take: 20,
+        },
       },
     });
 
@@ -206,15 +211,39 @@ export class OperatorService {
       throw new ApiError("Target QR Provider does not exist", 404);
     }
 
-    if (!input.name?.trim()) throw new ApiError("Name is required", 400);
-    if (!input.email?.trim() || !isValidEmail(input.email)) throw new ApiError("Valid email is required", 400);
-    if (!input.password || input.password.length < 6) throw new ApiError("Password must be at least 6 characters", 400);
+    const rawUsername = (input.username || input.name)?.trim();
+    if (!rawUsername) throw new ApiError("Username is required", 400);
 
-    const existing = await prisma.user.findUnique({
-      where: { email: input.email.trim().toLowerCase() },
+    if (rawUsername.includes("@")) {
+      throw new ApiError("Username cannot contain '@'. Please enter a simple username (e.g. rahul_operator).", 400);
+    }
+
+    if (!input.password || input.password.length < 6) {
+      throw new ApiError("Password must be at least 6 characters", 400);
+    }
+
+    if (input.confirmPassword && input.confirmPassword !== input.password) {
+      throw new ApiError("Passwords do not match", 400);
+    }
+
+    const cleanSlug = rawUsername.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_-]/g, "");
+    const generatedEmail = `${cleanSlug}@goapay.internal`;
+    const finalEmail = input.email && isValidEmail(input.email)
+      ? input.email.trim().toLowerCase()
+      : generatedEmail;
+
+    // Check if user with same name or email already exists
+    const existing = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: finalEmail },
+          { email: generatedEmail },
+          { name: rawUsername },
+        ],
+      },
     });
     if (existing) {
-      throw new ApiError("A user with this email already exists", 400);
+      throw new ApiError("An operator with this username already exists. Please choose a different username.", 400);
     }
 
     const passwordHash = await hashPassword(input.password);
@@ -224,8 +253,8 @@ export class OperatorService {
       const newOperator = await tx.user.create({
         data: {
           role: "OPERATOR",
-          name: input.name.trim(),
-          email: input.email.trim().toLowerCase(),
+          name: rawUsername,
+          email: finalEmail,
           passwordHash,
           phone: cleanPhone,
           status: "ACTIVE",

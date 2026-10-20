@@ -19,10 +19,14 @@ import {
   Send,
   MapPin,
   Calendar,
-  Layers,
   ArrowUpRight,
+  ArrowDownLeft,
   ShieldCheck,
   Save,
+  PlusCircle,
+  MinusCircle,
+  CheckCircle2,
+  CreditCard,
 } from "lucide-react";
 import {
   isValidPhone,
@@ -48,7 +52,8 @@ export default function AgentDetailPage() {
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [telegramId, setTelegramId] = useState("");
-  const [commissionPercent, setCommissionPercent] = useState("1.0");
+  const [payinAgentFee, setPayinAgentFee] = useState("0.0");
+  const [payoutAgentFee, setPayoutAgentFee] = useState("0.0");
   const [status, setStatus] = useState("ACTIVE");
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState("");
@@ -60,6 +65,127 @@ export default function AgentDetailPage() {
   const [resetting, setResetting] = useState(false);
   const [resetSuccess, setResetSuccess] = useState("");
   const [resetError, setResetError] = useState("");
+
+  // Balance Action States (Deposit & Withdrawal Modals)
+  const [showAddBalanceModal, setShowAddBalanceModal] = useState(false);
+  const [addAmount, setAddAmount] = useState("");
+  const [addDescription, setAddDescription] = useState("");
+  const [addingBalance, setAddingBalance] = useState(false);
+  const [addBalanceError, setAddBalanceError] = useState("");
+  const [addBalanceSuccess, setAddBalanceSuccess] = useState("");
+
+  const [showClearModal, setShowClearModal] = useState(false);
+  const [clearAmount, setClearAmount] = useState("");
+  const [clearDescription, setClearDescription] = useState("");
+  const [clearingBalance, setClearingBalance] = useState(false);
+  const [clearError, setClearError] = useState("");
+  const [clearSuccess, setClearSuccess] = useState("");
+
+  // Handle Add Balance / Deposit
+  const handleAddBalance = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (addingBalance || addBalanceSuccess) return;
+
+    const num = parseFloat(addAmount);
+    if (isNaN(num) || num <= 0) {
+      setAddBalanceError("Please enter a valid amount greater than ₹0");
+      return;
+    }
+    setAddingBalance(true);
+    setAddBalanceError("");
+    setAddBalanceSuccess("");
+
+    try {
+      const res = await fetch(`/api/admin/users/${agentId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "ADD_BALANCE",
+          amount: num,
+          description: addDescription.trim() || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to add balance");
+
+      setAddBalanceSuccess(data.message || "Balance deposited successfully!");
+      await fetchAgent();
+      setTimeout(() => {
+        setShowAddBalanceModal(false);
+        setAddAmount("");
+        setAddDescription("");
+        setAddBalanceSuccess("");
+        setAddingBalance(false);
+      }, 900);
+    } catch (err: any) {
+      setAddBalanceError(err.message || "Failed to add balance");
+      setAddingBalance(false);
+    }
+  };
+
+  // Handle Clear Balance / Withdrawal
+  const handleClearBalance = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (clearingBalance || clearSuccess) return;
+
+    const num = parseFloat(clearAmount);
+    if (isNaN(num) || num <= 0) {
+      setClearError("Please enter a valid amount greater than ₹0");
+      return;
+    }
+    setClearingBalance(true);
+    setClearError("");
+    setClearSuccess("");
+
+    try {
+      const res = await fetch(`/api/admin/users/${agentId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "CLEAR_BALANCE",
+          amount: num,
+          description: clearDescription.trim() || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to clear balance");
+
+      setClearSuccess(data.message || "Balance withdrawn successfully!");
+      await fetchAgent();
+      setTimeout(() => {
+        setShowClearModal(false);
+        setClearAmount("");
+        setClearDescription("");
+        setClearSuccess("");
+        setClearingBalance(false);
+      }, 900);
+    } catch (err: any) {
+      setClearError(err.message || "Failed to clear balance");
+      setClearingBalance(false);
+    }
+  };
+
+  const getEntryTypeBadge = (entry: any) => {
+    const type = (entry.type || "").toUpperCase();
+
+    if (type === "CR") {
+      return {
+        label: "+ DEPOSIT",
+        className: "bg-green-100 text-green-800",
+        amountPrefix: "+",
+        amountColor: "text-green-700",
+        displayCategory: entry.category || "DEPOSIT",
+      };
+    }
+
+    return {
+      label: "- WITHDRAWAL",
+      className: "bg-red-100 text-red-800",
+      amountPrefix: "-",
+      amountColor: "text-red-700",
+      displayCategory: entry.category || "WITHDRAWAL",
+    };
+  };
 
   const fetchAgent = async () => {
     try {
@@ -75,7 +201,8 @@ export default function AgentDetailPage() {
       setPhone(u.phone || "");
       setAddress(u.address || "");
       setTelegramId(u.telegramId || "");
-      setCommissionPercent(u.commissionPercent?.toString() || "1.0");
+      setPayinAgentFee((u.payinAgentFee ?? 0).toString());
+      setPayoutAgentFee((u.payoutAgentFee ?? 0).toString());
       setStatus(u.status || "ACTIVE");
     } catch (err: any) {
       setError(err.message || "Unable to fetch agent details");
@@ -134,7 +261,6 @@ export default function AgentDetailPage() {
         body: JSON.stringify({
           name: name.trim(),
           phone: cleanPhone,
-          commissionPercent: parseFloat(commissionPercent) || 1.0,
           status,
         }),
       });
@@ -214,121 +340,133 @@ export default function AgentDetailPage() {
   const totalCommissionEarned = walletEntries
     .filter((e: any) => e.type === "CR")
     .reduce((sum: number, e: any) => sum + e.amount, 0);
+  const totalDebit = walletEntries
+    .filter((e: any) => e.type === "DR")
+    .reduce((sum: number, e: any) => sum + e.amount, 0);
 
   return (
     <PortalLayout
       portal="admin"
-      title={agent.name}
-      subtitle="Master Agent Profile, Linked QR Providers, and Commission Ledger"
+      title={
+        <div className="flex items-center gap-3">
+          <div className="size-10 sm:size-11 rounded-xl bg-primary/15 text-primary flex items-center justify-center font-bold text-base sm:text-lg border border-primary/30 shrink-0">
+            {agent.name.charAt(0).toUpperCase()}
+          </div>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-lg sm:text-xl font-bold text-slate-800">{agent.name}</span>
+              <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800">
+                Agent
+              </span>
+              <span
+                className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+                  agent.status === "ACTIVE"
+                    ? "bg-green-50 text-green-600 border-green-200"
+                    : "bg-red-50 text-red-600 border-red-200"
+                }`}
+              >
+                {agent.status}
+              </span>
+              <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-[10px] font-mono">
+                ID: {agent.id}
+              </span>
+            </div>
+            {(agent.phone || agent.telegramId) && (
+              <div className="flex items-center gap-2 sm:gap-3 text-xs text-slate-500 mt-0.5 flex-wrap">
+                {agent.phone && (
+                  <span className="flex items-center gap-1 font-mono">
+                    <Phone className="size-3 text-slate-400" />
+                    <span>{agent.phone}</span>
+                  </span>
+                )}
+                {agent.telegramId && (
+                  <span className="flex items-center gap-1 text-slate-600 font-mono">
+                    <span>{agent.telegramId}</span>
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      }
       actions={
-        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+        <div className="flex items-center space-x-2">
           <button
-            onClick={() => {
-              setShowResetModal(true);
-              setNewPassword("");
-              setResetError("");
-              setResetSuccess("");
-            }}
-            className="flex-1 sm:flex-initial px-3 py-1.5 border border-base-200 rounded-lg text-xs font-semibold bg-white hover:bg-gray-50 text-gray-700 flex items-center justify-center space-x-1.5 shadow-2xs transition"
+            onClick={fetchAgent}
+            disabled={loading}
+            className="btn-secondary text-xs py-2 px-3 inline-flex items-center space-x-1.5"
+            title="Refresh agent info"
           >
-            <KeyRound className="w-3.5 h-3.5 text-sky-600" />
-            <span>Reset Password</span>
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
+            <span className="hidden sm:inline">Refresh</span>
           </button>
           <Link
-            href="/admin/agents"
-            className="flex-1 sm:flex-initial btn-secondary text-xs py-1.5 px-3 flex items-center justify-center space-x-1.5 shadow-2xs transition"
+            href="/admin/users"
+            className="btn-secondary text-xs py-2 px-3 inline-flex items-center space-x-1.5"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Back to Agents</span>
+            <span>Back to Users</span>
           </Link>
         </div>
       }
     >
       <div className="space-y-5 sm:space-y-6">
-        {/* Header Metadata Card */}
-        <div className="card-theme p-4 sm:p-5 shadow-sm border border-base-200 rounded-xl">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-start sm:items-center space-x-3.5 min-w-0">
-              <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-primary/15 text-base-900 flex items-center justify-center font-bold text-base sm:text-lg border border-primary/30 shrink-0">
-                {agent.name.charAt(0).toUpperCase()}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center space-x-2 flex-wrap gap-y-1">
-                  <h1 className="text-base sm:text-xl font-bold text-base-900 truncate">{agent.name}</h1>
-                  <span
-                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border shrink-0 ${
-                      agent.status === "ACTIVE"
-                        ? "bg-[#e8f5e9] text-[#2e7d32] border-[#a5d6a7]/60"
-                        : "bg-red-50 text-red-700 border-red-200"
-                    }`}
-                  >
-                    {agent.status}
-                  </span>
-                  <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-600 text-[10px] font-mono shrink-0">
-                    ID: {agent.id}
-                  </span>
-                </div>
-                <div className="flex items-center gap-x-4 gap-y-1.5 text-xs text-base-700 mt-1.5 flex-wrap">
-                  <span className="flex items-center space-x-1 truncate max-w-[240px] sm:max-w-none" title={agent.email}>
-                    <Mail className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                    <span className="font-mono text-[11px] truncate">{agent.email}</span>
-                  </span>
-                  {agent.telegramId && (
-                    <span className="inline-flex items-center space-x-1 font-mono text-[11px] text-[#1565c0]">
-                      <Send className="w-3 h-3 text-[#1565c0] shrink-0" />
-                      <span>{agent.telegramId}</span>
-                    </span>
-                  )}
-                  {agent.phone && (
-                    <span className="flex items-center space-x-1 font-mono text-[11px]">
-                      <Phone className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                      <span>{agent.phone}</span>
-                    </span>
-                  )}
-                  <span className="flex items-center space-x-1 text-[11px] text-slate-500">
-                    <Calendar className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                    <span>Joined {new Date(agent.createdAt).toLocaleDateString()}</span>
-                  </span>
-                </div>
-              </div>
-            </div>
 
-            <div className="flex items-center justify-end sm:justify-start space-x-2 shrink-0 border-t sm:border-t-0 pt-2 sm:pt-0 border-base-200/60">
-              <button
-                onClick={fetchAgent}
-                disabled={loading}
-                className="w-full sm:w-auto p-2 bg-white border border-base-200 rounded-lg hover:bg-gray-100 text-gray-600 transition shadow-2xs flex items-center justify-center space-x-1.5 text-xs font-semibold"
-                title="Refresh Agent Info"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin text-primary" : ""}`} />
-                <span className="sm:hidden">Refresh Info</span>
-              </button>
-            </div>
+        {/* Toolbar: Deposit | Withdrawal (Just above the cards) */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200 shadow-xs">
+          <div>
+            <span className="text-xs font-bold text-slate-800 uppercase tracking-wider block">
+              Balance Overview
+            </span>
+            <span className="text-[11px] text-slate-500">
+              Manage commission wallet settlement
+            </span>
+          </div>
+
+          <div className="flex items-center flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setShowAddBalanceModal(true);
+                setAddAmount("");
+                setAddDescription("");
+                setAddBalanceError("");
+                setAddBalanceSuccess("");
+              }}
+              className="px-3.5 py-2 rounded-lg text-xs font-bold bg-primary text-white hover:bg-primary-600 shadow-xs transition flex items-center space-x-1.5 cursor-pointer"
+            >
+              <PlusCircle className="w-3.5 h-3.5" />
+              <span>+ Deposit</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setShowClearModal(true);
+                setClearAmount("");
+                setClearDescription("");
+                setClearError("");
+                setClearSuccess("");
+              }}
+              className="px-3.5 py-2 rounded-lg text-xs font-bold bg-white border border-rose-200 text-rose-700 hover:bg-rose-50 shadow-xs transition flex items-center space-x-1.5 cursor-pointer"
+            >
+              <MinusCircle className="w-3.5 h-3.5 text-rose-600" />
+              <span>- Withdrawal</span>
+            </button>
           </div>
         </div>
 
-        {/* 4 Summary Metric Cards - 2 cols on mobile, 4 on desktop */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        {/* 3 Summary Metric Cards - 1 col on mobile, 3 on desktop */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
           <div className="card-theme p-3.5 sm:p-4 shadow-sm border border-base-200 rounded-xl">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] sm:text-xs text-base-700 font-medium truncate">Commission Wallet</span>
+              <span className="text-[11px] sm:text-xs text-base-700 font-medium truncate">Total Balance</span>
               <Wallet className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary shrink-0 ml-1" />
             </div>
             <div className="mt-1.5 sm:mt-2 text-base sm:text-xl font-extrabold text-base-900 font-mono truncate">
-              ₹{(agent.wallet?.balance || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              ₹{(agent.wallet?.balance || agent.balance || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
-            <span className="text-[10px] text-base-700 mt-0.5 block truncate">Current withdrawable balance</span>
-          </div>
-
-          <div className="card-theme p-3.5 sm:p-4 shadow-sm border border-base-200 rounded-xl">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] sm:text-xs text-base-700 font-medium truncate">Commission Rate</span>
-              <Percent className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary shrink-0 ml-1" />
-            </div>
-            <div className="mt-1.5 sm:mt-2 text-base sm:text-xl font-extrabold text-primary font-mono truncate">
-              {Number(agent.commissionPercent || 0).toFixed(2)}%
-            </div>
-            <span className="text-[10px] text-base-700 mt-0.5 block truncate">Applied on routing deposits</span>
+            <span className="text-[10px] text-base-700 mt-0.5 block truncate">Current settled balance</span>
           </div>
 
           <div className="card-theme p-3.5 sm:p-4 shadow-sm border border-base-200 rounded-xl">
@@ -345,12 +483,12 @@ export default function AgentDetailPage() {
           <div className="card-theme p-3.5 sm:p-4 shadow-sm border border-base-200 rounded-xl">
             <div className="flex items-center justify-between">
               <span className="text-[11px] sm:text-xs text-base-700 font-medium truncate">Lifetime Earned</span>
-              <ArrowUpRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-600 shrink-0 ml-1" />
+              <ArrowUpRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600 shrink-0 ml-1" />
             </div>
-            <div className="mt-1.5 sm:mt-2 text-base sm:text-xl font-extrabold text-green-700 font-mono truncate">
+            <div className="mt-1.5 sm:mt-2 text-base sm:text-xl font-extrabold text-emerald-600 font-mono truncate">
               ₹{totalCommissionEarned.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
-            <span className="text-[10px] text-base-700 mt-0.5 block truncate">Total commissions settled</span>
+            <span className="text-[10px] text-base-700 mt-0.5 block truncate">All-time commission credited</span>
           </div>
         </div>
 
@@ -395,8 +533,8 @@ export default function AgentDetailPage() {
 
         {/* TAB 1: INFO & SETTINGS */}
         {activeTab === "info" && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 items-start">
-            <div className="lg:col-span-8 card-theme p-4 sm:p-6 shadow-sm border border-base-200 rounded-xl">
+          <div className="space-y-6">
+            <div className="card-theme p-4 sm:p-6 shadow-sm border border-base-200 rounded-xl">
               <div className="flex items-center space-x-2 pb-3 border-b border-base-200 mb-4 sm:mb-5">
                 <Users className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
                 <h3 className="font-bold text-sm sm:text-base text-base-900">Edit Agent Profile & Settings</h3>
@@ -446,25 +584,7 @@ export default function AgentDetailPage() {
                     <span className="text-[10px] text-gray-400 mt-0.5 block">10-digit Indian mobile or International format with country code (e.g. +1...)</span>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-semibold text-base-900 mb-1">
-                      Commission Percentage (%) *
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        step="0.05"
-                        min="0"
-                        max="100"
-                        required
-                        value={commissionPercent}
-                        onChange={(e) => setCommissionPercent(e.target.value)}
-                        className="w-full px-3 py-2 text-xs font-bold font-mono border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
-                      />
-                      <span className="absolute right-3 top-2 text-slate-500 font-bold text-xs">%</span>
-                    </div>
-                    <span className="text-[10px] text-slate-500 mt-0.5 block">Earned on routing deposits</span>
-                  </div>
+
 
                   {/* Account Status Switch */}
                   <div className="sm:col-span-2 p-3 bg-[#ffffff] border border-base-200 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
@@ -533,24 +653,21 @@ export default function AgentDetailPage() {
               </form>
             </div>
 
-            {/* Right Card: How Agent Commissions Work */}
-            <div className="lg:col-span-4 space-y-4">
-              <div className="card-theme p-4 sm:p-5 shadow-sm border border-base-200 rounded-xl">
-                <div className="flex items-center space-x-2 pb-2.5 border-b border-base-200 mb-3">
-                  <ShieldCheck className="w-4 h-4 text-primary" />
-                  <h4 className="font-bold text-xs text-base-900">Settlement Safeguards</h4>
-                </div>
-                <div className="space-y-2.5 text-xs text-base-700">
-                  <p>
-                    • Whenever a customer completes a deposit through a QR code owned by any of this agent's linked QR providers, the agent fee is calculated and locked atomically.
-                  </p>
-                  <p>
-                    • Commissions are automatically credited to the agent's commission wallet upon successful dual-UTR verification.
-                  </p>
-                  <p>
-                    • Current configured commission rate: <b className="text-base-900 font-mono">{agent.commissionPercent}%</b>.
-                  </p>
-                </div>
+            <div className="card-theme p-4 sm:p-5 shadow-sm border border-base-200 rounded-xl">
+              <div className="flex items-center space-x-2 pb-2.5 border-b border-base-200 mb-3">
+                <ShieldCheck className="w-4 h-4 text-primary" />
+                <h4 className="font-bold text-xs text-base-900">Settlement Safeguards</h4>
+              </div>
+              <div className="space-y-2.5 text-xs text-base-700">
+                <p>
+                  • Whenever a customer completes a deposit through a QR code owned by any of this agent's linked QR providers, the agent fee is calculated and locked atomically.
+                </p>
+                <p>
+                  • Commissions are automatically credited to the agent's commission wallet upon successful dual-UTR verification.
+                </p>
+                <p>
+                  • Agent fees (Payin & Payout) are configured dynamically directly on each QR Provider account when assigning this agent.
+                </p>
               </div>
             </div>
           </div>
@@ -564,12 +681,9 @@ export default function AgentDetailPage() {
                 <h3 className="font-bold text-sm sm:text-base text-base-900">Assigned QR Providers</h3>
                 <p className="text-xs text-base-700">Liquidity providers managed by {agent.name}</p>
               </div>
-              <Link
-                href="/admin/qr-providers/create"
-                className="btn-primary text-xs py-2 px-3.5 flex items-center justify-center space-x-1 shadow-xs rounded-lg w-full sm:w-auto"
-              >
-                <span>+ Add QR Provider</span>
-              </Link>
+              <span className="text-xs text-base-700">
+                Total Linked Providers: <b>{assignedProviders.length}</b>
+              </span>
             </div>
 
             {/* Desktop Table View (Visible on md and up) */}
@@ -740,13 +854,23 @@ export default function AgentDetailPage() {
         {/* TAB 3: COMMISSION LEDGER */}
         {activeTab === "ledger" && (
           <div className="card-theme overflow-hidden shadow-sm border border-base-200 rounded-xl">
-            <div className="p-4 border-b border-base-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+            <div className="p-4 border-b border-base-200 flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h3 className="font-bold text-sm sm:text-base text-base-900">Commission Ledger & Audit Trail</h3>
                 <p className="text-xs text-base-700">All credit and debit entries on {agent.name}'s wallet</p>
               </div>
-              <div className="text-xs font-bold text-base-900 bg-primary/15 px-3 py-1.5 rounded-lg border border-primary/30 w-full sm:w-auto text-center sm:text-right font-mono">
-                Current Balance: ₹{(agent.wallet?.balance || 0).toFixed(2)}
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs font-semibold px-2.5 py-1 bg-white border border-slate-200 rounded-md text-slate-700 shadow-xs">
+                  Current Balance: <b className="text-primary font-mono font-bold">₹{(agent.wallet?.balance || agent.balance || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b>
+                </span>
+                <button
+                  type="button"
+                  onClick={fetchAgent}
+                  className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-md transition"
+                  title="Refresh Ledger"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                </button>
               </div>
             </div>
 
@@ -770,39 +894,31 @@ export default function AgentDetailPage() {
                       </td>
                     </tr>
                   ) : (
-                    walletEntries.map((entry: any) => (
-                      <tr key={entry.id} className="hover:bg-[#ffffff] transition">
-                        <td className="p-3 font-mono text-[11px] text-gray-600">
-                          {new Date(entry.createdAt).toLocaleString()}
-                        </td>
-                        <td className="p-3">
-                          <span
-                            className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                              entry.type === "CR"
-                                ? "bg-green-100 text-green-800"
-                                : "bg-red-100 text-red-800"
-                            }`}
-                          >
-                            {entry.type === "CR" ? "+ CREDIT" : "- DEBIT"}
-                          </span>
-                        </td>
-                        <td className="p-3 font-mono text-[11px] text-gray-600">
-                          {entry.category || "COMMISSION"}
-                        </td>
-                        <td className="p-3 font-medium text-base-900">{entry.description}</td>
-                        <td
-                          className={`p-3 text-right font-extrabold ${
-                            entry.type === "CR" ? "text-green-700" : "text-red-700"
-                          }`}
-                        >
-                          {entry.type === "CR" ? "+" : "-"}₹
-                          {entry.amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                        </td>
-                        <td className="p-3 text-right font-bold text-base-900">
-                          ₹{entry.balanceAfter.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                        </td>
-                      </tr>
-                    ))
+                    walletEntries.map((entry: any) => {
+                      const typeBadge = getEntryTypeBadge(entry);
+                      return (
+                        <tr key={entry.id} className="hover:bg-[#ffffff] transition">
+                          <td className="p-3 font-mono text-[11px] text-gray-600">
+                            {new Date(entry.createdAt).toLocaleString()}
+                          </td>
+                          <td className="p-3">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${typeBadge.className}`}>
+                              {typeBadge.label}
+                            </span>
+                          </td>
+                          <td className="p-3 font-mono text-[11px] text-gray-600">
+                            {typeBadge.displayCategory}
+                          </td>
+                          <td className="p-3 font-medium text-base-900">{entry.description}</td>
+                          <td className={`p-3 text-right font-extrabold ${typeBadge.amountColor}`}>
+                            {typeBadge.amountPrefix}₹{entry.amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                          </td>
+                          <td className="p-3 text-right font-bold text-base-900">
+                            ₹{entry.balanceAfter.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>
@@ -870,6 +986,230 @@ export default function AgentDetailPage() {
             </div>
           </div>
         )}
+        {/* MODAL: ADD BALANCE / DEPOSIT */}
+        {showAddBalanceModal && (
+          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl shadow-xl max-w-md w-full border border-base-200 overflow-hidden">
+              <div className="p-4 bg-primary text-white flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <PlusCircle className="w-4 h-4 text-emerald-100" />
+                  <div>
+                    <h3 className="font-bold text-sm">+ Deposit (Add Balance)</h3>
+                    <p className="text-[11px] text-emerald-100">Credit funds into Agent's wallet & ledger</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowAddBalanceModal(false)}
+                  className="text-white hover:text-gray-200 text-sm font-bold"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <form onSubmit={handleAddBalance} className="p-5 space-y-4">
+                <div className="p-3 bg-base-100/40 border border-base-200 rounded-lg flex items-center justify-between text-xs">
+                  <span className="text-base-700 font-semibold">Current Commission Balance:</span>
+                  <span className="font-extrabold text-sm text-base-900">
+                    ₹{(agent?.wallet?.balance || agent?.balance || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+
+                {addBalanceError && (
+                  <div className="p-2.5 bg-red-50 text-red-700 text-xs rounded-lg border border-red-200 flex items-center space-x-2">
+                    <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
+                    <span>{addBalanceError}</span>
+                  </div>
+                )}
+
+                {addBalanceSuccess && (
+                  <div className="p-2.5 bg-green-50 text-green-700 text-xs rounded-lg border border-green-200 flex items-center space-x-2">
+                    <CheckCircle2 className="w-4 h-4 shrink-0 text-green-600" />
+                    <span>{addBalanceSuccess}</span>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-xs font-semibold text-base-900 mb-1">
+                    Amount to Deposit (₹) *
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2.5 text-xs text-slate-500 font-bold">₹</span>
+                    <input
+                      type="number"
+                      step="any"
+                      required
+                      min="0.01"
+                      disabled={addingBalance || !!addBalanceSuccess}
+                      value={addAmount}
+                      onChange={(e) => setAddAmount(e.target.value)}
+                      placeholder="e.g. 5000"
+                      className="w-full pl-7 pr-3 py-2 text-xs border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-base-900 mb-1">
+                    Description / Note (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    disabled={addingBalance || !!addBalanceSuccess}
+                    value={addDescription}
+                    onChange={(e) => setAddDescription(e.target.value)}
+                    placeholder="e.g. Agent commission top-up / manual credit"
+                    className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  />
+                </div>
+
+                <div className="flex space-x-3 pt-2">
+                  <button
+                    type="button"
+                    disabled={addingBalance || !!addBalanceSuccess}
+                    onClick={() => setShowAddBalanceModal(false)}
+                    className="flex-1 py-2 text-xs border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={addingBalance || !!addBalanceSuccess || !addAmount || parseFloat(addAmount) <= 0}
+                    className="flex-1 btn-primary py-2 text-xs font-bold shadow flex items-center justify-center space-x-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {addingBalance ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        <span>Crediting...</span>
+                      </>
+                    ) : addBalanceSuccess ? (
+                      <span className="text-emerald-200 font-bold">✓ Credited Successfully</span>
+                    ) : (
+                      <span>Deposit ₹{parseFloat(addAmount) > 0 ? parseFloat(addAmount).toLocaleString("en-IN") : "0"}</span>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL: CLEAR BALANCE / WITHDRAWAL */}
+        {showClearModal && (
+          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl shadow-xl max-w-md w-full border border-base-200 overflow-hidden">
+              <div className="p-4 bg-[#0f172a] text-white flex items-center justify-between">
+                <div>
+                  <h3 className="font-bold text-sm text-white">- Withdrawal (Payout)</h3>
+                  <p className="text-[11px] text-[#f0f7fc]/80">Disburse / deduct funds from Agent's wallet & ledger</p>
+                </div>
+                <button
+                  disabled={clearingBalance || !!clearSuccess}
+                  onClick={() => setShowClearModal(false)}
+                  className="text-white hover:text-gray-300 text-sm font-bold disabled:opacity-50"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <form onSubmit={handleClearBalance} className="p-5 space-y-4">
+                <div className="p-3 bg-base-100/40 border border-base-200 rounded-lg flex items-center justify-between text-xs">
+                  <span className="text-base-700 font-semibold">Current Commission Balance:</span>
+                  <span className="font-extrabold text-sm text-base-900">
+                    ₹{(agent?.wallet?.balance || agent?.balance || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+
+                {clearError && (
+                  <div className="p-2.5 bg-red-50 text-red-700 text-xs rounded-lg border border-red-200 flex items-center space-x-2">
+                    <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
+                    <span>{clearError}</span>
+                  </div>
+                )}
+
+                {clearSuccess && (
+                  <div className="p-2.5 bg-green-50 text-green-700 text-xs rounded-lg border border-green-200 flex items-center space-x-2">
+                    <CheckCircle2 className="w-4 h-4 shrink-0 text-green-600" />
+                    <span>{clearSuccess}</span>
+                  </div>
+                )}
+
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-semibold text-base-900">
+                      Amount to Withdraw (₹) *
+                    </label>
+                    {(agent?.wallet?.balance || agent?.balance || 0) > 0 && (
+                      <button
+                        type="button"
+                        disabled={clearingBalance || !!clearSuccess}
+                        onClick={() => setClearAmount((agent?.wallet?.balance || agent?.balance || 0).toString())}
+                        className="text-[11px] font-bold text-primary hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Exact Balance (₹{(agent?.wallet?.balance || agent?.balance || 0).toFixed(2)})
+                      </button>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2.5 text-xs text-slate-500 font-bold">₹</span>
+                    <input
+                      type="number"
+                      step="any"
+                      required
+                      min="0.01"
+                      disabled={clearingBalance || !!clearSuccess}
+                      value={clearAmount}
+                      onChange={(e) => setClearAmount(e.target.value)}
+                      placeholder="e.g. 5000"
+                      className="w-full pl-7 pr-3 py-2 text-xs border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-base-900 mb-1">
+                    Description / Note (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    disabled={clearingBalance || !!clearSuccess}
+                    value={clearDescription}
+                    onChange={(e) => setClearDescription(e.target.value)}
+                    placeholder="e.g. Bank payout disbursement ref #IMPS1234"
+                    className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  />
+                </div>
+
+                <div className="flex space-x-3 pt-2">
+                  <button
+                    type="button"
+                    disabled={clearingBalance || !!clearSuccess}
+                    onClick={() => setShowClearModal(false)}
+                    className="flex-1 py-2 text-xs border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={clearingBalance || !!clearSuccess || !clearAmount || parseFloat(clearAmount) <= 0}
+                    className="flex-1 py-2 text-xs font-bold bg-[#0f172a] text-white rounded-lg hover:bg-slate-800 shadow flex items-center justify-center space-x-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {clearingBalance ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        <span>Debiting...</span>
+                      </>
+                    ) : clearSuccess ? (
+                      <span className="text-emerald-300 font-bold">✓ Withdrawn Successfully</span>
+                    ) : (
+                      <span>Withdraw ₹{parseFloat(clearAmount) > 0 ? parseFloat(clearAmount).toLocaleString("en-IN") : "0"}</span>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
       </div>
     </PortalLayout>
   );

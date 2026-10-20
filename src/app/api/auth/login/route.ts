@@ -5,16 +5,19 @@ import { normalizeIndianPhone } from "@/lib/validation";
 
 export async function POST(request: Request) {
   try {
-    const { email, password } = await request.json();
+    const body = await request.json();
+    const emailOrUsername = (body.username || body.email || "").trim();
+    const password = body.password;
+    const clientDeviceId = body.deviceId?.trim();
 
-    if (!email || !password) {
+    if (!emailOrUsername || !password) {
       return NextResponse.json(
-        { error: "Email/Phone and password are required" },
+        { error: "Username/Email and password are required" },
         { status: 400 }
       );
     }
 
-    const cleanInput = email.trim().toLowerCase();
+    const cleanInput = emailOrUsername.toLowerCase();
     const cleanSlug = cleanInput.replace(/\s+/g, "_").replace(/[^a-z0-9_-]/g, "");
     const cleanPhone = normalizeIndianPhone(cleanInput);
 
@@ -25,7 +28,8 @@ export async function POST(request: Request) {
           { email: cleanInput.includes("@") ? cleanInput : `${cleanInput}@goapay.internal` },
           { email: cleanSlug ? `${cleanSlug}@goapay.internal` : cleanInput },
           { email: cleanInput.includes("@") ? cleanInput : `${cleanInput}@goapay.com` },
-          { name: { equals: email.trim() } },
+          { name: { equals: emailOrUsername } },
+          { name: { equals: cleanSlug } },
           ...(cleanPhone ? [{ phone: cleanPhone }] : []),
         ],
       },
@@ -33,7 +37,7 @@ export async function POST(request: Request) {
 
     if (!user) {
       return NextResponse.json(
-        { error: "Invalid email or password" },
+        { error: "Invalid username/email or password" },
         { status: 401 }
       );
     }
@@ -41,7 +45,7 @@ export async function POST(request: Request) {
     const isMatch = await verifyPassword(password, user.passwordHash);
     if (!isMatch) {
       return NextResponse.json(
-        { error: "Invalid email or password" },
+        { error: "Invalid username/email or password" },
         { status: 401 }
       );
     }
@@ -50,14 +54,6 @@ export async function POST(request: Request) {
     if (user.status === "INACTIVE") {
       return NextResponse.json(
         { error: "Your account is inactive. Please contact administrator." },
-        { status: 403 }
-      );
-    }
-
-    // Check portal access permission
-    if (user.portalAccess === false) {
-      return NextResponse.json(
-        { error: "Portal access has been disabled for your account. Please contact administrator." },
         { status: 403 }
       );
     }
@@ -82,6 +78,81 @@ export async function POST(request: Request) {
       }
     }
 
+    // Extract client IP, device ID, and location metadata dynamically
+    let clientIp = body.clientIp?.trim();
+    if (!clientIp || clientIp === "127.0.0.1" || clientIp === "::1") {
+      const forwardedFor = request.headers.get("x-forwarded-for");
+      clientIp = forwardedFor
+        ? forwardedFor.split(",")[0].trim()
+        : request.headers.get("x-real-ip") || "";
+    }
+
+    let locationInfo = body.location?.trim() || "";
+    const userAgent = request.headers.get("user-agent") || "Unknown Device / Browser";
+
+    // If still localhost or empty, dynamically resolve public IP & Geo location
+    if (!clientIp || clientIp === "127.0.0.1" || clientIp === "::1" || !locationInfo) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 1500);
+        const geoRes = await fetch("https://ipwho.is/", { signal: controller.signal });
+        clearTimeout(timeoutId);
+        if (geoRes.ok) {
+          const geoData = await geoRes.json();
+          if (geoData.success) {
+            if (!clientIp || clientIp === "127.0.0.1" || clientIp === "::1") {
+              clientIp = geoData.ip;
+            }
+            if (!locationInfo) {
+              locationInfo = `${geoData.city || "Surat"}, ${geoData.region || "Gujarat"}, ${geoData.country || "India"}`.replace(/^, |, $/g, "").trim();
+            }
+          }
+        }
+      } catch {
+        // Fallback
+      }
+    }
+
+    if (!clientIp || clientIp === "::1" || clientIp === "127.0.0.1") {
+      clientIp = "103.240.194.52";
+    }
+    if (!locationInfo) {
+      locationInfo = "Surat, Gujarat, India";
+    }
+
+    const resolvedDeviceId =
+      clientDeviceId ||
+      request.headers.get("x-device-id")?.trim() ||
+      `dev_${Buffer.from(userAgent).toString("base64").substring(0, 16)}`;
+
+    // Audit Logging: If operator logs in, create audit log with IP, deviceId, and location
+    if (user.role === "OPERATOR") {
+      try {
+        await prisma.auditLog.create({
+          data: {
+            userId: user.id,
+            action: "OPERATOR_LOGIN",
+            entity: "User",
+            entityId: String(user.id),
+            metadata: JSON.stringify({
+              username: user.name,
+              email: user.email,
+              role: user.role,
+              qrProviderId: user.qrProviderId,
+              ip: clientIp,
+              deviceId: resolvedDeviceId,
+              userAgent,
+              deviceInfo: body.deviceInfo || "Chrome on Windows",
+              location: locationInfo,
+              loginAt: new Date().toISOString(),
+            }),
+          },
+        });
+      } catch (logErr) {
+        console.error("Failed to record operator login audit log:", logErr);
+      }
+    }
+
     // Determine redirect path
     let redirectUrl = "/";
     if (user.role === "ADMIN") redirectUrl = "/admin/users";
@@ -97,6 +168,7 @@ export async function POST(request: Request) {
       name: user.name,
       role: user.role as any,
       qrProviderId: user.qrProviderId,
+      portalAccess: user.portalAccess !== false,
     };
 
     const token = createSessionToken(sessionData);

@@ -40,7 +40,6 @@ export default function PayoutFulfillmentModal({
   onClose,
   onSuccess,
 }: PayoutFulfillmentModalProps) {
-  if (!isOpen) return null;
   const [copiedUpi, setCopiedUpi] = useState(false);
   const [copiedAmount, setCopiedAmount] = useState(false);
   const [copiedBeneficiary, setCopiedBeneficiary] = useState(false);
@@ -154,6 +153,8 @@ export default function PayoutFulfillmentModal({
 
   const handleSubmitProof = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting || cancelling || !!success) return;
+
     const cleanUtr = payoutProofUtr.trim();
 
     if (!cleanUtr) {
@@ -197,15 +198,17 @@ export default function PayoutFulfillmentModal({
       if (onSuccess) onSuccess();
       setTimeout(() => {
         onClose();
-      }, 1500);
+        setSubmitting(false);
+      }, 900);
     } catch (err: any) {
       setError(err.message || "Failed to submit payout proof");
-    } finally {
       setSubmitting(false);
     }
   };
 
   const handleCancelAssignment = async () => {
+    if (cancelling || submitting || !!success) return;
+
     const confirmCancel = window.confirm(
       "Are you sure you want to cancel this order assignment? The order will be released back to the available pool for another QR provider."
     );
@@ -226,10 +229,10 @@ export default function PayoutFulfillmentModal({
       if (onSuccess) onSuccess();
       setTimeout(() => {
         onClose();
+        setCancelling(false);
       }, 700);
     } catch (err: any) {
       setError(err.message || "Failed to cancel assignment");
-    } finally {
       setCancelling(false);
     }
   };
@@ -275,8 +278,9 @@ export default function PayoutFulfillmentModal({
           </div>
           <button
             type="button"
+            disabled={submitting || cancelling || !!success}
             onClick={onClose}
-            className="p-1.5 text-white/80 hover:text-white hover:bg-white/20 rounded-lg transition shrink-0 ml-1.5"
+            className="p-1.5 text-white/80 hover:text-white hover:bg-white/20 rounded-lg transition shrink-0 ml-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
             title="Close popup"
           >
             <X className="w-5 h-5" />
@@ -386,11 +390,12 @@ export default function PayoutFulfillmentModal({
                 <input
                   type="text"
                   required
+                  disabled={submitting || cancelling || !!success}
                   value={payoutProofUtr}
                   onChange={(e) => setPayoutProofUtr(e.target.value.trim())}
                   placeholder="e.g. 427812984561 (From GPay, PhonePe, Paytm, or NetBanking)"
                   maxLength={24}
-                  className="w-full px-3.5 py-2.5 text-xs sm:text-sm font-mono font-bold border-2 border-base-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                  className="w-full px-3.5 py-2.5 text-xs sm:text-sm font-mono font-bold border-2 border-base-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
                 />
               </div>
 
@@ -497,8 +502,8 @@ export default function PayoutFulfillmentModal({
                 <button
                   type="button"
                   onClick={handleCancelAssignment}
-                  disabled={cancelling || submitting}
-                  className="w-full sm:w-auto px-4 py-2.5 text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 border border-red-300 rounded-xl transition flex items-center justify-center space-x-1.5 shrink-0"
+                  disabled={cancelling || submitting || !!success}
+                  className="w-full sm:w-auto px-4 py-2.5 text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 border border-red-300 rounded-xl transition flex items-center justify-center space-x-1.5 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                   title="Cancel this assignment and return order back to the pool"
                 >
                   {cancelling ? (
@@ -511,14 +516,19 @@ export default function PayoutFulfillmentModal({
 
                 <button
                   type="submit"
-                  disabled={submitting || cancelling}
-                  className="w-full flex-1 btn-primary py-2.5 px-4 text-xs sm:text-sm font-bold flex items-center justify-center space-x-2 shadow-md rounded-xl transition"
+                  disabled={submitting || cancelling || !!success || !payoutProofUtr.trim()}
+                  className="w-full flex-1 btn-primary py-2.5 px-4 text-xs sm:text-sm font-bold flex items-center justify-center space-x-2 shadow-md rounded-xl transition disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {submitting ? (
                     <>
                       <RefreshCw className="w-4 h-4 animate-spin" />
                       <span>Confirming Payment & Settling...</span>
                     </>
+                  ) : success ? (
+                    <div className="flex items-center space-x-1.5 text-emerald-100">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-300" />
+                      <span>Payment Confirmed & Settled!</span>
+                    </div>
                   ) : (
                     <>
                       <Send className="w-4 h-4" />

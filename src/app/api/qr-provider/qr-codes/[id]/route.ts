@@ -20,7 +20,7 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await requireAuth(["ADMIN", "QR_PROVIDER"]);
+    const session = await requireAuth(["ADMIN", "QR_PROVIDER"], { requireWrite: true });
     const body = await request.json().catch(() => ({}));
 
     const updated = await QRCodeService.updateQRCode(params.id, body, session);
@@ -40,7 +40,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await requireAuth(["ADMIN", "QR_PROVIDER"]);
+    const session = await requireAuth(["ADMIN", "QR_PROVIDER"], { requireWrite: true });
     await QRCodeService.deleteQRCode(params.id, session);
 
     return NextResponse.json({

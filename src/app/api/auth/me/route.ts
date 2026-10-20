@@ -29,7 +29,7 @@ export async function GET() {
     },
   });
 
-  if (!user || user.portalAccess === false || user.status === "INACTIVE") {
+  if (!user || user.status === "INACTIVE") {
     return NextResponse.json({ authenticated: false, user: null });
   }
 

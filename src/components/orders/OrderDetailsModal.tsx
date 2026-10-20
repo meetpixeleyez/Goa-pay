@@ -992,7 +992,7 @@ export default function OrderDetailsModal({
                     <span>Submit Payment UTR Directly</span>
                   </div>
                   <p className="text-[11px] text-blue-800">
-                    If payment has been completed on the QR code, enter the customer's 12-digit UTR reference here to transition this order to verification.
+                    If payment has been completed on the QR code, enter the customer&apos;s 12-digit UTR reference here to transition this order to verification.
                   </p>
 
                   {submitError && (

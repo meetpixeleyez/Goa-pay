@@ -16,6 +16,7 @@ export interface AuthSession {
   name: string;
   role: "ADMIN" | "MERCHANT" | "AGENT" | "QR_PROVIDER" | "BROKER" | "OPERATOR";
   qrProviderId?: number | null;
+  portalAccess?: boolean;
 }
 
 /**
@@ -36,10 +37,10 @@ export async function getSession(): Promise<AuthSession | null> {
     // Verify user still exists in database
     const user = await prisma.user.findUnique({
       where: { id: numericUserId },
-      select: { id: true, email: true, name: true, role: true, qrProviderId: true },
+      select: { id: true, email: true, name: true, role: true, qrProviderId: true, portalAccess: true, status: true },
     });
 
-    if (!user) return null;
+    if (!user || user.status === "INACTIVE") return null;
 
     return {
       userId: user.id,
@@ -47,6 +48,7 @@ export async function getSession(): Promise<AuthSession | null> {
       name: user.name,
       role: user.role as AuthSession["role"],
       qrProviderId: user.qrProviderId,
+      portalAccess: user.portalAccess !== false,
     };
   } catch {
     return null;

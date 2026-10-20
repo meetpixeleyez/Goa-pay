@@ -15,6 +15,12 @@ export async function POST(
     }
 
     const session = await getSession();
+    if (session && session.role !== "ADMIN" && session.portalAccess === false) {
+      return NextResponse.json(
+        { error: "Portal access is in read-only mode. Create, update, and delete operations are not allowed." },
+        { status: 403 }
+      );
+    }
     const updatedOrder = await OrderService.cancelOrder(orderId, session || undefined);
 
     if (updatedOrder && updatedOrder.type === "PAYOUT") {

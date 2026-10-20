@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Lock, Mail, ArrowRight, ShieldCheck, AlertCircle } from "lucide-react";
+import { Lock, Mail, ArrowRight, ShieldCheck, AlertCircle, Eye, EyeOff } from "lucide-react";
 
 import { useAppDispatch } from "@/store/hooks";
 import { fetchCurrentUser } from "@/store/slices/authSlice";
@@ -12,6 +12,7 @@ export default function LoginPage() {
   const dispatch = useAppDispatch();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -21,10 +22,54 @@ export default function LoginPage() {
     setError("");
 
     try {
+      let deviceId = "";
+      let clientIp = "";
+      let location = "";
+      let deviceInfo = "";
+
+      if (typeof window !== "undefined") {
+        deviceId = localStorage.getItem("goa_device_id") || "";
+        if (!deviceId) {
+          deviceId = "dev_" + Math.random().toString(36).substring(2, 9) + Date.now().toString(36);
+          localStorage.setItem("goa_device_id", deviceId);
+        }
+
+        const ua = navigator.userAgent;
+        let os = "Windows";
+        if (ua.includes("Mac")) os = "macOS";
+        else if (ua.includes("Linux")) os = "Linux";
+        else if (ua.includes("Android")) os = "Android";
+        else if (ua.includes("iPhone") || ua.includes("iPad")) os = "iOS";
+
+        let browser = "Chrome";
+        if (ua.includes("Firefox")) browser = "Firefox";
+        else if (ua.includes("Safari") && !ua.includes("Chrome")) browser = "Safari";
+        else if (ua.includes("Edg")) browser = "Edge";
+
+        deviceInfo = `${browser} on ${os}`;
+
+        // Attempt fast public IP & Geo lookup
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 1200);
+          const geoRes = await fetch("https://ipwho.is/", { signal: controller.signal });
+          clearTimeout(timeoutId);
+          if (geoRes.ok) {
+            const geoData = await geoRes.json();
+            if (geoData.success) {
+              clientIp = geoData.ip || "";
+              location = `${geoData.city || ""}, ${geoData.region || ""}, ${geoData.country || "India"}`.replace(/^, |, $/g, "").trim();
+            }
+          }
+        } catch {
+          // Graceful fallback if offline
+        }
+      }
+
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, deviceId, clientIp, location, deviceInfo }),
       });
 
       const data = await res.json();
@@ -93,13 +138,21 @@ export default function LoginPage() {
             <div className="relative">
               <Lock className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
               <input
-                type="password"
+                type={showPassword ? "text" : "password"}
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full pl-9 pr-3 py-2 text-sm border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full pl-9 pr-10 py-2 text-sm border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600 transition cursor-pointer"
+                title={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
             </div>
           </div>
 

@@ -32,6 +32,8 @@ import {
   Upload,
   Trash2,
   PlusCircle,
+  MinusCircle,
+  ShieldCheck,
   X,
 } from "lucide-react";
 import BankStatementTable from "@/components/wallet/BankStatementTable";
@@ -103,7 +105,6 @@ export default function AdminMerchantDetailPage() {
   const [clearingBalance, setClearingBalance] = useState(false);
   const [clearError, setClearError] = useState("");
   const [clearSuccess, setClearSuccess] = useState("");
-
   const handleCopy = (text: string, fieldName: string) => {
     navigator.clipboard.writeText(text);
     setCopiedField(fieldName);
@@ -431,11 +432,14 @@ export default function AdminMerchantDetailPage() {
   // Handle Add Balance (Manual Credit with ACID Ledger Entry)
   const handleAddBalance = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (addingBalance || addBalanceSuccess) return;
+
     const num = parseFloat(addAmount);
     if (isNaN(num) || num <= 0) {
       setAddBalanceError("Please enter a valid amount greater than ₹0");
       return;
     }
+
     setAddingBalance(true);
     setAddBalanceError("");
     setAddBalanceSuccess("");
@@ -463,10 +467,10 @@ export default function AdminMerchantDetailPage() {
         setAddAmount("");
         setAddDescription("");
         setAddBalanceSuccess("");
-      }, 1200);
+        setAddingBalance(false);
+      }, 900);
     } catch (err: any) {
       setAddBalanceError(err.message);
-    } finally {
       setAddingBalance(false);
     }
   };
@@ -474,6 +478,8 @@ export default function AdminMerchantDetailPage() {
   // Handle Clear Balance (Manual Debit with ACID Ledger Entry)
   const handleClearBalance = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (clearingBalance || clearSuccess) return;
+
     const num = parseFloat(clearAmount);
     if (isNaN(num) || num <= 0) {
       setClearError("Please enter a valid amount greater than ₹0");
@@ -507,12 +513,34 @@ export default function AdminMerchantDetailPage() {
         setClearAmount("");
         setClearDescription("");
         setClearSuccess("");
-      }, 1200);
+        setClearingBalance(false);
+      }, 900);
     } catch (err: any) {
       setClearError(err.message);
-    } finally {
       setClearingBalance(false);
     }
+  };
+
+  const getEntryTypeBadge = (entry: any) => {
+    const type = (entry.type || "").toUpperCase();
+
+    if (type === "CR") {
+      return {
+        label: "+ DEPOSIT",
+        className: "bg-green-100 text-green-800",
+        amountPrefix: "+",
+        amountColor: "text-green-700",
+        displayCategory: entry.category || "DEPOSIT",
+      };
+    }
+
+    return {
+      label: "- WITHDRAWAL",
+      className: "bg-red-100 text-red-800",
+      amountPrefix: "-",
+      amountColor: "text-red-700",
+      displayCategory: entry.category || "WITHDRAWAL",
+    };
   };
 
   // Handle Password Reset
@@ -570,48 +598,72 @@ export default function AdminMerchantDetailPage() {
       <PortalLayout
         portal="admin"
         title={
-          <div className="flex flex-wrap items-center gap-2.5">
-            <span className="text-xl sm:text-2xl font-bold">{merchant.name}</span>
-            <span
-              className={`px-2.5 py-0.5 rounded-full text-xs font-bold inline-flex items-center space-x-1.5 border shadow-2xs ${status === "ACTIVE"
-                ? "bg-green-100 text-green-800 border-green-300"
-                : "bg-red-100 text-red-800 border-red-300"
-                }`}
-            >
-              <span
-                className={`w-2 h-2 rounded-full ${status === "ACTIVE" ? "bg-green-500 animate-pulse" : "bg-red-500"
+          <div className="flex items-center gap-3">
+            <div className="size-10 sm:size-11 rounded-xl bg-primary/15 text-primary flex items-center justify-center font-bold text-base sm:text-lg border border-primary/30 shrink-0">
+              {merchant.name.charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-lg sm:text-xl font-bold text-slate-800">{merchant.name}</span>
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-blue-100 text-blue-800">
+                  Merchant
+                </span>
+                <span
+                  className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+                    status === "ACTIVE"
+                      ? "bg-green-50 text-green-600 border-green-200"
+                      : "bg-red-50 text-red-600 border-red-200"
                   }`}
-              />
-              <span>{status === "ACTIVE" ? "ACTIVE" : "INACTIVE"}</span>
-            </span>
+                >
+                  {status}
+                </span>
+                <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-[10px] font-mono">
+                  ID: {merchant.id}
+                </span>
+              </div>
+              {(merchant.phone || merchant.broker) && (
+                <div className="flex items-center gap-2 sm:gap-3 text-xs text-slate-500 mt-0.5 flex-wrap">
+                  {merchant.phone && (
+                    <span className="flex items-center gap-1 font-mono">
+                      <Phone className="size-3 text-slate-400" />
+                      <span>{merchant.phone}</span>
+                    </span>
+                  )}
+                  {merchant.broker && (
+                    <span className="flex items-center gap-1 text-slate-600">
+                      <span>Broker: {merchant.broker.name}</span>
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         }
-        subtitle={`Merchant ID: ${merchant.id} • Registered ${new Date(merchant.createdAt).toLocaleDateString()}`}
         actions={
           <div className="flex items-center space-x-2">
+            <button
+              onClick={() => {
+                fetchInfoAndSummary();
+                if (activeTab === "wallet") fetchWallet();
+                if (activeTab === "orders") fetchOrders();
+              }}
+              className="px-3 py-2 text-xs bg-white border border-base-200 rounded-lg text-gray-700 hover:bg-gray-50 flex items-center space-x-1 transition shadow-xs"
+              title="Refresh merchant data"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Refresh</span>
+            </button>
             <Link
-              href="/admin/merchants"
+              href="/admin/users"
               className="px-3 py-2 text-xs bg-white border border-base-200 rounded-lg text-gray-700 hover:bg-gray-50 flex items-center space-x-1 transition shadow-xs"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Back to Merchants</span>
+              <span>Back to Users</span>
             </Link>
-            <button
-              onClick={() => {
-                setShowResetModal(true);
-                setNewPassword("");
-                setResetErr("");
-                setResetMsg("");
-              }}
-              className="px-3 py-2 text-xs border border-gray-300 bg-white rounded-lg hover:bg-gray-50 text-gray-700 flex items-center space-x-1.5 shadow-xs transition"
-            >
-              <KeyRound className="w-3.5 h-3.5" />
-              <span>Reset Password</span>
-            </button>
           </div>
         }
       >
-        {/* Top Summary Card (Wallet Balance Only) */}
+        {/* Top Summary Card (Net Wallet Balance & Settlement Actions) */}
         <div className="mb-4">
           <div className={`card-theme p-4 sm:p-5 border-l-4 ${currentBalance < 0 ? "border-l-red-500" : "border-l-primary"} flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3`}>
             <div>
@@ -626,10 +678,39 @@ export default function AdminMerchantDetailPage() {
               <span className="text-[13px] text-slate-500 mt-0.5 block">After all fee deductions</span>
             </div>
 
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center flex-wrap gap-2">
               <button
+                type="button"
+                onClick={() => {
+                  setShowAddBalanceModal(true);
+                  setAddAmount("");
+                  setAddDescription("");
+                  setAddBalanceError("");
+                  setAddBalanceSuccess("");
+                }}
+                className="btn-primary text-xs py-2 px-4 flex items-center justify-center space-x-1.5 shadow-xs cursor-pointer"
+              >
+                <PlusCircle className="w-3.5 h-3.5 shrink-0" />
+                <span>+ Deposit</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowClearModal(true);
+                  setClearAmount("");
+                  setClearDescription("");
+                  setClearError("");
+                  setClearSuccess("");
+                }}
+                className="px-4 py-2 text-xs bg-white border border-rose-200 text-rose-700 hover:bg-rose-50 rounded-lg font-semibold flex items-center justify-center shadow-xs transition cursor-pointer"
+              >
+                <MinusCircle className="w-3.5 h-3.5 shrink-0 text-rose-600 mr-1" />
+                <span>- Withdrawal</span>
+              </button>
+              <button
+                type="button"
                 onClick={() => handleTabSwitch("wallet")}
-                className="px-3.5 py-1.5 text-xs font-semibold bg-white border border-primary rounded-lg text-primary hover:bg-primary hover:text-white transition-all shadow-2xs flex items-center space-x-1.5"
+                className="px-3.5 py-2 text-xs font-semibold bg-white border border-slate-200 rounded-lg text-slate-700 hover:bg-slate-50 transition-all shadow-xs flex items-center space-x-1.5 cursor-pointer"
               >
                 <Wallet className="w-3.5 h-3.5" />
                 <span>View Full Ledger</span>
@@ -648,7 +729,7 @@ export default function AdminMerchantDetailPage() {
               }`}
           >
             <Store className="w-3.5 h-3.5" />
-            <span>Info & QR</span>
+            <span>Merchant Info</span>
           </button>
 
           <button
@@ -687,11 +768,9 @@ export default function AdminMerchantDetailPage() {
           </button>
         </div>
 
-        {/* TAB 1: INFO & QR CODE (2-COLUMN RESPONSIVE LAYOUT) */}
+        {/* TAB 1: MERCHANT INFO */}
         {activeTab === "info" && (
-          <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-5 xl:gap-6 items-start">
-            {/* LEFT COLUMN: Merchant Information & Contact (7 cols on LG, 8 cols on XL) */}
-            <div className="lg:col-span-7 xl:col-span-8 card-theme shadow-sm border border-slate-200">
+          <div className="w-full card-theme shadow-sm border border-slate-200">
               <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-200 gap-3">
                 <div className="min-w-0">
                   <div className="flex items-center space-x-2">
@@ -951,10 +1030,10 @@ export default function AdminMerchantDetailPage() {
                           {merchant.broker && (
                             <div className="flex items-center gap-1.5">
                               <span className="px-2 py-0.5 bg-blue-100 text-blue-700 font-bold rounded text-[11px]">
-                                Payin: {payinBrokerFee}%
+                                Payin: {merchant.payinBrokerFee ?? payinBrokerFee ?? 0}%
                               </span>
                               <span className="px-2 py-0.5 bg-amber-100 text-amber-700 font-bold rounded text-[11px]">
-                                Payout: {payoutBrokerFee}%
+                                Payout: {merchant.payoutBrokerFee ?? payoutBrokerFee ?? 0}%
                               </span>
                             </div>
                           )}
@@ -1107,221 +1186,93 @@ export default function AdminMerchantDetailPage() {
                 </form>
               </div>
             </div>
-
-            {/* RIGHT COLUMN: Balance Actions & Store Collection QR Code Card */}
-            <div className="lg:col-span-5 xl:col-span-4 space-y-4">
-              {/* Balance Actions Bar (Above Store QR Code) - Responsive on all screens including 1024px-1440px */}
-              <div className="card-theme p-4 sm:p-5 shadow-sm border border-base-200 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <span className="text-[12px] font-semibold text-slate-500 uppercase tracking-wider block mb-2">
-                      Settled Balance
-                    </span>
-                    <span className={`text-xl font-extrabold block ${currentBalance < 0 ? "text-red-600" : "text-base-900"}`}>
-                      {currentBalance < 0
-                        ? `-₹${Math.abs(currentBalance).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                        : `₹${currentBalance.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                    </span>
-                  </div>
-                  {currentBalance < 0 && (
-                    <span className="px-2 py-0.5 text-[10px] font-bold bg-red-100 text-red-800 rounded border border-red-200 uppercase">
-                      Negative Balance
-                    </span>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 w-full">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowAddBalanceModal(true);
-                      setAddAmount("");
-                      setAddDescription("");
-                      setAddBalanceError("");
-                      setAddBalanceSuccess("");
-                    }}
-                    className="btn-primary text-xs py-2 px-2 flex items-center justify-center space-x-1.5 shadow-xs cursor-pointer w-full"
-                  >
-                    <PlusCircle className="w-3.5 h-3.5 shrink-0" />
-                    <span className="truncate">Add Balance</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowClearModal(true);
-                      setClearAmount("");
-                      setClearDescription("");
-                      setClearError("");
-                      setClearSuccess("");
-                    }}
-                    className="px-2 py-2 text-xs bg-white border border-base-200 text-base-900 hover:bg-base-100/60 rounded-lg font-semibold flex items-center justify-center shadow-xs transition cursor-pointer w-full"
-                  >
-                    <span className="truncate">Withdrawal Balance</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Store Collection QR Code Card (Existing Design Preserved) */}
-              <div className="card-theme shadow-sm border border-base-200 flex flex-col">
-                <div className="p-4 sm:p-5 flex items-center justify-between pb-3 border-b border-base-200">
-                  <div className="flex items-center space-x-2">
-                    <QrCode className="w-5 h-5 text-primary" />
-                    <h3 className="font-bold text-[16px] text-base-900">Store QR Code</h3>
-                  </div>
-                  <span className="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded bg-gray-100 text-gray-700">
-                    {qrCodeUrl ? "Configured" : "Not Set"}
-                  </span>
-                </div>
-
-                <div className="p-4 sm:p-5">
-                  <p className="text-[12px] text-slate-500 mb-3">
-                    Official payment collection QR code image for this store.
-                  </p>
-
-                  {/* QR Image Frame Display */}
-                  <div className="bg-[#ffffff] border border-base-200 rounded-xl p-4 flex flex-col items-center justify-center min-h-[260px] text-center">
-                    {qrCodeUrl ? (
-                      <div className="space-y-3 w-full flex flex-col items-center">
-                        {/* <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-xs max-w-[220px] aspect-square flex items-center justify-center"> */}
-                        <img
-                          src={qrCodeUrl}
-                          alt={`${name} QR Code`}
-                          className="max-h-[400px] max-w-[400px] object-contain rounded"
-                        />
-                        {/* </div> */}
-
-                        <div className="flex items-center space-x-2 mt-2">
-                          <a
-                            href={qrCodeUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs font-semibold text-primary hover:underline inline-flex items-center space-x-1"
-                          >
-                            <span>View Full Image</span>
-                            <ExternalLink className="w-3 h-3" />
-                          </a>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="py-8 px-4 flex flex-col items-center text-center space-y-2">
-                        <div className="w-14 h-14 rounded-2xl bg-base-100/60 flex items-center justify-center text-slate-500">
-                          <QrCode className="w-8 h-8 text-primary" />
-                        </div>
-                        <span className="text-xs font-semibold">No QR Code Uploaded</span>
-                        <p className="text-[11px] text-slate-500 max-w-[200px]">
-                          Upload a QR code image or enter a URL in Edit mode to assign a collection QR for this merchant.
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* UPI Identifier Pill */}
-                  <div className="mt-4 p-2.5 bg-slate-100 border border-slate-200 rounded-lg flex items-center justify-between text-[12px]">
-                    <span className="text-slate-500 font-semibold text-[12px]">Store UPI ID:</span>
-                    <div className="flex items-center space-x-1 font-mono font-bold text-base-900">
-                      <span>{upiId || <span className="text-slate-500 italic">None</span>}</span>
-                      {upiId && (
-                        <button
-                          type="button"
-                          onClick={() => handleCopy(upiId, "qr_upi")}
-                          className="p-1 hover:bg-slate-200 rounded text-slate-500 transition"
-                          title="Copy UPI ID"
-                        >
-                          {copiedField === "qr_upi" ? <Check className="w-3 h-3 text-green-600" /> : <Copy className="w-3 h-3" />}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* QR Edit Controls (Only in Edit Mode) */}
-                  {isEditing && (
-                    <div className="mt-4 pt-4 border-t border-base-200 space-y-3">
-                      <span className="text-xs font-bold text-base-900 block">Update QR Code Image</span>
-
-                      {qrUploadError && (
-                        <div className="p-2 bg-red-50 text-red-700 text-xs rounded border border-red-200">
-                          {qrUploadError}
-                        </div>
-                      )}
-
-                      {/* Upload File Input */}
-                      <div>
-                        <label className="block text-[11px] font-semibold text-gray-600 mb-1">
-                          Upload New Image File (.png, .jpg)
-                        </label>
-                        <label className="flex items-center justify-center px-3 py-2 text-xs border border-dashed border-primary bg-base-100/20 rounded-lg cursor-pointer hover:bg-base-100/40 transition space-x-1.5">
-                          <Upload className="w-3.5 h-3.5 text-primary" />
-                          <span>{uploadingQr ? "Uploading..." : "Choose File to Upload"}</span>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            disabled={uploadingQr}
-                            onChange={handleQrUpload}
-                            className="hidden"
-                          />
-                        </label>
-                      </div>
-
-                      {/* Or Direct Image URL Input */}
-                      <div>
-                        <label className="block text-[11px] font-semibold text-gray-600 mb-1">
-                          Or Enter Image URL
-                        </label>
-                        <input
-                          type="text"
-                          value={qrCodeUrl}
-                          onChange={(e) => setQrCodeUrl(e.target.value)}
-                          placeholder="https://... or /uploads/..."
-                          className="w-full px-3 py-1.5 text-xs border border-base-200 rounded-lg font-mono"
-                        />
-                      </div>
-
-                      {qrCodeUrl && (
-                        <button
-                          type="button"
-                          onClick={() => setQrCodeUrl("")}
-                          className="text-xs text-red-600 hover:text-red-800 font-semibold inline-flex items-center space-x-1 pt-1"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                          <span>Remove QR Code Image</span>
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
         )}
 
         {/* TAB 2: WALLET & LEDGER (CALLED DYNAMICALLY ON TAB CLICK) */}
         {activeTab === "wallet" && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-base-900">Wallet & Ledger Transactions</h3>
-              <button
-                onClick={fetchWallet}
-                disabled={loadingWallet}
-                className="btn-primary text-xs py-1.5 px-3 flex items-center space-x-1.5 shadow-xs"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${loadingWallet ? "animate-spin" : ""}`} />
-                <span>Refresh Statement</span>
-              </button>
+          <div className="card-theme overflow-hidden shadow-sm border border-base-200">
+            <div className="p-4 border-b border-base-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h3 className="font-bold text-[16px] text-base-900">Wallet Ledger & Settlement Statement</h3>
+                <p className="text-xs text-base-700">Audit trail of all credit and debit entries for {merchant.name}</p>
+              </div>
+              <div className="flex items-center space-x-2 flex-wrap gap-y-1">
+                <div className="text-xs font-semibold px-2.5 py-1 rounded-md bg-base-100 border border-base-200 text-slate-700">
+                  Total Bal: <b>₹{(walletData?.balance ?? currentBalance ?? 0).toFixed(2)}</b>
+                </div>
+                <button
+                  onClick={fetchWallet}
+                  disabled={loadingWallet}
+                  className="px-2.5 py-1 text-xs bg-white border border-base-200 rounded-md text-gray-700 hover:bg-gray-50 flex items-center space-x-1"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${loadingWallet ? "animate-spin" : ""}`} />
+                  <span>Refresh</span>
+                </button>
+              </div>
             </div>
 
             {loadingWallet ? (
-              <div className="card-theme p-12 flex flex-col items-center justify-center space-y-3">
+              <div className="p-12 flex flex-col items-center justify-center space-y-3">
                 <RefreshCw className="w-8 h-8 text-primary animate-spin" />
                 <p className="text-xs text-slate-500">Loading wallet statement from server...</p>
               </div>
             ) : (
-              <BankStatementTable
-                entries={walletData?.entries || []}
-                title={`Statement: ${merchant.name}`}
-                subtitle={`Account ID: ${merchant.id} • Registered UPI: ${merchant.upiId || "None"}`}
-                walletBalance={walletData?.balance ?? currentBalance}
-                defaultSort="desc"
-              />
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-base-100/60 text-base-900 font-semibold border-b border-base-200">
+                    <tr>
+                      <th className="p-3">Date & Time</th>
+                      <th className="p-3">Type</th>
+                      <th className="p-3">Category</th>
+                      <th className="p-3">Description</th>
+                      <th className="p-3 text-right">Amount</th>
+                      <th className="p-3 text-right">Balance After</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#e0f2fe]">
+                    {(!walletData?.entries || walletData.entries.length === 0) ? (
+                      <tr>
+                        <td colSpan={6} className="p-8 text-center text-slate-500">
+                          No ledger transactions recorded in this merchant's wallet yet.
+                        </td>
+                      </tr>
+                    ) : (
+                      walletData.entries.map((entry: any) => {
+                        const typeBadge = getEntryTypeBadge(entry);
+                        return (
+                          <tr key={entry.id} className="hover:bg-[#ffffff] transition">
+                            <td className="p-3 font-mono text-[11px] text-gray-600">
+                              {new Date(entry.createdAt).toLocaleString()}
+                            </td>
+                            <td className="p-3">
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${typeBadge.className}`}>
+                                {typeBadge.label}
+                              </span>
+                            </td>
+                            <td className="p-3 font-mono text-[11px] text-gray-600">
+                              {typeBadge.displayCategory}
+                            </td>
+                            <td className="p-3 font-medium text-base-900">
+                              {entry.description}
+                              {entry.order?.orderNumber && (
+                                <span className="block text-[10px] text-primary font-mono font-bold mt-0.5">
+                                  Order: {entry.order.orderNumber}
+                                </span>
+                              )}
+                            </td>
+                            <td className={`p-3 text-right font-extrabold ${typeBadge.amountColor}`}>
+                              {typeBadge.amountPrefix}₹{entry.amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                            </td>
+                            <td className="p-3 text-right font-bold text-base-900">
+                              ₹{entry.balanceAfter.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         )}
@@ -1568,8 +1519,9 @@ export default function AdminMerchantDetailPage() {
                     <button
                       key={amt}
                       type="button"
+                      disabled={addingBalance || !!addBalanceSuccess}
                       onClick={() => setAddAmount(amt.toString())}
-                      className="px-2 py-0.5 text-[11px] font-semibold bg-base-100/40 hover:bg-slate-100 text-slate-900 rounded border border-slate-200 transition"
+                      className="px-2 py-0.5 text-[11px] font-semibold bg-base-100/40 hover:bg-slate-100 text-slate-900 rounded border border-slate-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       +₹{amt.toLocaleString("en-IN")}
                     </button>
@@ -1583,10 +1535,11 @@ export default function AdminMerchantDetailPage() {
                 </label>
                 <input
                   type="text"
+                  disabled={addingBalance || !!addBalanceSuccess}
                   value={addDescription}
                   onChange={(e) => setAddDescription(e.target.value)}
                   placeholder="e.g. Manual top-up, Bank transfer settlement"
-                  className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
                 />
                 <p className="text-[12px] text-slate-500 mt-1">
                   This note will be recorded permanently in the multi-party ledger for audit trail.
@@ -1596,6 +1549,7 @@ export default function AdminMerchantDetailPage() {
               <div className="flex space-x-3 pt-2">
                 <button
                   type="button"
+                  disabled={addingBalance || !!addBalanceSuccess}
                   onClick={() => {
                     setShowAddBalanceModal(false);
                     setAddAmount("");
@@ -1603,19 +1557,24 @@ export default function AdminMerchantDetailPage() {
                     setAddBalanceError("");
                     setAddBalanceSuccess("");
                   }}
-                  className="flex-1 py-2 text-xs border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50"
+                  className="flex-1 py-2 text-xs border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={addingBalance}
-                  className="flex-1 btn-primary py-2 text-xs font-bold shadow flex items-center justify-center space-x-1.5"
+                  disabled={addingBalance || !!addBalanceSuccess || !addAmount || parseFloat(addAmount) <= 0}
+                  className="flex-1 btn-primary py-2 text-xs font-bold shadow flex items-center justify-center space-x-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {addingBalance ? (
                     <>
                       <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                       <span>Crediting...</span>
+                    </>
+                  ) : addBalanceSuccess ? (
+                    <>
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Credited Successfully</span>
                     </>
                   ) : (
                     <span>Credit ₹{parseFloat(addAmount) > 0 ? parseFloat(addAmount).toLocaleString("en-IN") : "0"}</span>
@@ -1637,6 +1596,7 @@ export default function AdminMerchantDetailPage() {
                 <p className="text-[12px] text-slate-200">Deduct settled funds from merchant wallet</p>
               </div>
               <button
+                disabled={clearingBalance || !!clearSuccess}
                 onClick={() => {
                   setShowClearModal(false);
                   setClearAmount("");
@@ -1644,7 +1604,7 @@ export default function AdminMerchantDetailPage() {
                   setClearError("");
                   setClearSuccess("");
                 }}
-                className="text-white hover:text-gray-300 text-sm font-bold"
+                className="text-white hover:text-gray-300 text-sm font-bold disabled:opacity-50"
               >
                 <X className="size-5" />
               </button>
@@ -1682,8 +1642,9 @@ export default function AdminMerchantDetailPage() {
                   {currentBalance > 0 && (
                     <button
                       type="button"
+                      disabled={clearingBalance || !!clearSuccess}
                       onClick={() => setClearAmount(currentBalance.toString())}
-                      className="text-[12px] font-semibold text-primary hover:text-primary-400 underline"
+                      className="text-[12px] font-semibold text-primary hover:text-primary-400 underline disabled:opacity-50"
                     >
                       Clear Exact Balance (₹{currentBalance.toFixed(2)})
                     </button>
@@ -1696,11 +1657,12 @@ export default function AdminMerchantDetailPage() {
                     step="0.01"
                     min="1"
                     required
+                    disabled={clearingBalance || !!clearSuccess}
                     autoFocus
                     value={clearAmount}
                     onChange={(e) => setClearAmount(e.target.value)}
                     placeholder="Enter amount to clear/withdraw"
-                    className="w-full pl-7 pr-3 py-2 text-sm font-semibold border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full pl-7 pr-3 py-2 text-sm font-semibold border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
                   />
                 </div>
                 {/* Quick Chips */}
@@ -1709,8 +1671,9 @@ export default function AdminMerchantDetailPage() {
                     <button
                       key={amt}
                       type="button"
+                      disabled={clearingBalance || !!clearSuccess}
                       onClick={() => setClearAmount(amt.toString())}
-                      className="px-2 py-0.5 text-[11px] font-semibold bg-base-100/40 hover:bg-slate-100 text-slate-900 rounded border border-slate-200 transition"
+                      className="px-2 py-0.5 text-[11px] font-semibold bg-base-100/40 hover:bg-slate-100 text-slate-900 rounded border border-slate-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       ₹{amt.toLocaleString("en-IN")}
                     </button>
@@ -1718,8 +1681,9 @@ export default function AdminMerchantDetailPage() {
                   {currentBalance > 0 && (
                     <button
                       type="button"
+                      disabled={clearingBalance || !!clearSuccess}
                       onClick={() => setClearAmount(currentBalance.toString())}
-                      className="px-2 py-0.5 text-[11px] font-bold bg-primary/20 hover:bg-primary/30 text-base-900 rounded border border-primary/40 transition"
+                      className="px-2 py-0.5 text-[11px] font-bold bg-primary/20 hover:bg-primary/30 text-base-900 rounded border border-primary/40 transition disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       All (₹{currentBalance.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
                     </button>
@@ -1736,10 +1700,11 @@ export default function AdminMerchantDetailPage() {
                 </label>
                 <input
                   type="text"
+                  disabled={clearingBalance || !!clearSuccess}
                   value={clearDescription}
                   onChange={(e) => setClearDescription(e.target.value)}
                   placeholder="e.g. Bank payout issued, settlement withdrawal"
-                  className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
                 />
                 <p className="text-[12px] text-slate-500 mt-1">
                   A debit ledger transaction (MANUAL WITHDRAWAL) will be created for full audit reconciliation.
@@ -1749,6 +1714,7 @@ export default function AdminMerchantDetailPage() {
               <div className="flex space-x-3 pt-2">
                 <button
                   type="button"
+                  disabled={clearingBalance || !!clearSuccess}
                   onClick={() => {
                     setShowClearModal(false);
                     setClearAmount("");
@@ -1756,19 +1722,24 @@ export default function AdminMerchantDetailPage() {
                     setClearError("");
                     setClearSuccess("");
                   }}
-                  className="flex-1 py-2 text-xs border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 font-medium"
+                  className="flex-1 py-2 text-xs border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={clearingBalance}
-                  className="flex-1 btn-primary py-2 text-xs font-bold shadow flex items-center justify-center space-x-1.5"
+                  disabled={clearingBalance || !!clearSuccess || !clearAmount || parseFloat(clearAmount) <= 0}
+                  className="flex-1 btn-primary py-2 text-xs font-bold shadow flex items-center justify-center space-x-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {clearingBalance ? (
                     <>
                       <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                       <span>Processing...</span>
+                    </>
+                  ) : clearSuccess ? (
+                    <>
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Settled Successfully</span>
                     </>
                   ) : (
                     <span>
@@ -1781,6 +1752,7 @@ export default function AdminMerchantDetailPage() {
           </div>
         </div>
       )}
+
     </>
   );
 }

@@ -516,6 +516,14 @@ export class MerchantService {
         data: { balance: newBalance },
       });
 
+      await tx.user.update({
+        where: { id: merchant.id },
+        data: {
+          balance: newBalance,
+          availableBalance: Number((newBalance - (merchant.exposure || 0)).toFixed(2)),
+        },
+      });
+
       const entry = await tx.ledgerEntry.create({
         data: {
           walletId: wallet.id,
