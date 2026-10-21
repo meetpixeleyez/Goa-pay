@@ -27,6 +27,10 @@ import {
   CheckCircle2,
   Calendar,
   CreditCard,
+  X,
+  Unlock,
+  Edit3,
+  ExternalLink,
 } from "lucide-react";
 import {
   isValidPhone,
@@ -43,8 +47,8 @@ export default function BrokerDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Tab state
-  const [activeTab, setActiveTab] = useState<"info" | "merchants" | "ledger">("info");
+  // Tab state (default to Transactions)
+  const [activeTab, setActiveTab] = useState<"info" | "merchants" | "ledger">("ledger");
 
   // Edit form state
   const [name, setName] = useState("");
@@ -57,6 +61,7 @@ export default function BrokerDetailPage() {
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState("");
   const [saveError, setSaveError] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
 
   // Reset Password Modal
   const [showResetModal, setShowResetModal] = useState(false);
@@ -237,6 +242,17 @@ export default function BrokerDetailPage() {
     }
   };
 
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setSaveError("");
+    setSaveSuccess("");
+    if (broker) {
+      setName(broker.name || "");
+      setPhone(broker.phone || "");
+      setStatus(broker.status || "ACTIVE");
+    }
+  };
+
   // Save updated broker settings
   const handleSaveInfo = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -273,6 +289,7 @@ export default function BrokerDetailPage() {
       if (!res.ok) throw new Error(data.error || "Failed to update broker");
 
       setSaveSuccess("Broker settings updated successfully!");
+      setIsEditing(false);
       fetchBroker();
       setTimeout(() => setSaveSuccess(""), 3500);
     } catch (err: any) {
@@ -353,130 +370,96 @@ export default function BrokerDetailPage() {
       portal="admin"
       title={
         <div className="flex items-center gap-3">
-          <div className="size-10 sm:size-11 rounded-xl bg-primary/15 text-primary flex items-center justify-center font-bold text-base sm:text-lg border border-primary/30 shrink-0">
+          <div
+            className={`size-10 sm:size-11 rounded-xl flex items-center justify-center font-bold text-base sm:text-lg border shrink-0 transition-colors ${
+              broker.status === "ACTIVE"
+                ? "bg-emerald-50 text-emerald-600 border-emerald-300 ring-2 ring-emerald-400/20"
+                : "bg-rose-50 text-rose-600 border-rose-300 ring-2 ring-rose-400/20"
+            }`}
+          >
             {broker.name.charAt(0).toUpperCase()}
           </div>
           <div>
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-2">
               <span className="text-lg sm:text-xl font-bold text-slate-800">{broker.name}</span>
-              <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-indigo-100 text-indigo-800">
-                Broker
-              </span>
-              <span
-                className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
-                  broker.status === "ACTIVE"
-                    ? "bg-green-50 text-green-600 border-green-200"
-                    : "bg-red-50 text-red-600 border-red-200"
-                }`}
-              >
-                {broker.status}
-              </span>
-              <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-[10px] font-mono">
-                ID: {broker.id}
-              </span>
             </div>
-            {(broker.phone || broker.telegramId) && (
-              <div className="flex items-center gap-2 sm:gap-3 text-xs text-slate-500 mt-0.5 flex-wrap">
-                {broker.phone && (
-                  <span className="flex items-center gap-1 font-mono">
+            <div className="text-xs text-slate-500 mt-0.5 flex items-center gap-2 font-mono">
+              <span>ID: {broker.id}</span>
+              {broker.phone && (
+                <>
+                  <span className="text-slate-300">•</span>
+                  <span className="flex items-center gap-1">
                     <Phone className="size-3 text-slate-400" />
                     <span>{broker.phone}</span>
                   </span>
-                )}
-                {broker.telegramId && (
-                  <span className="flex items-center gap-1 text-slate-600 font-mono">
-                    <span>{broker.telegramId}</span>
-                  </span>
-                )}
-              </div>
-            )}
+                </>
+              )}
+            </div>
           </div>
         </div>
       }
       actions={
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={fetchBroker}
-            className="btn-secondary text-xs py-2 px-3 inline-flex items-center space-x-1.5"
-            title="Refresh broker info"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Refresh</span>
-          </button>
-          <Link
-            href="/admin/users"
-            className="btn-secondary text-xs py-2 px-3 inline-flex items-center space-x-1.5"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Back to Users</span>
-          </Link>
-        </div>
+        <Link
+          href="/admin/users"
+          className="btn-secondary text-xs py-2 px-3 inline-flex items-center space-x-1.5"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          <span>Back to Users</span>
+        </Link>
       }
     >
       <div className="space-y-6">
 
-        {/* Toolbar: Deposit | Withdrawal (Just above the cards) */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200 shadow-xs">
-          <div>
-            <span className="text-xs font-bold text-slate-800 uppercase tracking-wider block">
-              Balance Overview
-            </span>
-            <span className="text-[11px] text-slate-500">
-              Manage commission wallet settlement
-            </span>
-          </div>
+        {/* Top Summary Card (Net Wallet Balance & Settlement Actions) */}
+        <div className="mb-4">
+          <div className="card-theme p-4 sm:p-5 border-l-4 border-l-primary flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
+                Net Wallet Balance
+              </span>
+              <span className="text-2xl sm:text-3xl font-extrabold mt-1 block text-base-900">
+                ₹{(broker.wallet?.balance || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+            </div>
 
-          <div className="flex items-center flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                setShowAddBalanceModal(true);
-                setAddAmount("");
-                setAddDescription("");
-                setAddBalanceError("");
-                setAddBalanceSuccess("");
-              }}
-              className="px-3.5 py-2 rounded-lg text-xs font-bold bg-primary text-white hover:bg-primary-600 shadow-xs transition flex items-center space-x-1.5 cursor-pointer"
-            >
-              <PlusCircle className="w-3.5 h-3.5" />
-              <span>+ Deposit</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setShowClearModal(true);
-                setClearAmount("");
-                setClearDescription("");
-                setClearError("");
-                setClearSuccess("");
-              }}
-              className="px-3.5 py-2 rounded-lg text-xs font-bold bg-white border border-rose-200 text-rose-700 hover:bg-rose-50 shadow-xs transition flex items-center space-x-1.5 cursor-pointer"
-            >
-              <MinusCircle className="w-3.5 h-3.5 text-rose-600" />
-              <span>- Withdrawal</span>
-            </button>
+            <div className="flex items-center flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAddBalanceModal(true);
+                  setAddAmount("");
+                  setAddDescription("");
+                  setAddBalanceError("");
+                  setAddBalanceSuccess("");
+                }}
+                className="btn-primary text-xs py-2 px-4 flex items-center justify-center space-x-1.5 shadow-xs cursor-pointer"
+              >
+                <PlusCircle className="w-3.5 h-3.5 shrink-0" />
+                <span>+ Deposit</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowClearModal(true);
+                  setClearAmount("");
+                  setClearDescription("");
+                  setClearError("");
+                  setClearSuccess("");
+                }}
+                className="px-4 py-2 text-xs bg-white border border-rose-200 text-rose-700 hover:bg-rose-50 rounded-lg font-semibold flex items-center justify-center shadow-xs transition cursor-pointer"
+              >
+                <MinusCircle className="w-3.5 h-3.5 shrink-0 text-rose-600 mr-1" />
+                <span>- Withdrawal</span>
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* 3 Summary Metric Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+        {/* 2 Summary Metric Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
           <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col justify-between gap-2 hover:shadow-md transition">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-slate-500 font-medium">Commission Wallet</span>
-              <div className="size-8 rounded-lg bg-primary-100 text-primary flex items-center justify-center">
-                <Wallet className="size-4 fill-primary-500/20" />
-              </div>
-            </div>
-            <div className="text-lg sm:text-xl font-bold truncate text-slate-800">
-              ₹{(broker.wallet?.balance || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </div>
-            <span className="text-[11px] text-slate-500 block truncate">Net accrued commission</span>
-          </div>
-
-          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col justify-between gap-2 hover:shadow-md transition">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-slate-500 font-medium">Brokered Stores</span>
+              <span className="text-xs text-slate-500 font-medium">Linked Merchants</span>
               <div className="size-8 rounded-lg bg-sky-100 text-sky-600 flex items-center justify-center">
                 <Store className="size-4 text-sky-600" />
               </div>
@@ -501,18 +484,18 @@ export default function BrokerDetailPage() {
           </div>
         </div>
 
-        {/* Tab Navigation */}
+        {/* Tab Navigation (1st Transactions, 2nd Brokered Merchants, 3rd Broker Info) */}
         <div className="flex border-b border-base-200 overflow-x-auto space-x-1">
           <button
-            onClick={() => setActiveTab("info")}
+            onClick={() => setActiveTab("ledger")}
             className={`py-2.5 px-4 text-xs font-bold border-b-2 transition flex items-center space-x-1.5 shrink-0 ${
-              activeTab === "info"
+              activeTab === "ledger"
                 ? "border-primary text-base-900"
                 : "border-transparent text-slate-500 hover:text-gray-700"
             }`}
           >
-            <Briefcase className="w-3.5 h-3.5" />
-            <span>Broker Info & Settings</span>
+            <Wallet className="w-3.5 h-3.5" />
+            <span>Transactions</span>
           </button>
 
           <button
@@ -524,29 +507,51 @@ export default function BrokerDetailPage() {
             }`}
           >
             <Store className="w-3.5 h-3.5" />
-            <span>Brokered Merchants ({brokeredMerchants.length})</span>
+            <span>Linked Merchants</span>
           </button>
 
           <button
-            onClick={() => setActiveTab("ledger")}
+            onClick={() => setActiveTab("info")}
             className={`py-2.5 px-4 text-xs font-bold border-b-2 transition flex items-center space-x-1.5 shrink-0 ${
-              activeTab === "ledger"
+              activeTab === "info"
                 ? "border-primary text-base-900"
                 : "border-transparent text-slate-500 hover:text-gray-700"
             }`}
           >
-            <Wallet className="w-3.5 h-3.5" />
-            <span>Commission Ledger ({walletEntries.length})</span>
+            <Briefcase className="w-3.5 h-3.5" />
+            <span>Broker Info</span>
           </button>
         </div>
 
         {/* TAB 1: INFO & SETTINGS */}
         {activeTab === "info" && (
           <div className="space-y-6">
-            <div className="card-theme p-6 shadow-sm border border-base-200">
-              <div className="flex items-center space-x-2 pb-3 border-b border-base-200 mb-5">
-                <Briefcase className="w-5 h-5 text-primary" />
-                <h3 className="font-bold text-[16px] text-base-900">Edit Broker Profile & Settings</h3>
+            <div className="card-theme p-4 sm:p-5 shadow-sm border border-base-200">
+              <div className="flex items-center justify-between pb-3 border-b border-base-200 mb-4">
+                <div className="flex items-center space-x-2">
+                  <Briefcase className="w-5 h-5 text-primary" />
+                  <div>
+                    <h3 className="font-bold text-[16px] text-base-900">Broker Information & Contact</h3>
+                    <p className="text-xs text-slate-500">Broker profile details and account settings</p>
+                  </div>
+                </div>
+                <div>
+                  {!isEditing ? (
+                    <button
+                      type="button"
+                      onClick={() => setIsEditing(true)}
+                      className="px-3 py-1.5 text-xs font-semibold text-primary border border-primary/30 rounded-lg hover:bg-primary/5 transition flex items-center space-x-1.5 shadow-xs whitespace-nowrap"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                      <span>Edit</span>
+                    </button>
+                  ) : (
+                    <span className="px-2.5 py-1 text-xs bg-sky-100 border border-sky-200 text-sky-500 rounded-lg font-semibold flex items-center space-x-1 whitespace-nowrap">
+                      <Unlock className="w-3 h-3" />
+                      <span>Editing</span>
+                    </span>
+                  )}
+                </div>
               </div>
 
               {saveSuccess && (
@@ -563,45 +568,96 @@ export default function BrokerDetailPage() {
                 </div>
               )}
 
+              {isEditing && (
+                <div className="p-3 mb-4 bg-blue-100 border border-blue-200 text-blue-500 text-xs rounded-lg flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Unlock className="size-3 shrink-0" />
+                    <span>
+                      Editing mode active. Update fields below, then click <b>Save Broker Info & Status</b>.
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleCancelEdit}
+                    className="text-blue-600 hover:text-blue-700 font-semibold underline ml-2 text-xs"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+
               <form onSubmit={handleSaveInfo} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-[12px] font-semibold mb-1">Company / Broker Name *</label>
-                    <input
-                      type="text"
-                      required
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        required
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                    ) : (
+                      <div className="w-full px-3.5 py-2.5 text-xs font-bold text-base-900 bg-gray-50 rounded-lg border border-gray-200 truncate">
+                        {name || "--"}
+                      </div>
+                    )}
                   </div>
 
                   <div>
                     <label className="block text-[12px] font-semibold mb-1">
-                      Contact Phone (Indian or International)
+                      Contact Phone
                     </label>
-                    <div className="relative">
-                      <Phone className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" />
-                      <input
-                        type="tel"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        placeholder="e.g. 9876543210 or +14155552671"
-                        className="w-full pl-9 pr-3 py-2 text-xs border border-base-200 rounded-lg bg-white font-mono focus:outline-none focus:ring-2 focus:ring-primary"
-                      />
-                    </div>
-                    <span className="text-[10px] text-gray-400 mt-0.5 block">10-digit Indian mobile or International format with country code (e.g. +1...)</span>
+                    {isEditing ? (
+                      <div className="relative">
+                        <Phone className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" />
+                        <input
+                          type="tel"
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          placeholder="e.g. +91 9876543210 or +1 443 456 7890"
+                          className="w-full pl-9 pr-3 py-2 text-xs border border-base-200 rounded-lg bg-white font-mono focus:outline-none focus:ring-2 focus:ring-primary"
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-full px-3.5 py-2.5 text-xs font-medium font-mono text-gray-800 bg-gray-50 rounded-lg border border-gray-200 truncate">
+                        {phone || <span className="text-gray-400 font-mono">e.g. +91 9876543210 or +1 443 456 7890</span>}
+                      </div>
+                    )}
                   </div>
 
-                  <div>
-                    <label className="block text-[12px] font-semibold mb-2">Account Status</label>
-                    <div className="flex items-center space-x-3 pt-1">
+                  <div className="md:col-span-2 p-4 rounded-xl border border-base-200 bg-[#ffffff] space-y-3">
+                    <span className="text-xs font-bold text-base-900 uppercase tracking-wider block">
+                      Account Controls & Permissions
+                    </span>
+                    <div className="flex items-center justify-between sm:justify-start sm:space-x-4">
+                      <div>
+                        <span className="text-xs font-bold text-base-900 block">Account Status</span>
+                        <div className="flex items-center space-x-1.5 mt-0.5">
+                          <span
+                            className={`w-2 h-2 rounded-full ${
+                              status === "ACTIVE" ? "bg-green-500 animate-pulse" : "bg-red-500"
+                            }`}
+                          />
+                          <span
+                            className={`text-[11px] font-bold uppercase tracking-wider ${
+                              status === "ACTIVE" ? "text-green-700" : "text-red-600"
+                            }`}
+                          >
+                            {status}
+                          </span>
+                        </div>
+                      </div>
                       <button
                         type="button"
                         role="switch"
+                        disabled={!isEditing}
                         aria-checked={status === "ACTIVE"}
-                        onClick={() => setStatus(status === "ACTIVE" ? "INACTIVE" : "ACTIVE")}
-                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 ${
+                        onClick={() => isEditing && setStatus(status === "ACTIVE" ? "INACTIVE" : "ACTIVE")}
+                        className={`relative inline-flex h-6 w-11 shrink-0 ${
+                          isEditing ? "cursor-pointer" : "cursor-not-allowed opacity-80"
+                        } rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary ${
                           status === "ACTIVE" ? "bg-primary" : "bg-gray-300"
                         }`}
                       >
@@ -612,90 +668,68 @@ export default function BrokerDetailPage() {
                           }`}
                         />
                       </button>
-                      <div className="flex items-center space-x-1.5">
-                        <span
-                          className={`w-2 h-2 rounded-full ${
-                            status === "ACTIVE" ? "bg-green-500 animate-pulse" : "bg-gray-400"
-                          }`}
-                        />
-                        <span
-                          className={`text-xs font-bold uppercase tracking-wider ${
-                            status === "ACTIVE" ? "text-green-700" : "text-slate-500"
-                          }`}
-                        >
-                          {status}
-                        </span>
-                        <span className="text-[11px] text-base-700">
-                          {status === "ACTIVE" ? "(Active & Earning)" : "(Disabled)"}
-                        </span>
-                      </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex justify-end pt-3">
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="btn-primary py-2 px-5 text-xs font-bold flex items-center space-x-1.5 shadow-sm"
-                  >
-                    {saving ? (
-                      <>
-                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                        <span>Saving Changes...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Save className="w-3.5 h-3.5" />
-                        <span>Save Settings</span>
-                      </>
-                    )}
-                  </button>
-                </div>
+                {isEditing ? (
+                  <div className="flex items-center space-x-3 pt-4 border-t border-base-200">
+                    <button
+                      type="submit"
+                      disabled={saving}
+                      className="btn-primary py-2 px-5 text-xs font-bold flex items-center space-x-1.5 shadow"
+                    >
+                      {saving ? (
+                        <>
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                          <span>Saving Changes...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Save className="w-3.5 h-3.5" />
+                          <span>Save Broker Info & Status</span>
+                        </>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCancelEdit}
+                      className="px-4 py-2 text-xs bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between text-[12px] text-slate-500 pt-2 border-t border-base-200">
+                    <div className="flex items-center space-x-1.5">
+                      <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                      <span>Registered: {broker?.createdAt ? new Date(broker.createdAt).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : "--"}</span>
+                    </div>
+                  </div>
+                )}
               </form>
-            </div>
-
-            <div className="card-theme p-5 shadow-sm border border-base-200">
-              <div className="flex items-center space-x-2 pb-2 border-b border-base-200 mb-3">
-                <ShieldCheck className="w-4 h-4 text-primary" />
-                <h4 className="font-bold text-xs text-base-900">Broker Economics (Option A)</h4>
-              </div>
-              <div className="space-y-2.5 text-xs text-base-700">
-                <p>
-                  • When a broker is assigned to a merchant, the broker commission is applied to every completed deposit order.
-                </p>
-                <p>
-                  • Commissions are automatically credited to the broker's wallet upon Dual-UTR verification approval.
-                </p>
-                <p>
-                  • Broker fees (Payin & Payout) are configured dynamically directly on each merchant store when assigning this broker.
-                </p>
-              </div>
             </div>
           </div>
         )}
 
-        {/* TAB 2: BROKERED MERCHANTS */}
+        {/* TAB 2: LINKED MERCHANTS */}
         {activeTab === "merchants" && (
           <div className="card-theme overflow-hidden shadow-sm border border-base-200">
             <div className="p-4 border-b border-base-200 flex items-center justify-between">
               <div>
-                <h3 className="font-bold text-[16px] text-base-900">Brokered Merchant Stores</h3>
-                <p className="text-xs text-base-700">Stores linked to {broker.name}</p>
+                <h3 className="font-bold text-[16px] text-base-900">Linked Merchants</h3>
+                <p className="text-xs text-base-700">Merchants linked to {broker.name}</p>
               </div>
-              <span className="text-xs text-base-700">
-                Total Linked Stores: <b>{brokeredMerchants.length}</b>
-              </span>
             </div>
 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead className="bg-base-100/60 text-base-900 font-semibold border-b border-base-200">
                   <tr>
-                    <th className="p-3 w-60 max-w-[240px]">Store Name & Email</th>
+                    <th className="p-3 w-60 max-w-[240px]">Store Name</th>
                     <th className="p-3 whitespace-nowrap">Status</th>
                     <th className="p-3 whitespace-nowrap">Phone</th>
-                    <th className="p-3 text-center whitespace-nowrap">Store Fee %</th>
+                    <th className="p-3 text-center whitespace-nowrap">Commission % (In / Out)</th>
                     <th className="p-3 text-center whitespace-nowrap">Completed Orders</th>
                     <th className="p-3 whitespace-nowrap">Joined Date</th>
                     <th className="p-3 text-right whitespace-nowrap">Actions</th>
@@ -705,7 +739,7 @@ export default function BrokerDetailPage() {
                   {brokeredMerchants.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="p-8 text-center text-slate-500">
-                        No merchant stores currently assigned to this broker.
+                        No merchants currently linked to this broker.
                       </td>
                     </tr>
                   ) : (
@@ -713,7 +747,7 @@ export default function BrokerDetailPage() {
                       <tr key={m.id} className="hover:bg-[#ffffff] transition">
                         <td className="p-3 w-60 max-w-[240px]">
                           <div className="font-bold text-base-900 truncate" title={m.name}>{m.name}</div>
-                          <div className="text-[11px] text-slate-500 font-mono truncate" title={m.email}>{m.email}</div>
+                          <div className="text-[11px] text-slate-400 font-mono">ID: {m.id}</div>
                         </td>
                         <td className="p-3">
                           <span
@@ -727,7 +761,16 @@ export default function BrokerDetailPage() {
                           </span>
                         </td>
                         <td className="p-3 text-gray-600">{m.phone || "--"}</td>
-                        <td className="p-3 text-center font-bold text-primary">{m.payinMerchantFee ?? 0}%</td>
+                        <td className="p-3 text-center whitespace-nowrap">
+                          <div className="inline-flex items-center space-x-1.5 font-mono text-[10px] font-bold">
+                            <span className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
+                              IN: {m.payinBrokerFee ?? 0}%
+                            </span>
+                            <span className="px-1.5 py-0.5 rounded bg-orange-50 text-orange-700 border border-orange-200">
+                              OUT: {m.payoutBrokerFee ?? 0}%
+                            </span>
+                          </div>
+                        </td>
                         <td className="p-3 text-center font-bold text-base-900">
                           {m._count?.merchantOrders || 0}
                         </td>
@@ -737,9 +780,10 @@ export default function BrokerDetailPage() {
                         <td className="p-3 text-right">
                           <Link
                             href={`/admin/merchants/${m.id}`}
-                            className="px-2.5 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50 text-gray-700 font-semibold inline-flex items-center space-x-1"
+                            className="px-3 py-1.5 text-xs font-semibold text-primary bg-primary/10 hover:bg-primary hover:text-white rounded-lg transition-all inline-flex items-center space-x-1.5 shadow-2xs"
                           >
                             <span>View Store</span>
+                            <ExternalLink className="w-3.5 h-3.5" />
                           </Link>
                         </td>
                       </tr>
@@ -756,21 +800,7 @@ export default function BrokerDetailPage() {
           <div className="card-theme overflow-hidden shadow-sm border border-base-200">
             <div className="p-4 border-b border-base-200 flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h3 className="font-bold text-[16px] text-base-900">Broker Commission Ledger</h3>
-                <p className="text-xs text-base-700">All credit and debit entries on {broker.name}'s wallet</p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs font-semibold px-2.5 py-1 bg-white border border-slate-200 rounded-md text-slate-700 shadow-xs">
-                  Current Balance: <b className="text-primary font-mono font-bold">₹{(broker.wallet?.balance || broker.balance || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b>
-                </span>
-                <button
-                  type="button"
-                  onClick={fetchBroker}
-                  className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-md transition"
-                  title="Refresh Ledger"
-                >
-                  <RefreshCw className="w-3.5 h-3.5" />
-                </button>
+                <h3 className="font-bold text-[16px] text-base-900">Transactions</h3>
               </div>
             </div>
 
@@ -886,32 +916,41 @@ export default function BrokerDetailPage() {
             </div>
           </div>
         )}
+
         {/* MODAL: ADD BALANCE / DEPOSIT */}
         {showAddBalanceModal && (
           <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-white rounded-xl shadow-xl max-w-md w-full border border-base-200 overflow-hidden">
-              <div className="p-4 bg-primary text-white flex items-center justify-between">
+            <div className="bg-white rounded-xl shadow-xl max-w-md w-full overflow-hidden">
+              <div className="p-4 bg-[#0f172a] text-white flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <PlusCircle className="w-4 h-4 text-emerald-100" />
-                  <div>
-                    <h3 className="font-bold text-sm">+ Deposit (Add Balance)</h3>
-                    <p className="text-[11px] text-emerald-100">Credit funds into Broker's wallet & ledger</p>
-                  </div>
+                  <PlusCircle className="w-4 h-4 text-primary" />
+                  <h3 className="font-semibold text-sm">Add Funds to Broker Wallet</h3>
                 </div>
                 <button
-                  onClick={() => setShowAddBalanceModal(false)}
+                  onClick={() => {
+                    setShowAddBalanceModal(false);
+                    setAddAmount("");
+                    setAddDescription("");
+                    setAddBalanceError("");
+                    setAddBalanceSuccess("");
+                  }}
                   className="text-white hover:text-gray-200 text-sm font-bold"
                 >
-                  ✕
+                  <X className="size-5" />
                 </button>
               </div>
 
               <form onSubmit={handleAddBalance} className="p-5 space-y-4">
-                <div className="p-3 bg-base-100/40 border border-base-200 rounded-lg flex items-center justify-between text-xs">
-                  <span className="text-base-700 font-semibold">Current Commission Balance:</span>
-                  <span className="font-extrabold text-sm text-base-900">
-                    ₹{(broker?.wallet?.balance || broker?.balance || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
+                <div>
+                  <p className="text-xs text-slate-500">
+                    Manually credit funds directly into <b>{broker?.name}</b>'s settled wallet.
+                  </p>
+                  <div className="mt-2 p-2.5 bg-slate-100 rounded-lg border border-slate-200 flex items-center justify-between text-xs">
+                    <span className="text-slate-500">Current Settled Balance:</span>
+                    <span className="font-semibold text-base-900">
+                      ₹{(broker?.wallet?.balance || broker?.balance || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
                 </div>
 
                 {addBalanceError && (
@@ -929,36 +968,51 @@ export default function BrokerDetailPage() {
                 )}
 
                 <div>
-                  <label className="block text-xs font-semibold text-base-900 mb-1">
-                    Amount to Deposit (₹) *
+                  <label className="block text-[12px] font-semibold mb-1.5">
+                    Deposit Amount (₹)*
                   </label>
                   <div className="relative">
-                    <span className="absolute left-3 top-2.5 text-xs text-slate-500 font-bold">₹</span>
+                    <span className="absolute left-3 top-2.5 text-slate-500 font-bold text-sm">₹</span>
                     <input
                       type="number"
-                      step="any"
+                      step="0.01"
+                      min="1"
                       required
-                      min="0.01"
+                      autoFocus
                       disabled={addingBalance || !!addBalanceSuccess}
                       value={addAmount}
                       onChange={(e) => setAddAmount(e.target.value)}
                       placeholder="e.g. 5000"
-                      className="w-full pl-7 pr-3 py-2 text-xs border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      className="w-full pl-7 pr-3 py-2 text-sm font-bold border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
                     />
+                  </div>
+                  {/* Quick Chips */}
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {[500, 1000, 5000, 10000, 25000].map((amt) => (
+                      <button
+                        key={amt}
+                        type="button"
+                        disabled={addingBalance || !!addBalanceSuccess}
+                        onClick={() => setAddAmount(amt.toString())}
+                        className="px-2 py-0.5 text-[11px] font-semibold bg-base-100/40 hover:bg-slate-100 text-slate-900 rounded border border-slate-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        +₹{amt.toLocaleString("en-IN")}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-base-900 mb-1">
-                    Description / Note (Optional)
+                  <label className="block text-[12px] font-semibold text-base-900 mb-1.5">
+                    Reference Note / Description
                   </label>
                   <input
                     type="text"
                     disabled={addingBalance || !!addBalanceSuccess}
                     value={addDescription}
                     onChange={(e) => setAddDescription(e.target.value)}
-                    placeholder="e.g. Broker bonus / manual adjustment"
-                    className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    placeholder="e.g. Manual top-up, Bank transfer settlement"
+                    className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
                   />
                 </div>
 
@@ -966,7 +1020,13 @@ export default function BrokerDetailPage() {
                   <button
                     type="button"
                     disabled={addingBalance || !!addBalanceSuccess}
-                    onClick={() => setShowAddBalanceModal(false)}
+                    onClick={() => {
+                      setShowAddBalanceModal(false);
+                      setAddAmount("");
+                      setAddDescription("");
+                      setAddBalanceError("");
+                      setAddBalanceSuccess("");
+                    }}
                     className="flex-1 py-2 text-xs border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Cancel
@@ -974,7 +1034,7 @@ export default function BrokerDetailPage() {
                   <button
                     type="submit"
                     disabled={addingBalance || !!addBalanceSuccess || !addAmount || parseFloat(addAmount) <= 0}
-                    className="flex-1 btn-primary py-2 text-xs font-bold shadow flex items-center justify-center space-x-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="flex-1 btn-primary py-2 text-xs font-bold shadow flex items-center justify-center space-x-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {addingBalance ? (
                       <>
@@ -982,9 +1042,12 @@ export default function BrokerDetailPage() {
                         <span>Crediting...</span>
                       </>
                     ) : addBalanceSuccess ? (
-                      <span className="text-emerald-200 font-bold">✓ Credited Successfully</span>
+                      <>
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>Credited Successfully</span>
+                      </>
                     ) : (
-                      <span>Deposit ₹{parseFloat(addAmount) > 0 ? parseFloat(addAmount).toLocaleString("en-IN") : "0"}</span>
+                      <span>Credit ₹{parseFloat(addAmount) > 0 ? parseFloat(addAmount).toLocaleString("en-IN") : "0"}</span>
                     )}
                   </button>
                 </div>
@@ -996,27 +1059,38 @@ export default function BrokerDetailPage() {
         {/* MODAL: CLEAR BALANCE / WITHDRAWAL */}
         {showClearModal && (
           <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-white rounded-xl shadow-xl max-w-md w-full border border-base-200 overflow-hidden">
+            <div className="bg-white rounded-xl shadow-xl max-w-md w-full overflow-hidden">
               <div className="p-4 bg-[#0f172a] text-white flex items-center justify-between">
-                <div>
-                  <h3 className="font-bold text-sm text-white">- Withdrawal (Payout)</h3>
-                  <p className="text-[11px] text-[#f0f7fc]/80">Disburse / deduct funds from Broker's wallet & ledger</p>
+                <div className="flex items-center space-x-2">
+                  <MinusCircle className="w-4 h-4 text-rose-400" />
+                  <h3 className="font-semibold text-sm">Withdraw Funds from Broker Wallet</h3>
                 </div>
                 <button
                   disabled={clearingBalance || !!clearSuccess}
-                  onClick={() => setShowClearModal(false)}
-                  className="text-white hover:text-gray-300 text-sm font-bold disabled:opacity-50"
+                  onClick={() => {
+                    setShowClearModal(false);
+                    setClearAmount("");
+                    setClearDescription("");
+                    setClearError("");
+                    setClearSuccess("");
+                  }}
+                  className="text-white hover:text-gray-200 text-sm font-bold disabled:opacity-50"
                 >
-                  ✕
+                  <X className="size-5" />
                 </button>
               </div>
 
               <form onSubmit={handleClearBalance} className="p-5 space-y-4">
-                <div className="p-3 bg-base-100/40 border border-base-200 rounded-lg flex items-center justify-between text-xs">
-                  <span className="text-base-700 font-semibold">Current Commission Balance:</span>
-                  <span className="font-extrabold text-sm text-base-900">
-                    ₹{(broker?.wallet?.balance || broker?.balance || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
+                <div>
+                  <p className="text-xs text-slate-500">
+                    Manually debit funds directly from <b>{broker?.name}</b>'s settled wallet.
+                  </p>
+                  <div className="mt-2 p-2.5 bg-slate-100 rounded-lg border border-slate-200 flex items-center justify-between text-xs">
+                    <span className="text-slate-500">Current Settled Balance:</span>
+                    <span className="font-semibold text-base-900">
+                      ₹{(broker?.wallet?.balance || broker?.balance || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
                 </div>
 
                 {clearError && (
@@ -1034,49 +1108,63 @@ export default function BrokerDetailPage() {
                 )}
 
                 <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="block text-xs font-semibold text-base-900">
-                      Amount to Withdraw (₹) *
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-[12px] font-semibold text-base-900">
+                      Withdrawal Amount (₹)*
                     </label>
                     {(broker?.wallet?.balance || broker?.balance || 0) > 0 && (
                       <button
                         type="button"
                         disabled={clearingBalance || !!clearSuccess}
                         onClick={() => setClearAmount((broker?.wallet?.balance || broker?.balance || 0).toString())}
-                        className="text-[11px] font-bold text-primary hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="text-[12px] font-semibold text-primary hover:text-primary-400 underline disabled:opacity-50"
                       >
-                        Exact Balance (₹{(broker?.wallet?.balance || broker?.balance || 0).toFixed(2)})
+                        Clear Exact Balance (₹{(broker?.wallet?.balance || broker?.balance || 0).toFixed(2)})
                       </button>
                     )}
                   </div>
                   <div className="relative">
-                    <span className="absolute left-3 top-2.5 text-xs text-slate-500 font-bold">₹</span>
+                    <span className="absolute left-3 top-2.5 text-slate-500 font-bold text-sm">₹</span>
                     <input
                       type="number"
-                      step="any"
+                      step="0.01"
+                      min="1"
                       required
-                      min="0.01"
-                      max={Math.max(0, Number(broker?.wallet?.balance ?? broker?.balance ?? 0)).toString()}
                       disabled={clearingBalance || !!clearSuccess}
+                      autoFocus
                       value={clearAmount}
                       onChange={(e) => setClearAmount(e.target.value)}
                       placeholder="e.g. 5000"
-                      className="w-full pl-7 pr-3 py-2 text-xs border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      className="w-full pl-7 pr-3 py-2 text-sm font-bold border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
                     />
+                  </div>
+                  {/* Quick Chips */}
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {[500, 1000, 5000, 10000, 25000].map((amt) => (
+                      <button
+                        key={amt}
+                        type="button"
+                        disabled={clearingBalance || !!clearSuccess}
+                        onClick={() => setClearAmount(amt.toString())}
+                        className="px-2 py-0.5 text-[11px] font-semibold bg-base-100/40 hover:bg-slate-100 text-slate-900 rounded border border-slate-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        ₹{amt.toLocaleString("en-IN")}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-base-900 mb-1">
-                    Description / Note (Optional)
+                  <label className="block text-[12px] font-semibold text-base-900 mb-1.5">
+                    Reference Note / Description
                   </label>
                   <input
                     type="text"
                     disabled={clearingBalance || !!clearSuccess}
                     value={clearDescription}
                     onChange={(e) => setClearDescription(e.target.value)}
-                    placeholder="e.g. Bank payout disbursement ref #IMPS1234"
-                    className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    placeholder="e.g. Bank payout issued, settlement withdrawal"
+                    className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
                   />
                 </div>
 
@@ -1084,7 +1172,13 @@ export default function BrokerDetailPage() {
                   <button
                     type="button"
                     disabled={clearingBalance || !!clearSuccess}
-                    onClick={() => setShowClearModal(false)}
+                    onClick={() => {
+                      setShowClearModal(false);
+                      setClearAmount("");
+                      setClearDescription("");
+                      setClearError("");
+                      setClearSuccess("");
+                    }}
                     className="flex-1 py-2 text-xs border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Cancel
@@ -1092,7 +1186,7 @@ export default function BrokerDetailPage() {
                   <button
                     type="submit"
                     disabled={clearingBalance || !!clearSuccess || !clearAmount || parseFloat(clearAmount) <= 0}
-                    className="flex-1 py-2 text-xs font-bold bg-[#0f172a] text-white rounded-lg hover:bg-slate-800 shadow flex items-center justify-center space-x-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="flex-1 btn-primary py-2 text-xs font-bold shadow flex items-center justify-center space-x-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {clearingBalance ? (
                       <>
@@ -1100,9 +1194,12 @@ export default function BrokerDetailPage() {
                         <span>Debiting...</span>
                       </>
                     ) : clearSuccess ? (
-                      <span className="text-emerald-300 font-bold">✓ Withdrawn Successfully</span>
+                      <>
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>Debited Successfully</span>
+                      </>
                     ) : (
-                      <span>Withdraw ₹{parseFloat(clearAmount) > 0 ? parseFloat(clearAmount).toLocaleString("en-IN") : "0"}</span>
+                      <span>Debit ₹{parseFloat(clearAmount) > 0 ? parseFloat(clearAmount).toLocaleString("en-IN") : "0"}</span>
                     )}
                   </button>
                 </div>

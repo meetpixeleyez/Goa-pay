@@ -728,7 +728,7 @@ export default function QRProviderOperatorsPage() {
               {/* Operator Phone Number */}
               <div>
                 <label className="block text-xs font-bold text-base-900 mb-1.5">
-                  Contact Phone (Indian or International)
+                  Contact Phone
                 </label>
                 <div className="relative">
                   <Phone className="w-4 h-4 text-gray-400 absolute left-3.5 top-3" />
@@ -736,11 +736,10 @@ export default function QRProviderOperatorsPage() {
                     type="tel"
                     value={editPhone}
                     onChange={(e) => setEditPhone(e.target.value)}
-                    placeholder="e.g. 9876543210 or +14155552671"
+                    placeholder="e.g. +91 9876543210 or +1 443 456 7890"
                     className="w-full pl-10 pr-3.5 py-2.5 text-xs border border-base-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary bg-white font-medium text-base-900 transition"
                   />
                 </div>
-                <span className="text-[10px] text-gray-400 mt-0.5 block">10-digit Indian mobile or International format with country code (e.g. +1...)</span>
               </div>
 
               {/* Account Controls & Permissions Switch Box */}

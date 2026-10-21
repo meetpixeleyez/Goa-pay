@@ -489,7 +489,7 @@ export default function AdminOthersPage() {
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Contact Phone (Indian or International)
+                  Contact Phone
                 </label>
                 <div className="relative">
                   <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
@@ -497,7 +497,7 @@ export default function AdminOthersPage() {
                     type="tel"
                     value={editPhone}
                     onChange={(e) => setEditPhone(e.target.value)}
-                    placeholder="e.g. 9876543210 or +1 202 555 0199"
+                    placeholder="e.g. +91 9876543210 or +1 443 456 7890"
                     className="w-full pl-9 pr-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl text-base-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-mono"
                   />
                 </div>

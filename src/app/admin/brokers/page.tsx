@@ -273,7 +273,7 @@ export default function AdminBrokersPage() {
           {/* Responsive Broker Summary Quick Box */}
           <div className="my-3 p-3 bg-[#ffffff] rounded-lg border border-base-200 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
             <div>
-              <span className="text-slate-500 block text-[11px]">Brokered Stores</span>
+              <span className="text-slate-500 block text-[11px]">Linked Merchants</span>
               <span className="font-mono font-bold text-[#0c4a6e] whitespace-nowrap">
                 {storeCount} {storeCount === 1 ? "Store" : "Stores"}
               </span>
@@ -752,16 +752,15 @@ export default function AdminBrokersPage() {
 
                   <div>
                     <label className="block text-[12px] font-semibold mb-1">
-                      Contact Phone (Indian or International)
+                      Contact Phone
                     </label>
                     <input
                       type="tel"
                       value={editPhone}
                       onChange={(e) => setEditPhone(e.target.value)}
-                      placeholder="e.g. 9876543210 or +14155552671"
+                      placeholder="e.g. +91 9876543210 or +1 443 456 7890"
                       className="w-full px-3 py-2 border border-base-200 rounded-lg font-mono focus:outline-none focus:ring-2 focus:ring-primary"
                     />
-                    <span className="text-[10px] text-gray-400 mt-0.5 block">10-digit Indian mobile or International format with country code (e.g. +1...)</span>
                   </div>
                 </div>
 

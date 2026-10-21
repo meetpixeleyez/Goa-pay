@@ -274,7 +274,7 @@ export class MerchantService {
       transactionAllowed = true,
     } = input;
 
-    if (!name || !name.trim()) throw new ApiError("Merchant name is required", 400);
+    if (!name || !name.trim()) throw new ApiError("Store Name is required", 400);
 
     const existingSameMerchant = await prisma.user.findFirst({
       where: {

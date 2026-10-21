@@ -378,7 +378,7 @@ export default function CreateQRProviderPage() {
 
               <div>
                 <label className="block text-xs font-semibold text-base-900 mb-1.5">
-                  Contact Phone (Indian or International)
+                  Contact Phone
                 </label>
                 <div className="relative">
                   <Phone className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" />
@@ -386,13 +386,10 @@ export default function CreateQRProviderPage() {
                     type="tel"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    placeholder="e.g. 9876543210 or +14155552671"
+                    placeholder="e.g. +91 9876543210 or +1 443 456 7890"
                     className="w-full pl-9 pr-3.5 py-2 text-xs border border-base-200 rounded-lg bg-white font-mono focus:outline-none focus:ring-2 focus:ring-primary"
                   />
                 </div>
-                <p className="text-[11px] text-base-700 mt-1">
-                  10-digit Indian mobile or International format with country code (e.g. +1...)
-                </p>
               </div>
             </div>
           </div>
@@ -421,16 +418,13 @@ export default function CreateQRProviderPage() {
                   />
                   <span className="absolute right-3.5 top-2.5 text-slate-500 font-bold text-xs">INR</span>
                 </div>
-                <p className="text-[11px] text-base-700 mt-1">
-                  Orders will be allocated dynamically against available balance.
-                </p>
               </div>
 
               {/* Dual Fee Configuration: Payin and Payout Rates */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-base-900 mb-1.5">
-                    Payin (Deposit) Fee Rate (%) *
+                    Payin / Deposit Fee (%) *
                   </label>
                   <div className="relative">
                     <input
@@ -439,20 +433,18 @@ export default function CreateQRProviderPage() {
                       min="0"
                       max="100"
                       required
+                      placeholder="0.00"
                       value={payinQrProviderFee}
                       onChange={(e) => setPayinQrProviderFee(e.target.value)}
                       className="w-full px-3.5 py-2 text-sm font-bold border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
                     />
                     <span className="absolute right-3.5 top-2.5 text-primary font-bold text-xs">%</span>
                   </div>
-                  <p className="text-[11px] text-base-700 mt-1">
-                    Fee earned by provider upon each settled deposit.
-                  </p>
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-base-900 mb-1.5">
-                    Payout (Withdrawal) Fee Rate (%) *
+                    Payout / Withdrawal Fee (%) *
                   </label>
                   <div className="relative">
                     <input
@@ -461,15 +453,13 @@ export default function CreateQRProviderPage() {
                       min="0"
                       max="100"
                       required
+                      placeholder="0.00"
                       value={payoutQrProviderFee}
                       onChange={(e) => setPayoutQrProviderFee(e.target.value)}
                       className="w-full px-3.5 py-2 text-sm font-bold border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
                     />
                     <span className="absolute right-3.5 top-2.5 text-blue-600 font-bold text-xs">%</span>
                   </div>
-                  <p className="text-[11px] text-base-700 mt-1">
-                    Fee earned when fulfilling customer withdrawal payouts.
-                  </p>
                 </div>
               </div>
 
@@ -511,7 +501,6 @@ export default function CreateQRProviderPage() {
                         />
                         <span className="absolute right-3 top-2 text-primary font-bold text-xs">%</span>
                       </div>
-                      <p className="text-[10px] text-slate-500 mt-0.5">Agent cut on deposits</p>
                     </div>
 
                     <div>
@@ -525,21 +514,14 @@ export default function CreateQRProviderPage() {
                           min="0"
                           value={payoutAgentFee}
                           onChange={(e) => setPayoutAgentFee(e.target.value)}
-                          placeholder="0"
+                          placeholder="0.00"
                           className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
                         />
                         <span className="absolute right-3 top-2 text-blue-600 font-bold text-xs">%</span>
                       </div>
-                      <p className="text-[10px] text-slate-500 mt-0.5">Agent cut on payouts</p>
                     </div>
                   </div>
                 )}
-
-                <p className="text-[11px] text-base-700 mt-1.5">
-                  {agentId
-                    ? "Agent fees are configured directly on this provider (different providers can have custom agent fee cuts)."
-                    : "If assigned, you can configure custom agent payin and payout fees for this QR provider."}
-                </p>
               </div>
             </div>
           </div>

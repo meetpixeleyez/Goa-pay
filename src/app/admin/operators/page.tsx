@@ -558,7 +558,7 @@ export default function AdminOperatorsPage() {
                                 <span className="truncate block flex-1">{op.qrProvider.name}</span>
                               </div>
                               <div className="text-[11px] text-slate-500 truncate block mt-0.5 font-mono">
-                                {op.qrProvider.email}
+                                {op.qrProvider.phone || `ID: ${op.qrProvider.id}`}
                               </div>
                             </Link>
                           ) : (

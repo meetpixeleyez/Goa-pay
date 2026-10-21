@@ -241,7 +241,7 @@ export function validateUserData(
 
   // Name validation
   if (data.name !== undefined || options.isCreate) {
-    const nameCheck = validateName(data.name, options.role === "MERCHANT" ? "Store name" : "Name");
+    const nameCheck = validateName(data.name, options.role === "MERCHANT" ? "Store Name" : "Name");
     if (!nameCheck.valid && nameCheck.error) errors.push(nameCheck.error);
   }
 

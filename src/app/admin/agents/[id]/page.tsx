@@ -27,6 +27,10 @@ import {
   MinusCircle,
   CheckCircle2,
   CreditCard,
+  X,
+  Unlock,
+  Edit3,
+  ExternalLink,
 } from "lucide-react";
 import {
   isValidPhone,
@@ -44,8 +48,8 @@ export default function AgentDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Tab state
-  const [activeTab, setActiveTab] = useState<"info" | "providers" | "ledger">("info");
+  // Tab state (default to Transactions)
+  const [activeTab, setActiveTab] = useState<"info" | "providers" | "ledger">("ledger");
 
   // Edit form state
   const [name, setName] = useState("");
@@ -58,6 +62,7 @@ export default function AgentDetailPage() {
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState("");
   const [saveError, setSaveError] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
 
   // Reset Password Modal
   const [showResetModal, setShowResetModal] = useState(false);
@@ -239,6 +244,17 @@ export default function AgentDetailPage() {
     }
   };
 
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setSaveError("");
+    setSaveSuccess("");
+    if (agent) {
+      setName(agent.name || "");
+      setPhone(agent.phone || "");
+      setStatus(agent.status || "ACTIVE");
+    }
+  };
+
   // Save updated agent settings
   const handleSaveInfo = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -275,6 +291,7 @@ export default function AgentDetailPage() {
       if (!res.ok) throw new Error(data.error || "Failed to update agent");
 
       setSaveSuccess("Agent settings updated successfully!");
+      setIsEditing(false);
       fetchAgent();
       setTimeout(() => setSaveSuccess(""), 3500);
     } catch (err: any) {
@@ -355,126 +372,93 @@ export default function AgentDetailPage() {
       portal="admin"
       title={
         <div className="flex items-center gap-3">
-          <div className="size-10 sm:size-11 rounded-xl bg-primary/15 text-primary flex items-center justify-center font-bold text-base sm:text-lg border border-primary/30 shrink-0">
+          <div
+            className={`size-10 sm:size-11 rounded-xl flex items-center justify-center font-bold text-base sm:text-lg border shrink-0 transition-colors ${
+              agent.status === "ACTIVE"
+                ? "bg-emerald-50 text-emerald-600 border-emerald-300 ring-2 ring-emerald-400/20"
+                : "bg-rose-50 text-rose-600 border-rose-300 ring-2 ring-rose-400/20"
+            }`}
+          >
             {agent.name.charAt(0).toUpperCase()}
           </div>
           <div>
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-2">
               <span className="text-lg sm:text-xl font-bold text-slate-800">{agent.name}</span>
-              <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800">
-                Agent
-              </span>
-              <span
-                className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
-                  agent.status === "ACTIVE"
-                    ? "bg-green-50 text-green-600 border-green-200"
-                    : "bg-red-50 text-red-600 border-red-200"
-                }`}
-              >
-                {agent.status}
-              </span>
-              <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-[10px] font-mono">
-                ID: {agent.id}
-              </span>
             </div>
-            {(agent.phone || agent.telegramId) && (
-              <div className="flex items-center gap-2 sm:gap-3 text-xs text-slate-500 mt-0.5 flex-wrap">
-                {agent.phone && (
-                  <span className="flex items-center gap-1 font-mono">
+            <div className="text-xs text-slate-500 mt-0.5 flex items-center gap-2 font-mono">
+              <span>ID: {agent.id}</span>
+              {agent.phone && (
+                <>
+                  <span className="text-slate-300">•</span>
+                  <span className="flex items-center gap-1">
                     <Phone className="size-3 text-slate-400" />
                     <span>{agent.phone}</span>
                   </span>
-                )}
-                {agent.telegramId && (
-                  <span className="flex items-center gap-1 text-slate-600 font-mono">
-                    <span>{agent.telegramId}</span>
-                  </span>
-                )}
-              </div>
-            )}
+                </>
+              )}
+            </div>
           </div>
         </div>
       }
       actions={
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={fetchAgent}
-            disabled={loading}
-            className="btn-secondary text-xs py-2 px-3 inline-flex items-center space-x-1.5"
-            title="Refresh agent info"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
-            <span className="hidden sm:inline">Refresh</span>
-          </button>
-          <Link
-            href="/admin/users"
-            className="btn-secondary text-xs py-2 px-3 inline-flex items-center space-x-1.5"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Back to Users</span>
-          </Link>
-        </div>
+        <Link
+          href="/admin/users"
+          className="btn-secondary text-xs py-2 px-3 inline-flex items-center space-x-1.5"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          <span>Back to Users</span>
+        </Link>
       }
     >
       <div className="space-y-5 sm:space-y-6">
 
-        {/* Toolbar: Deposit | Withdrawal (Just above the cards) */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200 shadow-xs">
-          <div>
-            <span className="text-xs font-bold text-slate-800 uppercase tracking-wider block">
-              Balance Overview
-            </span>
-            <span className="text-[11px] text-slate-500">
-              Manage commission wallet settlement
-            </span>
-          </div>
+        {/* Top Summary Card (Net Wallet Balance & Settlement Actions) */}
+        <div className="mb-4">
+          <div className="card-theme p-4 sm:p-5 border-l-4 border-l-primary flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
+                Net Wallet Balance
+              </span>
+              <span className="text-2xl sm:text-3xl font-extrabold mt-1 block text-base-900">
+                ₹{(agent.wallet?.balance || agent.balance || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+            </div>
 
-          <div className="flex items-center flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                setShowAddBalanceModal(true);
-                setAddAmount("");
-                setAddDescription("");
-                setAddBalanceError("");
-                setAddBalanceSuccess("");
-              }}
-              className="px-3.5 py-2 rounded-lg text-xs font-bold bg-primary text-white hover:bg-primary-600 shadow-xs transition flex items-center space-x-1.5 cursor-pointer"
-            >
-              <PlusCircle className="w-3.5 h-3.5" />
-              <span>+ Deposit</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setShowClearModal(true);
-                setClearAmount("");
-                setClearDescription("");
-                setClearError("");
-                setClearSuccess("");
-              }}
-              className="px-3.5 py-2 rounded-lg text-xs font-bold bg-white border border-rose-200 text-rose-700 hover:bg-rose-50 shadow-xs transition flex items-center space-x-1.5 cursor-pointer"
-            >
-              <MinusCircle className="w-3.5 h-3.5 text-rose-600" />
-              <span>- Withdrawal</span>
-            </button>
+            <div className="flex items-center flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAddBalanceModal(true);
+                  setAddAmount("");
+                  setAddDescription("");
+                  setAddBalanceError("");
+                  setAddBalanceSuccess("");
+                }}
+                className="btn-primary text-xs py-2 px-4 flex items-center justify-center space-x-1.5 shadow-xs cursor-pointer"
+              >
+                <PlusCircle className="w-3.5 h-3.5 shrink-0" />
+                <span>+ Deposit</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowClearModal(true);
+                  setClearAmount("");
+                  setClearDescription("");
+                  setClearError("");
+                  setClearSuccess("");
+                }}
+                className="px-4 py-2 text-xs bg-white border border-rose-200 text-rose-700 hover:bg-rose-50 rounded-lg font-semibold flex items-center justify-center shadow-xs transition cursor-pointer"
+              >
+                <MinusCircle className="w-3.5 h-3.5 shrink-0 text-rose-600 mr-1" />
+                <span>- Withdrawal</span>
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* 3 Summary Metric Cards - 1 col on mobile, 3 on desktop */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-          <div className="card-theme p-3.5 sm:p-4 shadow-sm border border-base-200 rounded-xl">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] sm:text-xs text-base-700 font-medium truncate">Total Balance</span>
-              <Wallet className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary shrink-0 ml-1" />
-            </div>
-            <div className="mt-1.5 sm:mt-2 text-base sm:text-xl font-extrabold text-base-900 font-mono truncate">
-              ₹{(agent.wallet?.balance || agent.balance || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </div>
-            <span className="text-[10px] text-base-700 mt-0.5 block truncate">Current settled balance</span>
-          </div>
-
+        {/* 2 Summary Metric Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
           <div className="card-theme p-3.5 sm:p-4 shadow-sm border border-base-200 rounded-xl">
             <div className="flex items-center justify-between">
               <span className="text-[11px] sm:text-xs text-base-700 font-medium truncate">Linked QR Providers</span>
@@ -498,18 +482,18 @@ export default function AgentDetailPage() {
           </div>
         </div>
 
-        {/* Tab Navigation */}
+        {/* Tab Navigation (1st Transactions, 2nd Assigned QR Providers, 3rd Agent Info) */}
         <div className="flex border-b border-base-200 overflow-x-auto space-x-1 pb-px no-scrollbar">
           <button
-            onClick={() => setActiveTab("info")}
+            onClick={() => setActiveTab("ledger")}
             className={`py-2.5 px-3 sm:px-4 text-xs font-bold border-b-2 transition flex items-center space-x-1.5 shrink-0 whitespace-nowrap ${
-              activeTab === "info"
+              activeTab === "ledger"
                 ? "border-primary text-base-900"
                 : "border-transparent text-slate-500 hover:text-gray-700"
             }`}
           >
-            <Users className="w-3.5 h-3.5" />
-            <span>Agent Info & Settings</span>
+            <Wallet className="w-3.5 h-3.5" />
+            <span>Transactions</span>
           </button>
 
           <button
@@ -521,29 +505,51 @@ export default function AgentDetailPage() {
             }`}
           >
             <QrCode className="w-3.5 h-3.5" />
-            <span>Assigned QR Providers ({assignedProviders.length})</span>
+            <span>Linked QR Providers</span>
           </button>
 
           <button
-            onClick={() => setActiveTab("ledger")}
+            onClick={() => setActiveTab("info")}
             className={`py-2.5 px-3 sm:px-4 text-xs font-bold border-b-2 transition flex items-center space-x-1.5 shrink-0 whitespace-nowrap ${
-              activeTab === "ledger"
+              activeTab === "info"
                 ? "border-primary text-base-900"
                 : "border-transparent text-slate-500 hover:text-gray-700"
             }`}
           >
-            <Wallet className="w-3.5 h-3.5" />
-            <span>Commission Ledger ({walletEntries.length})</span>
+            <Users className="w-3.5 h-3.5" />
+            <span>Agent Info</span>
           </button>
         </div>
 
         {/* TAB 1: INFO & SETTINGS */}
         {activeTab === "info" && (
           <div className="space-y-6">
-            <div className="card-theme p-4 sm:p-6 shadow-sm border border-base-200 rounded-xl">
-              <div className="flex items-center space-x-2 pb-3 border-b border-base-200 mb-4 sm:mb-5">
-                <Users className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
-                <h3 className="font-bold text-sm sm:text-base text-base-900">Edit Agent Profile & Settings</h3>
+            <div className="card-theme p-4 sm:p-5 shadow-sm border border-base-200 rounded-xl">
+              <div className="flex items-center justify-between pb-3 border-b border-base-200 mb-4 sm:mb-5">
+                <div className="flex items-center space-x-2">
+                  <Users className="w-5 h-5 text-primary" />
+                  <div>
+                    <h3 className="font-bold text-[16px] text-base-900">Agent Information & Contact</h3>
+                    <p className="text-xs text-slate-500">Agent profile details and commission settings</p>
+                  </div>
+                </div>
+                <div>
+                  {!isEditing ? (
+                    <button
+                      type="button"
+                      onClick={() => setIsEditing(true)}
+                      className="px-3 py-1.5 text-xs font-semibold text-primary border border-primary/30 rounded-lg hover:bg-primary/5 transition flex items-center space-x-1.5 shadow-xs whitespace-nowrap"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                      <span>Edit</span>
+                    </button>
+                  ) : (
+                    <span className="px-2.5 py-1 text-xs bg-sky-100 border border-sky-200 text-sky-500 rounded-lg font-semibold flex items-center space-x-1 whitespace-nowrap">
+                      <Unlock className="w-3 h-3" />
+                      <span>Editing</span>
+                    </span>
+                  )}
+                </div>
               </div>
 
               {saveSuccess && (
@@ -560,55 +566,97 @@ export default function AgentDetailPage() {
                 </div>
               )}
 
+              {isEditing && (
+                <div className="p-3 mb-4 bg-blue-100 border border-blue-200 text-blue-500 text-xs rounded-lg flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Unlock className="size-3 shrink-0" />
+                    <span>
+                      Editing mode active. Update fields below, then click <b>Save Agent Info & Status</b>.
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleCancelEdit}
+                    className="text-blue-600 hover:text-blue-700 font-semibold underline ml-2 text-xs"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+
               <form onSubmit={handleSaveInfo} className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
                   <div>
                     <label className="block text-xs font-semibold text-base-900 mb-1">Agent Name *</label>
-                    <input
-                      type="text"
-                      required
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        required
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                    ) : (
+                      <div className="w-full px-3.5 py-2.5 text-xs font-bold text-base-900 bg-gray-50 rounded-lg border border-gray-200 truncate">
+                        {name || "--"}
+                      </div>
+                    )}
                   </div>
 
                   <div>
                     <label className="block text-xs font-semibold text-base-900 mb-1">
-                      Contact Phone (Indian or International)
+                      Contact Phone
                     </label>
-                    <div className="relative">
-                      <Phone className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" />
-                      <input
-                        type="tel"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        placeholder="e.g. 9876543210 or +14155552671"
-                        className="w-full pl-9 pr-3 py-2 text-xs border border-base-200 rounded-lg bg-white font-mono focus:outline-none focus:ring-2 focus:ring-primary"
-                      />
-                    </div>
-                    <span className="text-[10px] text-gray-400 mt-0.5 block">10-digit Indian mobile or International format with country code (e.g. +1...)</span>
+                    {isEditing ? (
+                      <div className="relative">
+                        <Phone className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" />
+                        <input
+                          type="tel"
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          placeholder="e.g. +91 9876543210 or +1 443 456 7890"
+                          className="w-full pl-9 pr-3 py-2 text-xs border border-base-200 rounded-lg bg-white font-mono focus:outline-none focus:ring-2 focus:ring-primary"
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-full px-3.5 py-2.5 text-xs font-medium font-mono text-gray-800 bg-gray-50 rounded-lg border border-gray-200 truncate">
+                        {phone || <span className="text-gray-400 font-mono">e.g. +91 9876543210 or +1 443 456 7890</span>}
+                      </div>
+                    )}
                   </div>
 
-
-
                   {/* Account Status Switch */}
-                  <div className="sm:col-span-2 p-3 bg-[#ffffff] border border-base-200 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-                    <div>
-                      <span className="text-xs font-semibold text-base-900 block">Account Status</span>
-                      <span className="text-[11px] text-base-700 block">
-                        {status === "ACTIVE"
-                          ? "Active partner receiving auto-commission credits."
-                          : "Temporarily disabled from new commission credits."}
-                      </span>
-                    </div>
-                    <div className="flex items-center space-x-3 shrink-0">
+                  <div className="sm:col-span-2 p-4 rounded-xl border border-base-200 bg-[#ffffff] space-y-3">
+                    <span className="text-xs font-bold text-base-900 uppercase tracking-wider block">
+                      Account Controls & Permissions
+                    </span>
+                    <div className="flex items-center justify-between sm:justify-start sm:space-x-4">
+                      <div>
+                        <span className="text-xs font-bold text-base-900 block">Account Status</span>
+                        <div className="flex items-center space-x-1.5 mt-0.5">
+                          <span
+                            className={`w-2 h-2 rounded-full ${
+                              status === "ACTIVE" ? "bg-green-500 animate-pulse" : "bg-red-500"
+                            }`}
+                          />
+                          <span
+                            className={`text-[11px] font-bold uppercase tracking-wider ${
+                              status === "ACTIVE" ? "text-green-700" : "text-red-600"
+                            }`}
+                          >
+                            {status}
+                          </span>
+                        </div>
+                      </div>
                       <button
                         type="button"
                         role="switch"
+                        disabled={!isEditing}
                         aria-checked={status === "ACTIVE"}
-                        onClick={() => setStatus(status === "ACTIVE" ? "INACTIVE" : "ACTIVE")}
-                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary ${
+                        onClick={() => isEditing && setStatus(status === "ACTIVE" ? "INACTIVE" : "ACTIVE")}
+                        className={`relative inline-flex h-6 w-11 shrink-0 ${
+                          isEditing ? "cursor-pointer" : "cursor-not-allowed opacity-80"
+                        } rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary ${
                           status === "ACTIVE" ? "bg-primary" : "bg-gray-300"
                         }`}
                       >
@@ -619,62 +667,46 @@ export default function AgentDetailPage() {
                           }`}
                         />
                       </button>
-                      <div className="flex items-center space-x-1.5">
-                        <span
-                          className={`w-2 h-2 rounded-full ${
-                            status === "ACTIVE" ? "bg-green-500 animate-pulse" : "bg-gray-400"
-                          }`}
-                        />
-                        <span
-                          className={`text-xs font-bold uppercase tracking-wider ${
-                            status === "ACTIVE" ? "text-green-700" : "text-slate-500"
-                          }`}
-                        >
-                          {status}
-                        </span>
-                      </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex flex-col sm:flex-row items-center justify-end gap-2 pt-4 border-t border-base-200">
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="w-full sm:w-auto btn-primary py-2 px-6 text-xs font-bold flex items-center justify-center space-x-1.5 shadow-sm rounded-lg"
-                  >
-                    {saving ? (
-                      <>
-                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                        <span>Saving Changes...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Save className="w-3.5 h-3.5" />
-                        <span>Save Settings</span>
-                      </>
-                    )}
-                  </button>
-                </div>
+                {isEditing ? (
+                  <div className="flex items-center space-x-3 pt-4 border-t border-base-200">
+                    <button
+                      type="submit"
+                      disabled={saving}
+                      className="btn-primary py-2 px-5 text-xs font-bold flex items-center space-x-1.5 shadow"
+                    >
+                      {saving ? (
+                        <>
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                          <span>Saving Changes...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Save className="w-3.5 h-3.5" />
+                          <span>Save Agent Info & Status</span>
+                        </>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCancelEdit}
+                      className="px-4 py-2 text-xs bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between text-[12px] text-slate-500 pt-2 border-t border-base-200">
+                    <div className="flex items-center space-x-1.5">
+                      <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                      <span>Registered: {agent?.createdAt ? new Date(agent.createdAt).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : "--"}</span>
+                    </div>
+                  </div>
+                )}
               </form>
-            </div>
-
-            <div className="card-theme p-4 sm:p-5 shadow-sm border border-base-200 rounded-xl">
-              <div className="flex items-center space-x-2 pb-2.5 border-b border-base-200 mb-3">
-                <ShieldCheck className="w-4 h-4 text-primary" />
-                <h4 className="font-bold text-xs text-base-900">Settlement Safeguards</h4>
-              </div>
-              <div className="space-y-2.5 text-xs text-base-700">
-                <p>
-                  • Whenever a customer completes a deposit through a QR code owned by any of this agent's linked QR providers, the agent fee is calculated and locked atomically.
-                </p>
-                <p>
-                  • Commissions are automatically credited to the agent's commission wallet upon successful dual-UTR verification.
-                </p>
-                <p>
-                  • Agent fees (Payin & Payout) are configured dynamically directly on each QR Provider account when assigning this agent.
-                </p>
-              </div>
             </div>
           </div>
         )}
@@ -697,7 +729,7 @@ export default function AgentDetailPage() {
               <table className="w-full text-left text-xs min-w-[700px]">
                 <thead className="bg-base-100/60 text-base-900 font-semibold border-b border-base-200">
                   <tr>
-                    <th className="p-3 w-64 max-w-[260px] whitespace-nowrap">Provider Name & Email</th>
+                    <th className="p-3 w-64 max-w-[260px] whitespace-nowrap">Provider Name</th>
                     <th className="p-3">Status</th>
                     <th className="p-3 text-right whitespace-nowrap">Liquidity Balance</th>
                     <th className="p-3 text-right whitespace-nowrap">Locked Exposure</th>
@@ -725,8 +757,8 @@ export default function AgentDetailPage() {
                               <div className="font-bold text-base-900 truncate" title={p.name}>
                                 {p.name}
                               </div>
-                              <div className="text-[11px] text-slate-500 font-mono truncate" title={p.email}>
-                                {p.email}
+                              <div className="text-[11px] text-slate-400 font-mono">
+                                ID: {p.id}
                               </div>
                             </div>
                           </div>
@@ -764,9 +796,10 @@ export default function AgentDetailPage() {
                         <td className="p-3 text-right whitespace-nowrap">
                           <Link
                             href={`/admin/qr-providers/${p.id}`}
-                            className="px-2.5 py-1 text-xs border border-base-200 rounded-lg bg-white hover:bg-gray-50 text-gray-700 font-semibold inline-flex items-center space-x-1 shadow-2xs"
+                            className="px-3 py-1.5 text-xs font-semibold text-primary bg-primary/10 hover:bg-primary hover:text-white rounded-lg transition-all inline-flex items-center space-x-1.5 shadow-2xs"
                           >
                             <span>View Details</span>
+                            <ExternalLink className="w-3.5 h-3.5" />
                           </Link>
                         </td>
                       </tr>
@@ -794,8 +827,8 @@ export default function AgentDetailPage() {
                           <p className="font-bold text-xs text-base-900 truncate" title={p.name}>
                             {p.name}
                           </p>
-                          <p className="text-[11px] text-slate-500 font-mono truncate" title={p.email}>
-                            {p.email}
+                          <p className="text-[11px] text-slate-400 font-mono">
+                            ID: {p.id}
                           </p>
                         </div>
                       </div>
@@ -845,9 +878,10 @@ export default function AgentDetailPage() {
 
                       <Link
                         href={`/admin/qr-providers/${p.id}`}
-                        className="px-2.5 py-1 text-xs border border-base-200 rounded-lg bg-white hover:bg-gray-50 text-gray-700 font-semibold inline-flex items-center space-x-1 shadow-2xs"
+                        className="px-3 py-1.5 text-xs font-semibold text-primary bg-primary/10 hover:bg-primary hover:text-white rounded-lg transition-all inline-flex items-center space-x-1.5 shadow-2xs"
                       >
                         <span>View Details</span>
+                        <ExternalLink className="w-3.5 h-3.5" />
                       </Link>
                     </div>
                   </div>
@@ -860,26 +894,6 @@ export default function AgentDetailPage() {
         {/* TAB 3: COMMISSION LEDGER */}
         {activeTab === "ledger" && (
           <div className="card-theme overflow-hidden shadow-sm border border-base-200 rounded-xl">
-            <div className="p-4 border-b border-base-200 flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h3 className="font-bold text-sm sm:text-base text-base-900">Commission Ledger & Audit Trail</h3>
-                <p className="text-xs text-base-700">All credit and debit entries on {agent.name}'s wallet</p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs font-semibold px-2.5 py-1 bg-white border border-slate-200 rounded-md text-slate-700 shadow-xs">
-                  Current Balance: <b className="text-primary font-mono font-bold">₹{(agent.wallet?.balance || agent.balance || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b>
-                </span>
-                <button
-                  type="button"
-                  onClick={fetchAgent}
-                  className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-md transition"
-                  title="Refresh Ledger"
-                >
-                  <RefreshCw className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead className="bg-base-100/60 text-base-900 font-semibold border-b border-base-200">
@@ -995,29 +1009,37 @@ export default function AgentDetailPage() {
         {/* MODAL: ADD BALANCE / DEPOSIT */}
         {showAddBalanceModal && (
           <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-white rounded-xl shadow-xl max-w-md w-full border border-base-200 overflow-hidden">
-              <div className="p-4 bg-primary text-white flex items-center justify-between">
+            <div className="bg-white rounded-xl shadow-xl max-w-md w-full overflow-hidden">
+              <div className="p-4 bg-[#0f172a] text-white flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <PlusCircle className="w-4 h-4 text-emerald-100" />
-                  <div>
-                    <h3 className="font-bold text-sm">+ Deposit (Add Balance)</h3>
-                    <p className="text-[11px] text-emerald-100">Credit funds into Agent's wallet & ledger</p>
-                  </div>
+                  <PlusCircle className="w-4 h-4 text-primary" />
+                  <h3 className="font-semibold text-sm">Add Funds to Agent Wallet</h3>
                 </div>
                 <button
-                  onClick={() => setShowAddBalanceModal(false)}
+                  onClick={() => {
+                    setShowAddBalanceModal(false);
+                    setAddAmount("");
+                    setAddDescription("");
+                    setAddBalanceError("");
+                    setAddBalanceSuccess("");
+                  }}
                   className="text-white hover:text-gray-200 text-sm font-bold"
                 >
-                  ✕
+                  <X className="size-5" />
                 </button>
               </div>
 
               <form onSubmit={handleAddBalance} className="p-5 space-y-4">
-                <div className="p-3 bg-base-100/40 border border-base-200 rounded-lg flex items-center justify-between text-xs">
-                  <span className="text-base-700 font-semibold">Current Commission Balance:</span>
-                  <span className="font-extrabold text-sm text-base-900">
-                    ₹{(agent?.wallet?.balance || agent?.balance || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
+                <div>
+                  <p className="text-xs text-slate-500">
+                    Manually credit funds directly into <b>{agent?.name}</b>'s settled wallet.
+                  </p>
+                  <div className="mt-2 p-2.5 bg-slate-100 rounded-lg border border-slate-200 flex items-center justify-between text-xs">
+                    <span className="text-slate-500">Current Settled Balance:</span>
+                    <span className="font-semibold text-base-900">
+                      ₹{(agent?.wallet?.balance || agent?.balance || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
                 </div>
 
                 {addBalanceError && (
@@ -1035,36 +1057,51 @@ export default function AgentDetailPage() {
                 )}
 
                 <div>
-                  <label className="block text-xs font-semibold text-base-900 mb-1">
-                    Amount to Deposit (₹) *
+                  <label className="block text-[12px] font-semibold mb-1.5">
+                    Deposit Amount (₹)*
                   </label>
                   <div className="relative">
-                    <span className="absolute left-3 top-2.5 text-xs text-slate-500 font-bold">₹</span>
+                    <span className="absolute left-3 top-2.5 text-slate-500 font-bold text-sm">₹</span>
                     <input
                       type="number"
-                      step="any"
+                      step="0.01"
+                      min="1"
                       required
-                      min="0.01"
+                      autoFocus
                       disabled={addingBalance || !!addBalanceSuccess}
                       value={addAmount}
                       onChange={(e) => setAddAmount(e.target.value)}
                       placeholder="e.g. 5000"
-                      className="w-full pl-7 pr-3 py-2 text-xs border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      className="w-full pl-7 pr-3 py-2 text-sm font-bold border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
                     />
+                  </div>
+                  {/* Quick Chips */}
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {[500, 1000, 5000, 10000, 25000].map((amt) => (
+                      <button
+                        key={amt}
+                        type="button"
+                        disabled={addingBalance || !!addBalanceSuccess}
+                        onClick={() => setAddAmount(amt.toString())}
+                        className="px-2 py-0.5 text-[11px] font-semibold bg-base-100/40 hover:bg-slate-100 text-slate-900 rounded border border-slate-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        +₹{amt.toLocaleString("en-IN")}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-base-900 mb-1">
-                    Description / Note (Optional)
+                  <label className="block text-[12px] font-semibold text-base-900 mb-1.5">
+                    Reference Note / Description
                   </label>
                   <input
                     type="text"
                     disabled={addingBalance || !!addBalanceSuccess}
                     value={addDescription}
                     onChange={(e) => setAddDescription(e.target.value)}
-                    placeholder="e.g. Agent commission top-up / manual credit"
-                    className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    placeholder="e.g. Manual top-up, Bank transfer settlement"
+                    className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
                   />
                 </div>
 
@@ -1072,7 +1109,13 @@ export default function AgentDetailPage() {
                   <button
                     type="button"
                     disabled={addingBalance || !!addBalanceSuccess}
-                    onClick={() => setShowAddBalanceModal(false)}
+                    onClick={() => {
+                      setShowAddBalanceModal(false);
+                      setAddAmount("");
+                      setAddDescription("");
+                      setAddBalanceError("");
+                      setAddBalanceSuccess("");
+                    }}
                     className="flex-1 py-2 text-xs border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Cancel
@@ -1080,7 +1123,7 @@ export default function AgentDetailPage() {
                   <button
                     type="submit"
                     disabled={addingBalance || !!addBalanceSuccess || !addAmount || parseFloat(addAmount) <= 0}
-                    className="flex-1 btn-primary py-2 text-xs font-bold shadow flex items-center justify-center space-x-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="flex-1 btn-primary py-2 text-xs font-bold shadow flex items-center justify-center space-x-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {addingBalance ? (
                       <>
@@ -1088,9 +1131,12 @@ export default function AgentDetailPage() {
                         <span>Crediting...</span>
                       </>
                     ) : addBalanceSuccess ? (
-                      <span className="text-emerald-200 font-bold">✓ Credited Successfully</span>
+                      <>
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>Credited Successfully</span>
+                      </>
                     ) : (
-                      <span>Deposit ₹{parseFloat(addAmount) > 0 ? parseFloat(addAmount).toLocaleString("en-IN") : "0"}</span>
+                      <span>Credit ₹{parseFloat(addAmount) > 0 ? parseFloat(addAmount).toLocaleString("en-IN") : "0"}</span>
                     )}
                   </button>
                 </div>
@@ -1102,27 +1148,38 @@ export default function AgentDetailPage() {
         {/* MODAL: CLEAR BALANCE / WITHDRAWAL */}
         {showClearModal && (
           <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-white rounded-xl shadow-xl max-w-md w-full border border-base-200 overflow-hidden">
+            <div className="bg-white rounded-xl shadow-xl max-w-md w-full overflow-hidden">
               <div className="p-4 bg-[#0f172a] text-white flex items-center justify-between">
-                <div>
-                  <h3 className="font-bold text-sm text-white">- Withdrawal (Payout)</h3>
-                  <p className="text-[11px] text-[#f0f7fc]/80">Disburse / deduct funds from Agent's wallet & ledger</p>
+                <div className="flex items-center space-x-2">
+                  <MinusCircle className="w-4 h-4 text-rose-400" />
+                  <h3 className="font-semibold text-sm">Withdraw Funds from Agent Wallet</h3>
                 </div>
                 <button
                   disabled={clearingBalance || !!clearSuccess}
-                  onClick={() => setShowClearModal(false)}
-                  className="text-white hover:text-gray-300 text-sm font-bold disabled:opacity-50"
+                  onClick={() => {
+                    setShowClearModal(false);
+                    setClearAmount("");
+                    setClearDescription("");
+                    setClearError("");
+                    setClearSuccess("");
+                  }}
+                  className="text-white hover:text-gray-200 text-sm font-bold disabled:opacity-50"
                 >
-                  ✕
+                  <X className="size-5" />
                 </button>
               </div>
 
               <form onSubmit={handleClearBalance} className="p-5 space-y-4">
-                <div className="p-3 bg-base-100/40 border border-base-200 rounded-lg flex items-center justify-between text-xs">
-                  <span className="text-base-700 font-semibold">Current Commission Balance:</span>
-                  <span className="font-extrabold text-sm text-base-900">
-                    ₹{(agent?.wallet?.balance || agent?.balance || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
+                <div>
+                  <p className="text-xs text-slate-500">
+                    Manually debit funds directly from <b>{agent?.name}</b>'s settled wallet.
+                  </p>
+                  <div className="mt-2 p-2.5 bg-slate-100 rounded-lg border border-slate-200 flex items-center justify-between text-xs">
+                    <span className="text-slate-500">Current Settled Balance:</span>
+                    <span className="font-semibold text-base-900">
+                      ₹{(agent?.wallet?.balance || agent?.balance || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
                 </div>
 
                 {clearError && (
@@ -1140,49 +1197,63 @@ export default function AgentDetailPage() {
                 )}
 
                 <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="block text-xs font-semibold text-base-900">
-                      Amount to Withdraw (₹) *
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-[12px] font-semibold text-base-900">
+                      Withdrawal Amount (₹)*
                     </label>
                     {(agent?.wallet?.balance || agent?.balance || 0) > 0 && (
                       <button
                         type="button"
                         disabled={clearingBalance || !!clearSuccess}
                         onClick={() => setClearAmount((agent?.wallet?.balance || agent?.balance || 0).toString())}
-                        className="text-[11px] font-bold text-primary hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="text-[12px] font-semibold text-primary hover:text-primary-400 underline disabled:opacity-50"
                       >
-                        Exact Balance (₹{(agent?.wallet?.balance || agent?.balance || 0).toFixed(2)})
+                        Clear Exact Balance (₹{(agent?.wallet?.balance || agent?.balance || 0).toFixed(2)})
                       </button>
                     )}
                   </div>
                   <div className="relative">
-                    <span className="absolute left-3 top-2.5 text-xs text-slate-500 font-bold">₹</span>
+                    <span className="absolute left-3 top-2.5 text-slate-500 font-bold text-sm">₹</span>
                     <input
                       type="number"
-                      step="any"
+                      step="0.01"
+                      min="1"
                       required
-                      min="0.01"
-                      max={Math.max(0, Number(agent?.wallet?.balance ?? agent?.balance ?? 0)).toString()}
                       disabled={clearingBalance || !!clearSuccess}
+                      autoFocus
                       value={clearAmount}
                       onChange={(e) => setClearAmount(e.target.value)}
                       placeholder="e.g. 5000"
-                      className="w-full pl-7 pr-3 py-2 text-xs border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      className="w-full pl-7 pr-3 py-2 text-sm font-bold border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
                     />
+                  </div>
+                  {/* Quick Chips */}
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {[500, 1000, 5000, 10000, 25000].map((amt) => (
+                      <button
+                        key={amt}
+                        type="button"
+                        disabled={clearingBalance || !!clearSuccess}
+                        onClick={() => setClearAmount(amt.toString())}
+                        className="px-2 py-0.5 text-[11px] font-semibold bg-base-100/40 hover:bg-slate-100 text-slate-900 rounded border border-slate-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        ₹{amt.toLocaleString("en-IN")}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-base-900 mb-1">
-                    Description / Note (Optional)
+                  <label className="block text-[12px] font-semibold text-base-900 mb-1.5">
+                    Reference Note / Description
                   </label>
                   <input
                     type="text"
                     disabled={clearingBalance || !!clearSuccess}
                     value={clearDescription}
                     onChange={(e) => setClearDescription(e.target.value)}
-                    placeholder="e.g. Bank payout disbursement ref #IMPS1234"
-                    className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    placeholder="e.g. Bank payout issued, settlement withdrawal"
+                    className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
                   />
                 </div>
 
@@ -1190,7 +1261,13 @@ export default function AgentDetailPage() {
                   <button
                     type="button"
                     disabled={clearingBalance || !!clearSuccess}
-                    onClick={() => setShowClearModal(false)}
+                    onClick={() => {
+                      setShowClearModal(false);
+                      setClearAmount("");
+                      setClearDescription("");
+                      setClearError("");
+                      setClearSuccess("");
+                    }}
                     className="flex-1 py-2 text-xs border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Cancel
@@ -1198,7 +1275,7 @@ export default function AgentDetailPage() {
                   <button
                     type="submit"
                     disabled={clearingBalance || !!clearSuccess || !clearAmount || parseFloat(clearAmount) <= 0}
-                    className="flex-1 py-2 text-xs font-bold bg-[#0f172a] text-white rounded-lg hover:bg-slate-800 shadow flex items-center justify-center space-x-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="flex-1 btn-primary py-2 text-xs font-bold shadow flex items-center justify-center space-x-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {clearingBalance ? (
                       <>
@@ -1206,9 +1283,12 @@ export default function AgentDetailPage() {
                         <span>Debiting...</span>
                       </>
                     ) : clearSuccess ? (
-                      <span className="text-emerald-300 font-bold">✓ Withdrawn Successfully</span>
+                      <>
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>Debited Successfully</span>
+                      </>
                     ) : (
-                      <span>Withdraw ₹{parseFloat(clearAmount) > 0 ? parseFloat(clearAmount).toLocaleString("en-IN") : "0"}</span>
+                      <span>Debit ₹{parseFloat(clearAmount) > 0 ? parseFloat(clearAmount).toLocaleString("en-IN") : "0"}</span>
                     )}
                   </button>
                 </div>

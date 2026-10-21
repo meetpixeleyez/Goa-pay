@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import PortalLayout from "@/components/layout/PortalLayout";
 import {
@@ -25,17 +25,32 @@ import {
   CheckCircle2,
   User,
   CreditCard,
+  X,
+  Unlock,
+  Edit3,
 } from "lucide-react";
 import { isValidPhone, normalizePhone, validateUsernameOrName } from "@/lib/validation";
 
 export default function AdminOtherUserDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const userId = params.id as string;
+  const tabParam = searchParams.get("tab");
+
+  const [activeTab, setActiveTab] = useState<"ledger" | "info">(
+    tabParam === "info" ? "info" : "ledger"
+  );
 
   const [otherUser, setOtherUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (tabParam === "info" || tabParam === "ledger") {
+      setActiveTab(tabParam);
+    }
+  }, [tabParam]);
 
   // Edit form state
   const [name, setName] = useState("");
@@ -44,6 +59,7 @@ export default function AdminOtherUserDetailPage() {
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState("");
   const [saveError, setSaveError] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
 
   // Reset Password Modal
   const [showResetModal, setShowResetModal] = useState(false);
@@ -213,6 +229,17 @@ export default function AdminOtherUserDetailPage() {
     }
   }, [userId]);
 
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setSaveError("");
+    setSaveSuccess("");
+    if (otherUser) {
+      setName(otherUser.name || "");
+      setPhone(otherUser.phone || "");
+      setStatus(otherUser.status || "ACTIVE");
+    }
+  };
+
   const handleSaveInfo = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -248,6 +275,7 @@ export default function AdminOtherUserDetailPage() {
       if (!res.ok) throw new Error(data.error || "Failed to update account");
 
       setSaveSuccess("Account settings updated successfully!");
+      setIsEditing(false);
       fetchUser();
       setTimeout(() => setSaveSuccess(""), 3500);
     } catch (err: any) {
@@ -352,105 +380,90 @@ export default function AdminOtherUserDetailPage() {
       portal="admin"
       title={
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-teal-50 border border-teal-200 flex items-center justify-center font-bold text-teal-700 text-base shadow-xs shrink-0">
+          <div
+            className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-base shadow-xs shrink-0 border transition-colors ${
+              otherUser.status === "ACTIVE"
+                ? "bg-emerald-50 text-emerald-600 border-emerald-300 ring-2 ring-emerald-400/20"
+                : "bg-rose-50 text-rose-600 border-rose-300 ring-2 ring-rose-400/20"
+            }`}
+          >
             {otherUser.name?.charAt(0).toUpperCase() || "O"}
           </div>
           <div>
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-2">
               <h1 className="text-lg sm:text-xl font-bold text-slate-900 leading-tight">
                 {otherUser.name}
               </h1>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-50 text-teal-700 border border-teal-200">
-                Other
-              </span>
-              <span
-                className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                  otherUser.status === "ACTIVE"
-                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                    : "bg-slate-100 text-slate-600 border border-slate-200"
-                }`}
-              >
-                {otherUser.status}
-              </span>
-              <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-[10px] font-mono">
-                ID: {otherUser.id}
-              </span>
             </div>
-            {otherUser.phone && (
-              <div className="flex items-center gap-2 sm:gap-3 text-xs text-slate-500 mt-0.5 flex-wrap">
-                <span className="flex items-center gap-1 font-mono">
-                  <Phone className="size-3 text-slate-400" />
-                  <span>{otherUser.phone}</span>
-                </span>
-              </div>
-            )}
+            <div className="text-xs text-slate-500 mt-0.5 flex items-center gap-2 font-mono">
+              <span>ID: {otherUser.id}</span>
+              {otherUser.phone && (
+                <>
+                  <span className="text-slate-300">•</span>
+                  <span className="flex items-center gap-1">
+                    <Phone className="size-3 text-slate-400" />
+                    <span>{otherUser.phone}</span>
+                  </span>
+                </>
+              )}
+            </div>
           </div>
         </div>
       }
       actions={
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={fetchUser}
-            disabled={loading}
-            className="btn-secondary text-xs py-2 px-3 inline-flex items-center space-x-1.5"
-            title="Refresh user info"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
-            <span className="hidden sm:inline">Refresh</span>
-          </button>
-          <Link
-            href="/admin/users"
-            className="btn-secondary text-xs py-2 px-3 inline-flex items-center space-x-1.5"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Back to Users</span>
-          </Link>
-        </div>
+        <Link
+          href="/admin/users"
+          className="btn-secondary text-xs py-2 px-3 inline-flex items-center space-x-1.5"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          <span>Back to Users</span>
+        </Link>
       }
     >
-      <div className="max-w-5xl mx-auto space-y-6">
+      <div className="space-y-6">
 
-        {/* Toolbar: Deposit | Withdrawal */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200 shadow-xs">
-          <div>
-            <span className="text-xs font-bold text-slate-800 uppercase tracking-wider block">
-              Balance Overview
-            </span>
-            <span className="text-[11px] text-slate-500">
-              Manage operational wallet balance settlement
-            </span>
-          </div>
+        {/* Top Summary Card (Net Wallet Balance & Settlement Actions) */}
+        <div className="mb-4">
+          <div className="card-theme p-4 sm:p-5 border-l-4 border-l-primary flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
+                Net Wallet Balance
+              </span>
+              <span className="text-2xl sm:text-3xl font-extrabold mt-1 block text-base-900">
+                ₹{(otherUser.wallet?.balance || otherUser.balance || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+            </div>
 
-          <div className="flex items-center flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                setShowAddBalanceModal(true);
-                setAddAmount("");
-                setAddDescription("");
-                setAddBalanceError("");
-                setAddBalanceSuccess("");
-              }}
-              className="px-3.5 py-2 rounded-lg text-xs font-bold bg-primary text-white hover:bg-primary-600 shadow-xs transition flex items-center space-x-1.5 cursor-pointer"
-            >
-              <PlusCircle className="w-3.5 h-3.5" />
-              <span>+ Deposit</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setShowClearModal(true);
-                setClearAmount("");
-                setClearDescription("");
-                setClearError("");
-                setClearSuccess("");
-              }}
-              className="px-3.5 py-2 rounded-lg text-xs font-bold bg-white border border-rose-200 text-rose-700 hover:bg-rose-50 shadow-xs transition flex items-center space-x-1.5 cursor-pointer"
-            >
-              <MinusCircle className="w-3.5 h-3.5 text-rose-600" />
-              <span>- Withdrawal</span>
-            </button>
+            <div className="flex items-center flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAddBalanceModal(true);
+                  setAddAmount("");
+                  setAddDescription("");
+                  setAddBalanceError("");
+                  setAddBalanceSuccess("");
+                }}
+                className="btn-primary text-xs py-2 px-4 flex items-center justify-center space-x-1.5 shadow-xs cursor-pointer"
+              >
+                <PlusCircle className="w-3.5 h-3.5 shrink-0" />
+                <span>+ Deposit</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowClearModal(true);
+                  setClearAmount("");
+                  setClearDescription("");
+                  setClearError("");
+                  setClearSuccess("");
+                }}
+                className="px-4 py-2 text-xs bg-white border border-rose-200 text-rose-700 hover:bg-rose-50 rounded-lg font-semibold flex items-center justify-center shadow-xs transition cursor-pointer"
+              >
+                <MinusCircle className="w-3.5 h-3.5 shrink-0 text-rose-600 mr-1" />
+                <span>- Withdrawal</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -490,11 +503,122 @@ export default function AdminOtherUserDetailPage() {
           </div>
         </div>
 
-        {/* Edit Information Form */}
-        <div className="card-theme p-6 shadow-sm border border-slate-200">
-          <div className="flex items-center space-x-2 pb-3 border-b border-slate-200 mb-5">
-            <User className="w-4 h-4 text-primary" />
-            <h3 className="font-bold text-sm text-base-900">Account Details & Status</h3>
+        {/* Tabs Navigation (1st Transactions, 2nd Account Info) */}
+        <div className="flex border-b border-slate-200 overflow-x-auto">
+          <button
+            onClick={() => setActiveTab("ledger")}
+            className={`py-2.5 px-4 text-xs font-bold border-b-2 transition flex items-center space-x-1.5 shrink-0 ${
+              activeTab === "ledger"
+                ? "border-primary text-base-900"
+                : "border-transparent text-slate-500 hover:text-gray-700"
+            }`}
+          >
+            <Wallet className="w-3.5 h-3.5" />
+            <span>Transactions</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("info")}
+            className={`py-2.5 px-4 text-xs font-bold border-b-2 transition flex items-center space-x-1.5 shrink-0 ${
+              activeTab === "info"
+                ? "border-primary text-base-900"
+                : "border-transparent text-slate-500 hover:text-gray-700"
+            }`}
+          >
+            <User className="w-3.5 h-3.5" />
+            <span>Account Info</span>
+          </button>
+        </div>
+
+        {/* TAB 1: TRANSACTIONS LEDGER */}
+        {activeTab === "ledger" && (
+          <div className="card-theme overflow-hidden shadow-sm border border-base-200 rounded-xl">
+            <div className="p-4 border-b border-base-200 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 className="font-bold text-lg sm:text-base text-base-900">Transactions</h3>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-base-100/60 text-base-900 font-semibold border-b border-base-200">
+                  <tr>
+                    <th className="p-3">Date & Time</th>
+                    <th className="p-3">Type</th>
+                    <th className="p-3">Category</th>
+                    <th className="p-3">Description</th>
+                    <th className="p-3 text-right">Amount</th>
+                    <th className="p-3 text-right">Balance After</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#e0f2fe]">
+                  {(!otherUser.wallet?.entries || otherUser.wallet.entries.length === 0) ? (
+                    <tr>
+                      <td colSpan={6} className="p-8 text-center text-slate-500">
+                        No transactions recorded in this account's wallet yet.
+                      </td>
+                    </tr>
+                  ) : (
+                    otherUser.wallet.entries.map((entry: any) => {
+                      const typeBadge = getEntryTypeBadge(entry);
+                      return (
+                        <tr key={entry.id} className="hover:bg-[#ffffff] transition">
+                          <td className="p-3 font-mono text-[11px] text-gray-600">
+                            {new Date(entry.createdAt).toLocaleString()}
+                          </td>
+                          <td className="p-3">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${typeBadge.className}`}>
+                              {typeBadge.label}
+                            </span>
+                          </td>
+                          <td className="p-3 font-mono text-[11px] text-gray-600">
+                            {typeBadge.displayCategory}
+                          </td>
+                          <td className="p-3 font-medium text-base-900">{entry.description}</td>
+                          <td className={`p-3 text-right font-extrabold ${typeBadge.amountColor}`}>
+                            {typeBadge.amountPrefix}₹{entry.amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                          </td>
+                          <td className="p-3 text-right font-bold text-base-900">
+                            ₹{entry.balanceAfter.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 2: ACCOUNT INFO */}
+        {activeTab === "info" && (
+          <div className="card-theme p-4 sm:p-5 shadow-sm border border-slate-200">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-200 mb-4">
+            <div className="flex items-center space-x-2">
+              <User className="w-5 h-5 text-primary" />
+              <div>
+                <h3 className="font-bold text-[16px] text-base-900">Account Information & Contact</h3>
+                <p className="text-xs text-slate-500">User profile details and status settings</p>
+              </div>
+            </div>
+            <div>
+              {!isEditing ? (
+                <button
+                  type="button"
+                  onClick={() => setIsEditing(true)}
+                  className="px-3 py-1.5 text-xs font-semibold text-primary border border-primary/30 rounded-lg hover:bg-primary/5 transition flex items-center space-x-1.5 shadow-xs whitespace-nowrap"
+                >
+                  <Edit3 className="w-3.5 h-3.5" />
+                  <span>Edit</span>
+                </button>
+              ) : (
+                <span className="px-2.5 py-1 text-xs bg-sky-100 border border-sky-200 text-sky-500 rounded-lg font-semibold flex items-center space-x-1 whitespace-nowrap">
+                  <Unlock className="w-3 h-3" />
+                  <span>Editing</span>
+                </span>
+              )}
+            </div>
           </div>
 
           {saveSuccess && (
@@ -511,146 +635,151 @@ export default function AdminOtherUserDetailPage() {
             </div>
           )}
 
+          {isEditing && (
+            <div className="p-3 mb-4 bg-blue-100 border border-blue-200 text-blue-500 text-xs rounded-lg flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Unlock className="size-3 shrink-0" />
+                <span>
+                  Editing mode active. Update fields below, then click <b>Save Account Info & Status</b>.
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={handleCancelEdit}
+                className="text-blue-600 hover:text-blue-700 font-semibold underline ml-2 text-xs"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+
           <form onSubmit={handleSaveInfo} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Full Name / Username *
                 </label>
-                <input
-                  type="text"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary font-medium"
-                />
+                {isEditing ? (
+                  <input
+                    type="text"
+                    required
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary font-medium"
+                  />
+                ) : (
+                  <div className="w-full px-3.5 py-2.5 text-xs font-bold text-base-900 bg-gray-50 rounded-lg border border-gray-200 truncate">
+                    {name || "--"}
+                  </div>
+                )}
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Contact Phone (Indian or International)
+                  Contact Phone
                 </label>
-                <div className="relative">
-                  <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                  <input
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="e.g. 9876543210 or +1 202 555 0199"
-                    className="w-full pl-9 pr-3 py-2 text-xs border border-base-200 rounded-lg bg-white font-mono focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
+                {isEditing ? (
+                  <div className="relative">
+                    <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                    <input
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="e.g. +91 9876543210 or +1 443 456 7890"
+                      className="w-full pl-9 pr-3 py-2 text-xs border border-base-200 rounded-lg bg-white font-mono focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-full px-3.5 py-2.5 text-xs font-medium font-mono text-gray-800 bg-gray-50 rounded-lg border border-gray-200 truncate">
+                    {phone || <span className="text-gray-400 font-mono">e.g. +91 9876543210 or +1 443 456 7890</span>}
+                  </div>
+                )}
+              </div>
+
+              {/* Account Status */}
+              <div className="md:col-span-2 p-4 rounded-xl border border-base-200 bg-[#ffffff] space-y-3">
+                <span className="text-xs font-bold text-base-900 uppercase tracking-wider block">
+                  Account Controls & Permissions
+                </span>
+                <div className="flex items-center justify-between sm:justify-start sm:space-x-4">
+                  <div>
+                    <span className="text-xs font-bold text-base-900 block">Account Status</span>
+                    <div className="flex items-center space-x-1.5 mt-0.5">
+                      <span
+                        className={`w-2 h-2 rounded-full ${
+                          status === "ACTIVE" ? "bg-green-500 animate-pulse" : "bg-red-500"
+                        }`}
+                      />
+                      <span
+                        className={`text-[11px] font-bold uppercase tracking-wider ${
+                          status === "ACTIVE" ? "text-green-700" : "text-red-600"
+                        }`}
+                      >
+                        {status}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    disabled={!isEditing}
+                    aria-checked={status === "ACTIVE"}
+                    onClick={() => isEditing && setStatus(status === "ACTIVE" ? "INACTIVE" : "ACTIVE")}
+                    className={`relative inline-flex h-6 w-11 shrink-0 ${
+                      isEditing ? "cursor-pointer" : "cursor-not-allowed opacity-80"
+                    } rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary ${
+                      status === "ACTIVE" ? "bg-primary" : "bg-gray-300"
+                    }`}
+                  >
+                    <span
+                      aria-hidden="true"
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                        status === "ACTIVE" ? "translate-x-5" : "translate-x-0"
+                      }`}
+                    />
+                  </button>
                 </div>
-                <span className="text-[10px] text-slate-400 mt-0.5 block">
-                  10-digit Indian mobile or International format with country code (e.g. +1...)
-                </span>
               </div>
             </div>
 
-            {/* Account Status */}
-            <div className="p-4 bg-slate-50/70 border border-slate-200 rounded-xl flex items-center justify-between">
-              <div>
-                <span className="text-xs font-bold text-base-900 block">Account Status</span>
-                <span className="text-[11px] text-slate-500 block">
-                  {status === "ACTIVE"
-                    ? "Account is active and authorized."
-                    : "Account is currently disabled."}
-                </span>
+            {isEditing ? (
+              <div className="flex items-center space-x-3 pt-4 border-t border-base-200">
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="btn-primary py-2 px-5 text-xs font-bold flex items-center space-x-1.5 shadow"
+                >
+                  {saving ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Saving Changes...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-3.5 h-3.5" />
+                      <span>Save Account Info & Status</span>
+                    </>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCancelEdit}
+                  className="px-4 py-2 text-xs bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
+                >
+                  Cancel
+                </button>
               </div>
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-                className="px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg font-semibold text-base-900 focus:outline-none focus:ring-2 focus:ring-primary"
-              >
-                <option value="ACTIVE">ACTIVE</option>
-                <option value="INACTIVE">INACTIVE</option>
-              </select>
-            </div>
-
-            <div className="pt-2 flex justify-end">
-              <button
-                type="submit"
-                disabled={saving}
-                className="btn-primary py-2 px-5 text-xs font-bold flex items-center space-x-1.5 shadow"
-              >
-                {saving ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                <span>{saving ? "Saving Changes..." : "Save Settings"}</span>
-              </button>
-            </div>
+            ) : (
+              <div className="flex items-center justify-between text-[12px] text-slate-500 pt-2 border-t border-base-200">
+                <div className="flex items-center space-x-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                  <span>Registered: {otherUser?.createdAt ? new Date(otherUser.createdAt).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : "--"}</span>
+                </div>
+              </div>
+            )}
           </form>
         </div>
-
-        {/* Transaction Ledger */}
-        <div className="card-theme overflow-hidden shadow-sm border border-base-200 rounded-xl">
-          <div className="p-4 border-b border-base-200 flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h3 className="font-bold text-sm sm:text-base text-base-900">Transaction Ledger & Audit Trail</h3>
-              <p className="text-xs text-base-700">All credit and debit entries on {otherUser.name}'s wallet</p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-semibold px-2.5 py-1 bg-white border border-slate-200 rounded-md text-slate-700 shadow-xs">
-                Total Bal: <b className="text-primary font-mono font-bold">₹{(otherUser.wallet?.balance || otherUser.balance || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b>
-              </span>
-              <button
-                type="button"
-                onClick={fetchUser}
-                className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-md transition"
-                title="Refresh Ledger"
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-base-100/60 text-base-900 font-semibold border-b border-base-200">
-                <tr>
-                  <th className="p-3">Date & Time</th>
-                  <th className="p-3">Type</th>
-                  <th className="p-3">Category</th>
-                  <th className="p-3">Description</th>
-                  <th className="p-3 text-right">Amount</th>
-                  <th className="p-3 text-right">Balance After</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#e0f2fe]">
-                {(!otherUser.wallet?.entries || otherUser.wallet.entries.length === 0) ? (
-                  <tr>
-                    <td colSpan={6} className="p-8 text-center text-slate-500">
-                      No transactions recorded in this account's wallet yet.
-                    </td>
-                  </tr>
-                ) : (
-                  otherUser.wallet.entries.map((entry: any) => {
-                    const typeBadge = getEntryTypeBadge(entry);
-                    return (
-                      <tr key={entry.id} className="hover:bg-[#ffffff] transition">
-                        <td className="p-3 font-mono text-[11px] text-gray-600">
-                          {new Date(entry.createdAt).toLocaleString()}
-                        </td>
-                        <td className="p-3">
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${typeBadge.className}`}>
-                            {typeBadge.label}
-                          </span>
-                        </td>
-                        <td className="p-3 font-mono text-[11px] text-gray-600">
-                          {typeBadge.displayCategory}
-                        </td>
-                        <td className="p-3 font-medium text-base-900">{entry.description}</td>
-                        <td className={`p-3 text-right font-extrabold ${typeBadge.amountColor}`}>
-                          {typeBadge.amountPrefix}₹{entry.amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                        </td>
-                        <td className="p-3 text-right font-bold text-base-900">
-                          ₹{entry.balanceAfter.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+      )}
       </div>
 
       {/* Reset Password Modal */}
@@ -790,29 +919,37 @@ export default function AdminOtherUserDetailPage() {
       {/* MODAL: ADD BALANCE / DEPOSIT */}
       {showAddBalanceModal && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full border border-base-200 overflow-hidden">
-            <div className="p-4 bg-primary text-white flex items-center justify-between">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full overflow-hidden">
+            <div className="p-4 bg-[#0f172a] text-white flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <PlusCircle className="w-4 h-4 text-emerald-100" />
-                <div>
-                  <h3 className="font-bold text-sm">+ Deposit (Add Balance)</h3>
-                  <p className="text-[11px] text-emerald-100">Credit funds into Account's wallet & ledger</p>
-                </div>
+                <PlusCircle className="w-4 h-4 text-primary" />
+                <h3 className="font-semibold text-sm">Add Funds to Account Wallet</h3>
               </div>
               <button
-                onClick={() => setShowAddBalanceModal(false)}
+                onClick={() => {
+                  setShowAddBalanceModal(false);
+                  setAddAmount("");
+                  setAddDescription("");
+                  setAddBalanceError("");
+                  setAddBalanceSuccess("");
+                }}
                 className="text-white hover:text-gray-200 text-sm font-bold"
               >
-                ✕
+                <X className="size-5" />
               </button>
             </div>
 
             <form onSubmit={handleAddBalance} className="p-5 space-y-4">
-              <div className="p-3 bg-base-100/40 border border-base-200 rounded-lg flex items-center justify-between text-xs">
-                <span className="text-base-700 font-semibold">Current Balance:</span>
-                <span className="font-extrabold text-sm text-base-900">
-                  ₹{(otherUser?.wallet?.balance || otherUser?.balance || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </span>
+              <div>
+                <p className="text-xs text-slate-500">
+                  Manually credit funds directly into <b>{otherUser?.name}</b>'s settled wallet.
+                </p>
+                <div className="mt-2 p-2.5 bg-slate-100 rounded-lg border border-slate-200 flex items-center justify-between text-xs">
+                  <span className="text-slate-500">Current Settled Balance:</span>
+                  <span className="font-semibold text-base-900">
+                    ₹{(otherUser?.wallet?.balance || otherUser?.balance || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
               </div>
 
               {addBalanceError && (
@@ -830,36 +967,51 @@ export default function AdminOtherUserDetailPage() {
               )}
 
               <div>
-                <label className="block text-xs font-semibold text-base-900 mb-1">
-                  Amount to Deposit (₹) *
+                <label className="block text-[12px] font-semibold mb-1.5">
+                  Deposit Amount (₹)*
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-2.5 text-xs text-slate-500 font-bold">₹</span>
+                  <span className="absolute left-3 top-2.5 text-slate-500 font-bold text-sm">₹</span>
                   <input
                     type="number"
-                    step="any"
+                    step="0.01"
+                    min="1"
                     required
-                    min="0.01"
+                    autoFocus
                     disabled={addingBalance || !!addBalanceSuccess}
                     value={addAmount}
                     onChange={(e) => setAddAmount(e.target.value)}
                     placeholder="e.g. 5000"
-                    className="w-full pl-7 pr-3 py-2 text-xs border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    className="w-full pl-7 pr-3 py-2 text-sm font-bold border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
                   />
+                </div>
+                {/* Quick Chips */}
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {[500, 1000, 5000, 10000, 25000].map((amt) => (
+                    <button
+                      key={amt}
+                      type="button"
+                      disabled={addingBalance || !!addBalanceSuccess}
+                      onClick={() => setAddAmount(amt.toString())}
+                      className="px-2 py-0.5 text-[11px] font-semibold bg-base-100/40 hover:bg-slate-100 text-slate-900 rounded border border-slate-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      +₹{amt.toLocaleString("en-IN")}
+                    </button>
+                  ))}
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-base-900 mb-1">
-                  Description / Note (Optional)
+                <label className="block text-[12px] font-semibold text-base-900 mb-1.5">
+                  Reference Note / Description
                 </label>
                 <input
                   type="text"
                   disabled={addingBalance || !!addBalanceSuccess}
                   value={addDescription}
                   onChange={(e) => setAddDescription(e.target.value)}
-                  placeholder="e.g. Manual top-up / credit"
-                  className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  placeholder="e.g. Manual top-up, Bank transfer settlement"
+                  className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
                 />
               </div>
 
@@ -867,7 +1019,13 @@ export default function AdminOtherUserDetailPage() {
                 <button
                   type="button"
                   disabled={addingBalance || !!addBalanceSuccess}
-                  onClick={() => setShowAddBalanceModal(false)}
+                  onClick={() => {
+                    setShowAddBalanceModal(false);
+                    setAddAmount("");
+                    setAddDescription("");
+                    setAddBalanceError("");
+                    setAddBalanceSuccess("");
+                  }}
                   className="flex-1 py-2 text-xs border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancel
@@ -875,7 +1033,7 @@ export default function AdminOtherUserDetailPage() {
                 <button
                   type="submit"
                   disabled={addingBalance || !!addBalanceSuccess || !addAmount || parseFloat(addAmount) <= 0}
-                  className="flex-1 btn-primary py-2 text-xs font-bold shadow flex items-center justify-center space-x-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="flex-1 btn-primary py-2 text-xs font-bold shadow flex items-center justify-center space-x-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {addingBalance ? (
                     <>
@@ -883,9 +1041,12 @@ export default function AdminOtherUserDetailPage() {
                       <span>Crediting...</span>
                     </>
                   ) : addBalanceSuccess ? (
-                    <span className="text-emerald-200 font-bold">✓ Credited Successfully</span>
+                    <>
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Credited Successfully</span>
+                    </>
                   ) : (
-                    <span>Deposit ₹{parseFloat(addAmount) > 0 ? parseFloat(addAmount).toLocaleString("en-IN") : "0"}</span>
+                    <span>Credit ₹{parseFloat(addAmount) > 0 ? parseFloat(addAmount).toLocaleString("en-IN") : "0"}</span>
                   )}
                 </button>
               </div>
@@ -897,27 +1058,38 @@ export default function AdminOtherUserDetailPage() {
       {/* MODAL: CLEAR BALANCE / WITHDRAWAL */}
       {showClearModal && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full border border-base-200 overflow-hidden">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full overflow-hidden">
             <div className="p-4 bg-[#0f172a] text-white flex items-center justify-between">
-              <div>
-                <h3 className="font-bold text-sm text-white">- Withdrawal (Clear Balance)</h3>
-                <p className="text-[11px] text-[#f0f7fc]/80">Debit / deduct funds from Account's wallet & ledger</p>
+              <div className="flex items-center space-x-2">
+                <MinusCircle className="w-4 h-4 text-rose-400" />
+                <h3 className="font-semibold text-sm">Withdraw Funds from Account Wallet</h3>
               </div>
               <button
                 disabled={clearingBalance || !!clearSuccess}
-                onClick={() => setShowClearModal(false)}
-                className="text-white hover:text-gray-300 text-sm font-bold disabled:opacity-50"
+                onClick={() => {
+                  setShowClearModal(false);
+                  setClearAmount("");
+                  setClearDescription("");
+                  setClearError("");
+                  setClearSuccess("");
+                }}
+                className="text-white hover:text-gray-200 text-sm font-bold disabled:opacity-50"
               >
-                ✕
+                <X className="size-5" />
               </button>
             </div>
 
             <form onSubmit={handleClearBalance} className="p-5 space-y-4">
-              <div className="p-3 bg-base-100/40 border border-base-200 rounded-lg flex items-center justify-between text-xs">
-                <span className="text-base-700 font-semibold">Current Balance:</span>
-                <span className="font-extrabold text-sm text-base-900">
-                  ₹{(otherUser?.wallet?.balance || otherUser?.balance || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </span>
+              <div>
+                <p className="text-xs text-slate-500">
+                  Manually debit funds directly from <b>{otherUser?.name}</b>'s settled wallet.
+                </p>
+                <div className="mt-2 p-2.5 bg-slate-100 rounded-lg border border-slate-200 flex items-center justify-between text-xs">
+                  <span className="text-slate-500">Current Settled Balance:</span>
+                  <span className="font-semibold text-base-900">
+                    ₹{(otherUser?.wallet?.balance || otherUser?.balance || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
               </div>
 
               {clearError && (
@@ -935,49 +1107,63 @@ export default function AdminOtherUserDetailPage() {
               )}
 
               <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-xs font-semibold text-base-900">
-                    Amount to Withdraw (₹) *
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-[12px] font-semibold text-base-900">
+                    Withdrawal Amount (₹)*
                   </label>
                   {(otherUser?.wallet?.balance || otherUser?.balance || 0) > 0 && (
                     <button
                       type="button"
                       disabled={clearingBalance || !!clearSuccess}
                       onClick={() => setClearAmount((otherUser?.wallet?.balance || otherUser?.balance || 0).toString())}
-                      className="text-[11px] font-bold text-primary hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="text-[12px] font-semibold text-primary hover:text-primary-400 underline disabled:opacity-50"
                     >
-                      Exact Balance (₹{(otherUser?.wallet?.balance || otherUser?.balance || 0).toFixed(2)})
+                      Clear Exact Balance (₹{(otherUser?.wallet?.balance || otherUser?.balance || 0).toFixed(2)})
                     </button>
                   )}
                 </div>
                 <div className="relative">
-                  <span className="absolute left-3 top-2.5 text-xs text-slate-500 font-bold">₹</span>
+                  <span className="absolute left-3 top-2.5 text-slate-500 font-bold text-sm">₹</span>
                   <input
                     type="number"
-                    step="any"
+                    step="0.01"
+                    min="1"
                     required
-                    min="0.01"
-                    max={Math.max(0, Number(otherUser?.wallet?.balance ?? otherUser?.balance ?? 0)).toString()}
                     disabled={clearingBalance || !!clearSuccess}
+                    autoFocus
                     value={clearAmount}
                     onChange={(e) => setClearAmount(e.target.value)}
                     placeholder="e.g. 5000"
-                    className="w-full pl-7 pr-3 py-2 text-xs border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    className="w-full pl-7 pr-3 py-2 text-sm font-bold border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
                   />
+                </div>
+                {/* Quick Chips */}
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {[500, 1000, 5000, 10000, 25000].map((amt) => (
+                    <button
+                      key={amt}
+                      type="button"
+                      disabled={clearingBalance || !!clearSuccess}
+                      onClick={() => setClearAmount(amt.toString())}
+                      className="px-2 py-0.5 text-[11px] font-semibold bg-base-100/40 hover:bg-slate-100 text-slate-900 rounded border border-slate-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      ₹{amt.toLocaleString("en-IN")}
+                    </button>
+                  ))}
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-base-900 mb-1">
-                  Description / Note (Optional)
+                <label className="block text-[12px] font-semibold text-base-900 mb-1.5">
+                  Reference Note / Description
                 </label>
                 <input
                   type="text"
                   disabled={clearingBalance || !!clearSuccess}
                   value={clearDescription}
                   onChange={(e) => setClearDescription(e.target.value)}
-                  placeholder="e.g. Manual balance debit"
-                  className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  placeholder="e.g. Bank payout issued, settlement withdrawal"
+                  className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
                 />
               </div>
 
@@ -985,7 +1171,13 @@ export default function AdminOtherUserDetailPage() {
                 <button
                   type="button"
                   disabled={clearingBalance || !!clearSuccess}
-                  onClick={() => setShowClearModal(false)}
+                  onClick={() => {
+                    setShowClearModal(false);
+                    setClearAmount("");
+                    setClearDescription("");
+                    setClearError("");
+                    setClearSuccess("");
+                  }}
                   className="flex-1 py-2 text-xs border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancel
@@ -993,7 +1185,7 @@ export default function AdminOtherUserDetailPage() {
                 <button
                   type="submit"
                   disabled={clearingBalance || !!clearSuccess || !clearAmount || parseFloat(clearAmount) <= 0}
-                  className="flex-1 py-2 text-xs font-bold bg-[#0f172a] text-white rounded-lg hover:bg-slate-800 shadow flex items-center justify-center space-x-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="flex-1 btn-primary py-2 text-xs font-bold shadow flex items-center justify-center space-x-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {clearingBalance ? (
                     <>
@@ -1001,9 +1193,12 @@ export default function AdminOtherUserDetailPage() {
                       <span>Debiting...</span>
                     </>
                   ) : clearSuccess ? (
-                    <span className="text-emerald-300 font-bold">✓ Withdrawn Successfully</span>
+                    <>
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Debited Successfully</span>
+                    </>
                   ) : (
-                    <span>Withdraw ₹{parseFloat(clearAmount) > 0 ? parseFloat(clearAmount).toLocaleString("en-IN") : "0"}</span>
+                    <span>Debit ₹{parseFloat(clearAmount) > 0 ? parseFloat(clearAmount).toLocaleString("en-IN") : "0"}</span>
                   )}
                 </button>
               </div>

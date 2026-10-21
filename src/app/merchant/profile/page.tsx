@@ -36,9 +36,9 @@ export default function MerchantProfilePage() {
     setSaved(false);
     setError("");
 
-    const nameCheck = validateName(name, "Store name");
+    const nameCheck = validateName(name, "Store Name");
     if (!nameCheck.valid) {
-      setError(nameCheck.error || "Store name is required");
+      setError(nameCheck.error || "Store Name is required");
       return;
     }
 
@@ -134,16 +134,15 @@ export default function MerchantProfilePage() {
 
           <div>
             <label className="block text-xs font-semibold text-base-900 mb-1">
-              Contact Phone (Indian or International)
+              Contact Phone
             </label>
             <input
               type="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              placeholder="e.g. 9876543210 or +14155552671"
+              placeholder="e.g. +91 9876543210 or +1 443 456 7890"
               className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg font-mono focus:outline-none focus:ring-2 focus:ring-primary"
             />
-            <span className="text-[10px] text-gray-400 mt-0.5 block">10-digit Indian mobile or International format with country code (e.g. +1...)</span>
           </div>
 
           <button

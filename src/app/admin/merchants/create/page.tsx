@@ -151,7 +151,7 @@ export default function CreateMerchantPage() {
     setSubmitting(true);
 
     try {
-      const nameCheck = validateName(name, "Store name");
+      const nameCheck = validateName(name, "Store Name");
       if (!nameCheck.valid) throw new Error(nameCheck.error);
 
       if (!isValidEmail(email)) {
@@ -268,7 +268,7 @@ export default function CreateMerchantPage() {
                 {/* Store Name */}
                 <div className="sm:col-span-2">
                   <label className="block text-xs font-semibold text-base-900 mb-1">
-                    Merchant Name <span className="text-red-500">*</span>
+                    Store Name <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -383,7 +383,7 @@ export default function CreateMerchantPage() {
                 {/* Phone */}
                 <div>
                   <label className="block text-xs font-semibold text-base-900 mb-1">
-                    Contact Phone (Indian or International)
+                    Contact Phone
                   </label>
                   <div className="relative">
                     <Phone className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
@@ -391,11 +391,10 @@ export default function CreateMerchantPage() {
                       type="tel"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
-                      placeholder="e.g. 9876543210 or +14155552671"
+                      placeholder="e.g. +91 9876543210 or +1 443 456 7890"
                       className="w-full pl-9 pr-3 py-2.5 text-xs sm:text-sm border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white font-mono"
                     />
                   </div>
-                  <p className="text-[10px] text-slate-500 mt-1">10-digit Indian mobile or International format with country code (e.g. +1...)</p>
                 </div>
               </div>
             </div>
@@ -410,9 +409,6 @@ export default function CreateMerchantPage() {
                       Merchant Gateway Fees
                     </h3>
                   </div>
-                  <span className="text-xs px-2.5 py-1 bg-green-50 text-green-700 font-bold rounded-full border border-green-200">
-                    Gateway Commission
-                  </span>
                 </div>
 
                 <div className="grid grid-cols-1 p-5 sm:p-6 sm:grid-cols-2 gap-4">
@@ -428,12 +424,11 @@ export default function CreateMerchantPage() {
                         min="0"
                         value={payinMerchantFee}
                         onChange={(e) => setPayinMerchantFee(e.target.value)}
-                        placeholder="0"
+                        placeholder="0.00"
                         className="w-full px-3 py-2.5 text-xs sm:text-sm border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white font-medium"
                       />
                       <span className="absolute right-3 top-2.5 text-xs font-bold text-gray-400">%</span>
                     </div>
-                    <p className="text-[11px] text-slate-500 mt-1">Total fee percentage charged on customer deposits</p>
                   </div>
 
                   {/* Payout Merchant Fee */}
@@ -448,12 +443,11 @@ export default function CreateMerchantPage() {
                         min="0"
                         value={payoutMerchantFee}
                         onChange={(e) => setPayoutMerchantFee(e.target.value)}
-                        placeholder="0"
+                        placeholder="0.00"
                         className="w-full px-3 py-2.5 text-xs sm:text-sm border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white font-medium"
                       />
                       <span className="absolute right-3 top-2.5 text-xs font-bold text-gray-400">%</span>
                     </div>
-                    <p className="text-[11px] text-slate-500 mt-1">Total fee percentage charged on store payouts</p>
                   </div>
                 </div>
               </div>
@@ -503,12 +497,11 @@ export default function CreateMerchantPage() {
                             min="0"
                             value={payinBrokerFee}
                             onChange={(e) => setPayinBrokerFee(e.target.value)}
-                            placeholder="0"
+                            placeholder="0.00"
                             className="w-full px-3 py-2.5 text-xs sm:text-sm border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white font-medium"
                           />
                           <span className="absolute right-3 top-2.5 text-xs font-bold text-gray-400">%</span>
                         </div>
-                        <p className="text-[11px] text-slate-500 mt-1">Broker cut on customer deposits for this store</p>
                       </div>
 
                       <div>
@@ -522,27 +515,13 @@ export default function CreateMerchantPage() {
                             min="0"
                             value={payoutBrokerFee}
                             onChange={(e) => setPayoutBrokerFee(e.target.value)}
-                            placeholder="0"
+                            placeholder="0.00"
                             className="w-full px-3 py-2.5 text-xs sm:text-sm border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white font-medium"
                           />
                           <span className="absolute right-3 top-2.5 text-xs font-bold text-gray-400">%</span>
                         </div>
-                        <p className="text-[11px] text-slate-500 mt-1">Broker cut on customer payouts for this store</p>
                       </div>
                     </div>
-                  )}
-
-                  {brokerId ? (
-                    <p className="text-[11px] text-[#0c4a6e] font-medium mt-2 flex items-center space-x-1">
-                      <Check className="w-3.5 h-3.5 text-primary" />
-                      <span>
-                        Broker fees are configured directly on this merchant (different merchants can have custom broker cuts).
-                      </span>
-                    </p>
-                  ) : (
-                    <p className="text-[11px] text-slate-500 mt-1">
-                      If assigned, you can configure custom broker payin and payout fees for this merchant.
-                    </p>
                   )}
                 </div>
               </div>

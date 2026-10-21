@@ -54,8 +54,8 @@ export default function AdminMerchantDetailPage() {
   const router = useRouter();
   const merchantId = params.id as string;
 
-  // Active Tab: info | wallet | orders | api
-  const [activeTab, setActiveTab] = useState<"info" | "wallet" | "orders" | "api">("info");
+  // Active Tab: wallet (Transactions) | orders | info | api
+  const [activeTab, setActiveTab] = useState<"info" | "wallet" | "orders" | "api">("wallet");
 
   // Tab Data States
   const [merchant, setMerchant] = useState<any>(null);
@@ -231,6 +231,7 @@ export default function AdminMerchantDetailPage() {
 
   useEffect(() => {
     fetchInfoAndSummary();
+    fetchWallet();
   }, [merchantId]);
 
   // Handle QR Image File Upload
@@ -296,9 +297,9 @@ export default function AdminMerchantDetailPage() {
     setInfoSuccess("");
     setInfoError("");
 
-    const nameCheck = validateName(name, "Store name");
+    const nameCheck = validateName(name, "Store Name");
     if (!nameCheck.valid) {
-      setInfoError(nameCheck.error || "Store name is required");
+      setInfoError(nameCheck.error || "Store Name is required");
       setSavingInfo(false);
       return;
     }
@@ -599,68 +600,42 @@ export default function AdminMerchantDetailPage() {
         portal="admin"
         title={
           <div className="flex items-center gap-3">
-            <div className="size-10 sm:size-11 rounded-xl bg-primary/15 text-primary flex items-center justify-center font-bold text-base sm:text-lg border border-primary/30 shrink-0">
+            <div
+              className={`size-10 sm:size-11 rounded-xl flex items-center justify-center font-bold text-base sm:text-lg border shrink-0 transition-colors ${
+                status === "ACTIVE"
+                  ? "bg-emerald-50 text-emerald-600 border-emerald-300 ring-2 ring-emerald-400/20"
+                  : "bg-rose-50 text-rose-600 border-rose-300 ring-2 ring-rose-400/20"
+              }`}
+            >
               {merchant.name.charAt(0).toUpperCase()}
             </div>
             <div>
-              <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-2">
                 <span className="text-lg sm:text-xl font-bold text-slate-800">{merchant.name}</span>
-                <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-blue-100 text-blue-800">
-                  Merchant
-                </span>
-                <span
-                  className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
-                    status === "ACTIVE"
-                      ? "bg-green-50 text-green-600 border-green-200"
-                      : "bg-red-50 text-red-600 border-red-200"
-                  }`}
-                >
-                  {status}
-                </span>
-                <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-[10px] font-mono">
-                  ID: {merchant.id}
-                </span>
               </div>
-              {(merchant.phone || merchant.broker) && (
-                <div className="flex items-center gap-2 sm:gap-3 text-xs text-slate-500 mt-0.5 flex-wrap">
-                  {merchant.phone && (
-                    <span className="flex items-center gap-1 font-mono">
+              <div className="text-xs text-slate-500 mt-0.5 flex items-center gap-2 font-mono">
+                <span>ID: {merchant.id}</span>
+                {merchant.phone && (
+                  <>
+                    <span className="text-slate-300">•</span>
+                    <span className="flex items-center gap-1">
                       <Phone className="size-3 text-slate-400" />
                       <span>{merchant.phone}</span>
                     </span>
-                  )}
-                  {merchant.broker && (
-                    <span className="flex items-center gap-1 text-slate-600">
-                      <span>Broker: {merchant.broker.name}</span>
-                    </span>
-                  )}
-                </div>
-              )}
+                  </>
+                )}
+              </div>
             </div>
           </div>
         }
         actions={
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => {
-                fetchInfoAndSummary();
-                if (activeTab === "wallet") fetchWallet();
-                if (activeTab === "orders") fetchOrders();
-              }}
-              className="px-3 py-2 text-xs bg-white border border-base-200 rounded-lg text-gray-700 hover:bg-gray-50 flex items-center space-x-1 transition shadow-xs"
-              title="Refresh merchant data"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Refresh</span>
-            </button>
-            <Link
-              href="/admin/users"
-              className="px-3 py-2 text-xs bg-white border border-base-200 rounded-lg text-gray-700 hover:bg-gray-50 flex items-center space-x-1 transition shadow-xs"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Back to Users</span>
-            </Link>
-          </div>
+          <Link
+            href="/admin/users"
+            className="px-3 py-2 text-xs bg-white border border-base-200 rounded-lg text-gray-700 hover:bg-gray-50 flex items-center space-x-1 transition shadow-xs"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Back to Users</span>
+          </Link>
         }
       >
         {/* Top Summary Card (Net Wallet Balance & Settlement Actions) */}
@@ -675,7 +650,6 @@ export default function AdminMerchantDetailPage() {
                   ? `-₹${Math.abs(currentBalance).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                   : `₹${currentBalance.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
               </span>
-              <span className="text-[13px] text-slate-500 mt-0.5 block">After all fee deductions</span>
             </div>
 
             <div className="flex items-center flex-wrap gap-2">
@@ -707,40 +681,21 @@ export default function AdminMerchantDetailPage() {
                 <MinusCircle className="w-3.5 h-3.5 shrink-0 text-rose-600 mr-1" />
                 <span>- Withdrawal</span>
               </button>
-              <button
-                type="button"
-                onClick={() => handleTabSwitch("wallet")}
-                className="px-3.5 py-2 text-xs font-semibold bg-white border border-slate-200 rounded-lg text-slate-700 hover:bg-slate-50 transition-all shadow-xs flex items-center space-x-1.5 cursor-pointer"
-              >
-                <Wallet className="w-3.5 h-3.5" />
-                <span>View Full Ledger</span>
-              </button>
             </div>
           </div>
         </div>
 
-        {/* Tabs Navigation (With on-demand dynamic API loading) */}
+        {/* Tabs Navigation (1st Transactions, 2nd Orders, 3rd API Settings, 4th Merchant Info) */}
         <div className="flex border-b border-slate-200 overflow-x-auto">
           <button
-            onClick={() => handleTabSwitch("info")}
-            className={`py-2.5 px-4 text-xs font-bold border-b-2 transition flex items-center space-x-1.5 shrink-0 ${activeTab === "info"
-              ? "border-primary text-base-900"
-              : "border-transparent text-slate-500 hover:text-slate-700"
-              }`}
-          >
-            <Store className="w-3.5 h-3.5" />
-            <span>Merchant Info</span>
-          </button>
-
-          <button
             onClick={() => handleTabSwitch("wallet")}
-            className={`py-2.5 px-4 text-[13px] font-bold border-b-2 transition flex items-center space-x-1.5 shrink-0 ${activeTab === "wallet"
+            className={`py-2.5 px-4 text-xs font-bold border-b-2 transition flex items-center space-x-1.5 shrink-0 ${activeTab === "wallet"
               ? "border-primary text-base-900"
               : "border-transparent text-slate-500 hover:text-gray-700"
               }`}
           >
             <Wallet className="w-3.5 h-3.5" />
-            <span>Wallet & Ledger {walletData ? `(${walletData.entries.length})` : ""}</span>
+            <span>Transactions</span>
             {loadingWallet && <RefreshCw className="w-3 h-3 text-primary animate-spin ml-1" />}
           </button>
 
@@ -752,7 +707,7 @@ export default function AdminMerchantDetailPage() {
               }`}
           >
             <ShoppingBag className="w-3.5 h-3.5" />
-            <span>Orders {ordersData ? `(${ordersData.length})` : totalOrdersCount > 0 ? `(${totalOrdersCount})` : ""}</span>
+            <span>Orders</span>
             {loadingOrders && <RefreshCw className="w-3 h-3 text-primary animate-spin ml-1" />}
           </button>
 
@@ -765,6 +720,17 @@ export default function AdminMerchantDetailPage() {
           >
             <KeyRound className="w-3.5 h-3.5" />
             <span>API Settings</span>
+          </button>
+
+          <button
+            onClick={() => handleTabSwitch("info")}
+            className={`py-2.5 px-4 text-xs font-bold border-b-2 transition flex items-center space-x-1.5 shrink-0 ${activeTab === "info"
+              ? "border-primary text-base-900"
+              : "border-transparent text-slate-500 hover:text-slate-700"
+              }`}
+          >
+            <Store className="w-3.5 h-3.5" />
+            <span>Merchant Info</span>
           </button>
         </div>
 
@@ -785,19 +751,6 @@ export default function AdminMerchantDetailPage() {
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">
-                  <span
-                    className={`px-2.5 py-1 rounded-full text-xs font-bold inline-flex items-center space-x-1.5 whitespace-nowrap ${status === "ACTIVE"
-                      ? "bg-green-100 text-green-500"
-                      : "bg-red-100 text-red-500"
-                      }`}
-                  >
-                    <span
-                      className={`w-2 h-2 rounded-full ${status === "ACTIVE" ? "bg-green-500 animate-pulse" : "bg-red-500"
-                        }`}
-                    />
-                    <span>{status === "ACTIVE" ? "Active" : "Inactive"}</span>
-                  </span>
-
                   {!isEditing ? (
                     <button
                       type="button"
@@ -864,7 +817,7 @@ export default function AdminMerchantDetailPage() {
                           required
                           value={name}
                           onChange={(e) => setName(e.target.value)}
-                          placeholder="Enter store name"
+                          placeholder="Enter Store Name"
                           className="w-full px-3.5 py-2.5 text-xs font-semibold border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
                         />
                       ) : (
@@ -878,7 +831,7 @@ export default function AdminMerchantDetailPage() {
                     <div>
                       <label className="text-[13px] font-semibold text-base-900 mb-1.5 flex items-center space-x-1">
                         <Phone className="w-3.5 h-3.5 text-primary shrink-0" />
-                        <span>Contact Phone <span className="font-normal text-slate-500 text-[11px]">(Indian or International)</span></span>
+                        <span>Contact Phone</span>
                       </label>
                       {isEditing ? (
                         <div>
@@ -886,14 +839,13 @@ export default function AdminMerchantDetailPage() {
                             type="tel"
                             value={phone}
                             onChange={(e) => setPhone(e.target.value)}
-                            placeholder="e.g. 9876543210 or +14155552671"
+                            placeholder="e.g. +91 9876543210 or +1 443 456 7890"
                             className="w-full px-3.5 py-2.5 text-xs font-semibold font-mono border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
                           />
-                          <p className="text-[10px] text-slate-500 mt-1">10-digit Indian mobile or International format with country code (e.g. +1...)</p>
                         </div>
                       ) : (
                         <div className="w-full px-3.5 py-2.5 text-xs font-medium font-mono text-gray-800 bg-gray-50 rounded-lg border border-gray-200 truncate">
-                          {phone || <span className="text-gray-400 italic">Not Provided</span>}
+                          {phone || <span className="text-gray-400 font-mono">e.g. +91 9876543210 or +1 443 456 7890</span>}
                         </div>
                       )}
                     </div>
@@ -904,9 +856,6 @@ export default function AdminMerchantDetailPage() {
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-base-900 uppercase tracking-wider block">
                         Merchant Gateway Fees
-                      </span>
-                      <span className="text-[11px] px-2 py-0.5 bg-green-100 text-green-600 font-semibold rounded-full">
-                        Store Commission
                       </span>
                     </div>
 
@@ -923,14 +872,14 @@ export default function AdminMerchantDetailPage() {
                               step="0.01"
                               min="0"
                               value={payinMerchantFee}
+                              placeholder="0.00"
                               onChange={(e) => setPayinMerchantFee(e.target.value)}
                               className="w-full px-2.5 py-1.5 text-xs font-bold border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
                             />
                             <span className="absolute right-2.5 top-1.5 text-xs font-bold text-slate-500">%</span>
                           </div>
                         ) : (
-                          <div className="w-full px-3 py-2 text-xs font-bold text-primary bg-white rounded-lg border border-slate-200 flex items-center justify-between">
-                            <span>Deposit Fee</span>
+                          <div className="w-full px-3 py-2 text-xs font-bold text-primary bg-white rounded-lg border border-slate-200">
                             <span className="text-sm font-extrabold">{payinMerchantFee}%</span>
                           </div>
                         )}
@@ -948,14 +897,14 @@ export default function AdminMerchantDetailPage() {
                               step="0.01"
                               min="0"
                               value={payoutMerchantFee}
+                              placeholder="0.00"
                               onChange={(e) => setPayoutMerchantFee(e.target.value)}
                               className="w-full px-2.5 py-1.5 text-xs font-bold border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
                             />
                             <span className="absolute right-2.5 top-1.5 text-xs font-bold text-gray-400">%</span>
                           </div>
                         ) : (
-                          <div className="w-full px-3 py-2 text-xs font-bold text-orange-600 bg-white rounded-lg border border-slate-200 flex items-center justify-between">
-                            <span>Withdrawal Fee</span>
+                          <div className="w-full px-3 py-2 text-xs font-bold text-orange-600 bg-white rounded-lg border border-slate-200">
                             <span className="text-sm font-extrabold">{payoutMerchantFee}%</span>
                           </div>
                         )}
@@ -1040,9 +989,6 @@ export default function AdminMerchantDetailPage() {
                         </div>
                       </div>
                     )}
-                    <p className="text-[12px] text-gray-400">
-                      Broker fees are configured directly on this merchant (different merchants can have custom broker cuts).
-                    </p>
                   </div>
 
                   {/* Account Controls & Permissions (Responsive Grid Switch Tiles) */}
@@ -1193,21 +1139,7 @@ export default function AdminMerchantDetailPage() {
           <div className="card-theme overflow-hidden shadow-sm border border-base-200">
             <div className="p-4 border-b border-base-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <h3 className="font-bold text-[16px] text-base-900">Wallet Ledger & Settlement Statement</h3>
-                <p className="text-xs text-base-700">Audit trail of all credit and debit entries for {merchant.name}</p>
-              </div>
-              <div className="flex items-center space-x-2 flex-wrap gap-y-1">
-                <div className="text-xs font-semibold px-2.5 py-1 rounded-md bg-base-100 border border-base-200 text-slate-700">
-                  Total Bal: <b>₹{(walletData?.balance ?? currentBalance ?? 0).toFixed(2)}</b>
-                </div>
-                <button
-                  onClick={fetchWallet}
-                  disabled={loadingWallet}
-                  className="px-2.5 py-1 text-xs bg-white border border-base-200 rounded-md text-gray-700 hover:bg-gray-50 flex items-center space-x-1"
-                >
-                  <RefreshCw className={`w-3.5 h-3.5 ${loadingWallet ? "animate-spin" : ""}`} />
-                  <span>Refresh</span>
-                </button>
+                <h3 className="font-bold text-lg text-base-900">Transactions</h3>
               </div>
             </div>
 
@@ -1282,8 +1214,7 @@ export default function AdminMerchantDetailPage() {
           <div className="card-theme overflow-hidden shadow-sm">
             <div className="p-4 border-b border-base-200 flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-bold text-base-900">Customer Orders for {merchant.name}</h3>
-                <p className="text-xs text-base-700">Deposit transactions generated for this store</p>
+                <h3 className="text-lg font-bold text-base-900">Customer Orders</h3>
               </div>
               <button
                 onClick={fetchOrders}
@@ -1541,9 +1472,6 @@ export default function AdminMerchantDetailPage() {
                   placeholder="e.g. Manual top-up, Bank transfer settlement"
                   className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
                 />
-                <p className="text-[12px] text-slate-500 mt-1">
-                  This note will be recorded permanently in the multi-party ledger for audit trail.
-                </p>
               </div>
 
               <div className="flex space-x-3 pt-2">
@@ -1591,9 +1519,9 @@ export default function AdminMerchantDetailPage() {
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-xl max-w-md w-full overflow-hidden">
             <div className="p-4 bg-[#0f172a] text-white flex items-center justify-between">
-              <div>
-                <h3 className="font-semibold text-sm text-white">Withdrawal Balance</h3>
-                <p className="text-[12px] text-slate-200">Deduct settled funds from merchant wallet</p>
+              <div className="flex items-center space-x-2">
+                <MinusCircle className="w-4 h-4 text-rose-400" />
+                <h3 className="font-semibold text-sm">Withdraw Funds from Merchant Wallet</h3>
               </div>
               <button
                 disabled={clearingBalance || !!clearSuccess}
@@ -1604,20 +1532,23 @@ export default function AdminMerchantDetailPage() {
                   setClearError("");
                   setClearSuccess("");
                 }}
-                className="text-white hover:text-gray-300 text-sm font-bold disabled:opacity-50"
+                className="text-white hover:text-gray-200 text-sm font-bold disabled:opacity-50"
               >
                 <X className="size-5" />
               </button>
             </div>
 
             <form onSubmit={handleClearBalance} className="p-5 space-y-4">
-              <div className="p-3 bg-slate-100 border border-slate-200 rounded-lg flex items-center justify-between text-xs">
-                <span className="text-slate-500">Available Settled Balance:</span>
-                <span className={`font-extrabold text-sm ${currentBalance < 0 ? "text-red-600" : "text-base-900"}`}>
-                  {currentBalance < 0
-                    ? `-₹${Math.abs(currentBalance).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                    : `₹${currentBalance.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                </span>
+              <div>
+                <p className="text-xs text-slate-500">
+                  Manually debit funds directly from <b>{merchant.name}</b>'s settled wallet.
+                </p>
+                <div className="mt-2 p-2.5 bg-slate-100 rounded-lg border border-slate-200 flex items-center justify-between text-xs">
+                  <span className="text-slate-500">Current Settled Balance:</span>
+                  <span className="font-semibold text-base-900">
+                    ₹{currentBalance.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
               </div>
 
               {clearError && (
@@ -1635,9 +1566,9 @@ export default function AdminMerchantDetailPage() {
               )}
 
               <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-xs font-semibold text-base-900">
-                    Withdraw Amount (₹) *
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-[12px] font-semibold text-base-900">
+                    Withdrawal Amount (₹)*
                   </label>
                   {currentBalance > 0 && (
                     <button
@@ -1651,7 +1582,7 @@ export default function AdminMerchantDetailPage() {
                   )}
                 </div>
                 <div className="relative">
-                  <span className="absolute left-3 top-2.5 text-slate-500 font-bold text-xs">₹</span>
+                  <span className="absolute left-3 top-2.5 text-slate-500 font-bold text-sm">₹</span>
                   <input
                     type="number"
                     step="0.01"
@@ -1661,8 +1592,8 @@ export default function AdminMerchantDetailPage() {
                     autoFocus
                     value={clearAmount}
                     onChange={(e) => setClearAmount(e.target.value)}
-                    placeholder="Enter amount to clear/withdraw"
-                    className="w-full pl-7 pr-3 py-2 text-sm font-semibold border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
+                    placeholder="e.g. 5000"
+                    className="w-full pl-7 pr-3 py-2 text-sm font-bold border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
                   />
                 </div>
                 {/* Quick Chips */}
@@ -1678,25 +1609,12 @@ export default function AdminMerchantDetailPage() {
                       ₹{amt.toLocaleString("en-IN")}
                     </button>
                   ))}
-                  {currentBalance > 0 && (
-                    <button
-                      type="button"
-                      disabled={clearingBalance || !!clearSuccess}
-                      onClick={() => setClearAmount(currentBalance.toString())}
-                      className="px-2 py-0.5 text-[11px] font-bold bg-primary/20 hover:bg-primary/30 text-base-900 rounded border border-primary/40 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      All (₹{currentBalance.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
-                    </button>
-                  )}
                 </div>
-                <p className="text-[12px] text-slate-500 mt-2">
-                  Note: You may withdraw more than available balance. Wallet balance can become negative.
-                </p>
               </div>
 
               <div>
                 <label className="block text-[12px] font-semibold text-base-900 mb-1.5">
-                  Reference Note / Reason (Optional)
+                  Reference Note / Description
                 </label>
                 <input
                   type="text"
@@ -1706,9 +1624,6 @@ export default function AdminMerchantDetailPage() {
                   placeholder="e.g. Bank payout issued, settlement withdrawal"
                   className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
                 />
-                <p className="text-[12px] text-slate-500 mt-1">
-                  A debit ledger transaction (MANUAL WITHDRAWAL) will be created for full audit reconciliation.
-                </p>
               </div>
 
               <div className="flex space-x-3 pt-2">
@@ -1722,7 +1637,7 @@ export default function AdminMerchantDetailPage() {
                     setClearError("");
                     setClearSuccess("");
                   }}
-                  className="flex-1 py-2 text-xs border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 py-2 text-xs border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </button>
@@ -1734,17 +1649,15 @@ export default function AdminMerchantDetailPage() {
                   {clearingBalance ? (
                     <>
                       <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      <span>Processing...</span>
+                      <span>Debiting...</span>
                     </>
                   ) : clearSuccess ? (
                     <>
                       <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>Settled Successfully</span>
+                      <span>Debited Successfully</span>
                     </>
                   ) : (
-                    <span>
-                      Clear ₹{parseFloat(clearAmount) > 0 ? parseFloat(clearAmount).toLocaleString("en-IN") : "0"}
-                    </span>
+                    <span>Debit ₹{parseFloat(clearAmount) > 0 ? parseFloat(clearAmount).toLocaleString("en-IN") : "0"}</span>
                   )}
                 </button>
               </div>

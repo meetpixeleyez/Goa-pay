@@ -115,32 +115,28 @@ export default function OperatorDetailPage() {
         <div className="card-theme p-5 sm:p-6 shadow-sm border border-base-200">
           <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
             <div className="flex items-center space-x-4 min-w-0 flex-1">
-              <div className="w-14 h-14 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center font-extrabold text-xl shrink-0 border border-purple-200 shadow-xs">
+              <div
+                className={`w-14 h-14 rounded-2xl flex items-center justify-center font-extrabold text-xl shrink-0 border shadow-xs transition-colors ${
+                  isActive
+                    ? "bg-emerald-50 text-emerald-600 border-emerald-300 ring-2 ring-emerald-400/20"
+                    : "bg-rose-50 text-rose-600 border-rose-300 ring-2 ring-rose-400/20"
+                }`}
+              >
                 {operator.name.charAt(0).toUpperCase()}
               </div>
               <div className="min-w-0 flex-1">
-                <div className="flex items-center space-x-2.5 flex-wrap gap-y-1">
+                <div className="flex items-center space-x-2.5">
                   <h1 className="text-lg sm:text-xl font-bold text-base-900 truncate">{operator.name}</h1>
-                  <span
-                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider border shrink-0 ${
-                      isActive
-                        ? "bg-emerald-50 text-emerald-800 border-emerald-300"
-                        : "bg-red-50 text-red-800 border-red-300"
-                    }`}
-                  >
-                    {operator.status}
-                  </span>
-                  <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-600 text-[10px] font-mono shrink-0">
-                    ID: {operator.id}
-                  </span>
                 </div>
-                <div className="flex items-center space-x-4 text-xs text-base-700 mt-1.5 flex-wrap gap-y-1 min-w-0">
-                  <span className="flex items-center space-x-1 shrink-0">
-                    <Phone className="w-3.5 h-3.5 text-gray-400" />
-                    <span className={operator.phone ? "font-mono font-semibold" : "text-gray-400 italic"}>
-                      {operator.phone || "No Mobile Added"}
+                <div className="flex items-center space-x-4 text-xs text-base-700 mt-1 flex-wrap gap-y-1 min-w-0 font-mono">
+                  <span className="font-semibold text-slate-600">ID: {operator.id}</span>
+                  {operator.phone && (
+                    <span className="flex items-center space-x-1 shrink-0">
+                      <span className="text-slate-300">•</span>
+                      <Phone className="w-3.5 h-3.5 text-gray-400" />
+                      <span className="font-semibold">{operator.phone}</span>
                     </span>
-                  </span>
+                  )}
                   <span className="flex items-center space-x-1 text-gray-400 shrink-0">
                     <Calendar className="w-3.5 h-3.5" />
                     <span>Registered {new Date(operator.createdAt).toLocaleDateString()}</span>

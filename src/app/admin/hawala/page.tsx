@@ -200,22 +200,11 @@ function UserSelector({
         }`}
       >
         {selectedUser ? (
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div
-              className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${
-                type === "source"
-                  ? "bg-rose-100 text-rose-700"
-                  : "bg-emerald-100 text-emerald-700"
-              }`}
-            >
-              {selectedUser.name.slice(0, 2).toUpperCase()}
-            </div>
-            <div className="min-w-0 flex items-center gap-2">
-              <span className="text-sm font-bold text-[#050505] truncate">
-                {selectedUser.name}
-              </span>
-              {getRoleBadge(selectedUser.role)}
-            </div>
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-sm font-bold text-[#050505] truncate">
+              {selectedUser.name}
+            </span>
+            {getRoleBadge(selectedUser.role)}
           </div>
         ) : (
           <span className="text-sm text-slate-400 font-normal">{placeholder}</span>
@@ -260,13 +249,13 @@ function UserSelector({
             </div>
 
             {/* Quick Role Filter Pills */}
-            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar pt-2">
+            <div className="flex flex-wrap items-center gap-1 pt-2">
               {roles.map((r) => (
                 <button
                   key={r}
                   type="button"
                   onClick={() => setRoleFilter(r)}
-                  className={`px-2 py-0.5 rounded text-[10px] font-bold whitespace-nowrap transition ${
+                  className={`px-2 py-0.5 rounded text-[10px] font-bold whitespace-nowrap transition cursor-pointer ${
                     roleFilter === r
                       ? "bg-primary text-white"
                       : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-100"
@@ -303,9 +292,6 @@ function UserSelector({
                     }`}
                   >
                     <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-6 h-6 rounded-md bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-[10px] shrink-0">
-                        {u.name.slice(0, 2).toUpperCase()}
-                      </div>
                       <span className="text-xs font-semibold truncate">{u.name}</span>
                       {getRoleBadge(u.role)}
                     </div>
@@ -328,6 +314,7 @@ export default function HawalaPage() {
   const [refreshing, setRefreshing] = useState(false);
 
   // Transfer form state
+  const [showHawalaModal, setShowHawalaModal] = useState(false);
   const [fromUserId, setFromUserId] = useState<string>("");
   const [toUserId, setToUserId] = useState<string>("");
   const [amount, setAmount] = useState<string>("");
@@ -419,6 +406,9 @@ export default function HawalaPage() {
       setSuccessData(data);
       setAmount("");
       setRemarks("");
+      setFromUserId("");
+      setToUserId("");
+      setShowHawalaModal(false);
       await fetchData();
     } catch (err: any) {
       setErrorMsg(err.message || "Something went wrong during Hawala transfer");
@@ -459,39 +449,42 @@ export default function HawalaPage() {
             <ArrowLeftRight className="w-4 h-4" />
           </div>
           <div>
-            <h1 className="text-base sm:text-lg font-bold text-[#050505]">Hawala Transfer</h1>
+            <h1 className="text-base sm:text-lg font-bold text-[#050505]">Hawala Transfers</h1>
           </div>
         </div>
       }
-      subtitle="Administrative inter-account liquidity relocation & balance management"
+      subtitle="Administrative inter-account liquidity relocation & audit ledger"
       actions={
         <button
-          onClick={fetchData}
-          disabled={refreshing}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#050505] bg-white border border-[#ced0d4] rounded-lg hover:bg-slate-50 transition shadow-xs disabled:opacity-50"
+          type="button"
+          onClick={() => {
+            setShowHawalaModal(true);
+            setErrorMsg("");
+          }}
+          className="btn-primary text-xs py-1.5 px-3 rounded-lg shadow-sm inline-flex items-center space-x-1.5 font-bold cursor-pointer"
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />
-          <span>Refresh</span>
+          <ArrowLeftRight className="w-3.5 h-3.5" />
+          <span>+ Hawala</span>
         </button>
       }
     >
       <div className="space-y-6">
         {/* Metric Summary Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-white rounded-xl border border-[#e4e6eb] p-4 shadow-xs flex items-center justify-between">
+          <div className="card-theme p-4 shadow-sm border border-base-200 flex items-center justify-between">
             <div>
               <span className="text-xs font-semibold text-[#65676b] block">Eligible Accounts</span>
               <span className="text-xl font-bold text-[#050505] mt-1 block">
                 {users.length}
               </span>
-              <span className="text-[11px] text-slate-500 font-medium">Merchants, QRs, Brokers, Agents</span>
+              <span className="text-[11px] text-slate-500 font-medium">Merchants, QR Providers, Brokers, Agents, Others</span>
             </div>
             <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
               <Building2 className="w-5 h-5" />
             </div>
           </div>
 
-          <div className="bg-white rounded-xl border border-[#e4e6eb] p-4 shadow-xs flex items-center justify-between">
+          <div className="card-theme p-4 shadow-sm border border-base-200 flex items-center justify-between">
             <div>
               <span className="text-xs font-semibold text-[#65676b] block">Transfers Settled</span>
               <span className="text-xl font-bold text-[#050505] mt-1 block">
@@ -504,7 +497,7 @@ export default function HawalaPage() {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl border border-[#e4e6eb] p-4 shadow-xs flex items-center justify-between">
+          <div className="card-theme p-4 shadow-sm border border-base-200 flex items-center justify-between">
             <div>
               <span className="text-xs font-semibold text-[#65676b] block">Total Settled Volume</span>
               <span className="text-xl font-bold text-[#050505] mt-1 block">
@@ -520,7 +513,7 @@ export default function HawalaPage() {
 
         {/* Success Banner */}
         {successData && (
-          <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-start justify-between gap-3 shadow-xs animate-in fade-in-50">
+          <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-start justify-between gap-3 shadow-xs animate-in fade-in-50">
             <div className="flex items-start gap-3">
               <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 mt-0.5">
                 <CheckCircle2 className="w-5 h-5" />
@@ -551,407 +544,12 @@ export default function HawalaPage() {
             </div>
             <button
               onClick={() => setSuccessData(null)}
-              className="text-emerald-700 hover:text-emerald-900 text-xs font-semibold px-2 py-1 rounded hover:bg-emerald-100 transition"
+              className="text-emerald-700 hover:text-emerald-900 text-xs font-semibold px-2 py-1 rounded hover:bg-emerald-100 transition cursor-pointer"
             >
               Dismiss
             </button>
           </div>
         )}
-
-        {/* Error Banner */}
-        {errorMsg && (
-          <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-start justify-between gap-3 shadow-xs">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
-              <div>
-                <h4 className="text-sm font-bold text-rose-900">Transfer Error</h4>
-                <p className="text-xs text-rose-700 mt-0.5">{errorMsg}</p>
-              </div>
-            </div>
-            <button
-              onClick={() => setErrorMsg("")}
-              className="text-rose-700 hover:text-rose-900 text-xs font-semibold px-2 py-1"
-            >
-              Dismiss
-            </button>
-          </div>
-        )}
-
-        {/* Main Section: Interactive Transfer Console */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Transfer Form Box */}
-          <div className="lg:col-span-7 bg-white rounded-2xl border border-[#e4e6eb] p-5 sm:p-6 shadow-xs flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between pb-4 border-b border-[#e4e6eb] mb-5">
-                <div>
-                  <h3 className="text-sm sm:text-base font-bold text-[#050505] flex items-center gap-2">
-                    <ArrowLeftRight className="w-4 h-4 text-primary" />
-                    <span>Initiate Inter-Account Transfer</span>
-                  </h3>
-                  <p className="text-xs text-[#65676b] mt-0.5">
-                    Move liquidity seamlessly with instantaneous atomic ledger reflection.
-                  </p>
-                </div>
-                <span className="hidden sm:inline-flex text-[11px] font-semibold px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
-                  Admin Hawala
-                </span>
-              </div>
-
-              <form onSubmit={handleTransfer} className="space-y-5">
-                {/* Visual Connected Account Selection */}
-                <div className="p-4 rounded-xl bg-slate-50/70 border border-slate-200/80 space-y-4">
-                  {/* FROM Field */}
-                  <div>
-                    <UserSelector
-                      label="From (Source Account - Debit)"
-                      required
-                      users={users}
-                      selectedId={fromUserId}
-                      onSelect={(id) => {
-                        setFromUserId(id);
-                        if (id === toUserId) setToUserId("");
-                      }}
-                      excludeId={toUserId}
-                      placeholder="Select sender account..."
-                      type="source"
-                    />
-
-                    {/* From User Details Card */}
-                    {selectedFromUser && (
-                      <div className="mt-2.5 p-3 rounded-xl bg-white border border-rose-100 flex items-center justify-between shadow-xs animate-in fade-in-50">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-lg bg-rose-50 text-rose-700 flex items-center justify-center font-bold text-xs">
-                            {selectedFromUser.name.slice(0, 2).toUpperCase()}
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-bold text-[#050505]">
-                                {selectedFromUser.name}
-                              </span>
-                              {getRoleBadge(selectedFromUser.role)}
-                            </div>
-                            <div className="text-[11px] text-[#65676b]">
-                              {selectedFromUser.phone ? `Phone: ${selectedFromUser.phone}` : "No phone recorded"}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-[10px] font-semibold text-[#65676b] uppercase">Available Balance</div>
-                          <div
-                            className={`text-sm font-bold ${
-                              selectedFromUser.availableBalance < 0
-                                ? "text-rose-600"
-                                : "text-[#050505]"
-                            }`}
-                          >
-                            ₹
-                            {selectedFromUser.availableBalance.toLocaleString("en-IN", {
-                              minimumFractionDigits: 2,
-                            })}
-                          </div>
-                          {selectedFromUser.role === "QR_PROVIDER" && selectedFromUser.exposure > 0 && (
-                            <div className="text-[10px] text-amber-600 font-medium">
-                              Exposure: ₹{selectedFromUser.exposure.toFixed(2)}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Flow Direction Indicator */}
-                  <div className="flex items-center justify-center -my-1">
-                    <div className="flex items-center gap-2 text-xs font-medium text-slate-400 bg-white px-3 py-1 rounded-full border border-slate-200 shadow-xs">
-                      <Send className="w-3 h-3 text-primary" />
-                      <span className="text-[11px] font-semibold text-slate-600">Transfer Flow</span>
-                    </div>
-                  </div>
-
-                  {/* TO Field */}
-                  <div>
-                    <UserSelector
-                      label="To (Destination Account - Credit)"
-                      required
-                      users={users}
-                      selectedId={toUserId}
-                      onSelect={(id) => setToUserId(id)}
-                      excludeId={fromUserId}
-                      placeholder="Select receiver account..."
-                      type="destination"
-                    />
-
-                    {/* To User Details Card */}
-                    {selectedToUser && (
-                      <div className="mt-2.5 p-3 rounded-xl bg-white border border-emerald-100 flex items-center justify-between shadow-xs animate-in fade-in-50">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold text-xs">
-                            {selectedToUser.name.slice(0, 2).toUpperCase()}
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-bold text-[#050505]">
-                                {selectedToUser.name}
-                              </span>
-                              {getRoleBadge(selectedToUser.role)}
-                            </div>
-                            <div className="text-[11px] text-[#65676b]">
-                              {selectedToUser.phone ? `Phone: ${selectedToUser.phone}` : "No phone recorded"}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-[10px] font-semibold text-[#65676b] uppercase">Current Balance</div>
-                          <div className="text-sm font-bold text-emerald-700">
-                            ₹
-                            {selectedToUser.balance.toLocaleString("en-IN", {
-                              minimumFractionDigits: 2,
-                            })}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Amount Field */}
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-xs font-bold text-[#050505] uppercase tracking-wider flex items-center gap-1.5">
-                      <CreditCard className="w-3.5 h-3.5 text-primary" />
-                      <span>Transfer Amount (₹)</span>
-                      <span className="text-rose-500">*</span>
-                    </label>
-                    {selectedFromUser && selectedFromUser.role !== "MERCHANT" && (
-                      <span className="text-[11px] font-semibold text-slate-500">
-                        Cap: ₹{Math.max(0, selectedFromUser.availableBalance).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 font-bold text-lg">
-                      ₹
-                    </div>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="1"
-                      placeholder="0.00"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                      className="w-full pl-9 pr-4 py-3 text-lg font-bold text-[#050505] border border-[#ced0d4] rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition"
-                    />
-                  </div>
-
-                  {/* Quick Preset Buttons */}
-                  <div className="flex flex-wrap gap-1.5 mt-2.5">
-                    {[1000, 5000, 10000, 25000, 50000].map((chip) => (
-                      <button
-                        key={chip}
-                        type="button"
-                        onClick={() => setAmount(chip.toString())}
-                        className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 text-[#050505] transition active:scale-95"
-                      >
-                        +₹{chip.toLocaleString("en-IN")}
-                      </button>
-                    ))}
-                    {selectedFromUser && selectedFromUser.availableBalance > 0 && (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setAmount(
-                            Math.max(0, selectedFromUser.availableBalance).toString()
-                          )
-                        }
-                        className="px-2.5 py-1 text-xs font-bold rounded-lg bg-primary/10 hover:bg-primary/20 text-primary transition active:scale-95"
-                      >
-                        Max Available (₹{Math.max(0, selectedFromUser.availableBalance).toLocaleString("en-IN")})
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Rule Notice */}
-                  <div className="mt-2.5 p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-[11px] flex items-start gap-2 text-slate-600">
-                    <HelpCircle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-primary" />
-                    <span>
-                      <strong>Balance Cap:</strong> Only Merchants can hold a negative balance. All other accounts (QR Providers, Brokers, Agents, Others) are strictly capped at their available balance.
-                    </span>
-                  </div>
-                </div>
-
-                {/* Remarks Input */}
-                <div>
-                  <label className="block text-xs font-bold text-[#050505] uppercase tracking-wider mb-1.5">
-                    Remarks / Transfer Purpose (Optional)
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Weekly settlement / Liquidity relocation"
-                    value={remarks}
-                    onChange={(e) => setRemarks(e.target.value)}
-                    className="w-full px-3.5 py-2.5 text-xs font-medium border border-[#ced0d4] rounded-xl text-[#050505] focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition"
-                  />
-                </div>
-
-                {/* Validation Warning Alert */}
-                {validationError && fromUserId && toUserId && parsedAmount > 0 && (
-                  <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-2.5 text-xs text-rose-700 animate-in fade-in-50">
-                    <ShieldAlert className="w-4 h-4 shrink-0 text-rose-600" />
-                    <span>{validationError}</span>
-                  </div>
-                )}
-
-                {/* Submit Transfer Button */}
-                <div className="pt-2">
-                  <button
-                    type="submit"
-                    disabled={Boolean(validationError) || submitting}
-                    className="w-full py-3.5 px-4 rounded-xl font-bold text-sm text-white bg-primary hover:bg-primary/95 active:scale-[0.99] transition shadow-md shadow-primary/25 disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    {submitting ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        <span>Processing Hawala Settlement...</span>
-                      </>
-                    ) : (
-                      <>
-                        <ArrowLeftRight className="w-4 h-4" />
-                        <span>
-                          Confirm & Transfer{" "}
-                          {parsedAmount > 0
-                            ? `₹${parsedAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`
-                            : ""}
-                        </span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-
-          {/* Right Column: Live Impact Preview & Audit Guidelines */}
-          <div className="lg:col-span-5 space-y-6">
-            <div className="bg-white rounded-2xl border border-[#e4e6eb] p-5 sm:p-6 shadow-xs">
-              <h3 className="text-sm font-bold text-[#050505] flex items-center gap-2 pb-3.5 border-b border-[#e4e6eb] mb-4">
-                <Wallet className="w-4 h-4 text-primary" />
-                <span>Live Balance Impact Preview</span>
-              </h3>
-
-              {selectedFromUser && selectedToUser && parsedAmount > 0 ? (
-                <div className="space-y-4 animate-in fade-in-50">
-                  {/* Sender Card */}
-                  <div className="p-4 rounded-xl border border-rose-100 bg-rose-50/50">
-                    <div className="flex items-center justify-between text-xs font-semibold text-rose-800 mb-2">
-                      <span className="font-bold">Source: {selectedFromUser.name}</span>
-                      {getRoleBadge(selectedFromUser.role)}
-                    </div>
-                    <div className="space-y-1.5 text-xs">
-                      <div className="flex items-center justify-between text-[#65676b]">
-                        <span>Current Balance</span>
-                        <span className="font-semibold text-[#050505]">
-                          ₹{selectedFromUser.balance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between text-rose-600 font-medium">
-                        <span>Hawala Debit</span>
-                        <span className="font-bold">
-                          -₹{parsedAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between pt-2 border-t border-rose-200/80 font-bold text-xs">
-                        <span className="text-rose-900">Projected Balance</span>
-                        <span
-                          className={
-                            selectedFromUser.balance - parsedAmount < 0
-                              ? "text-rose-600 font-extrabold"
-                              : "text-[#050505]"
-                          }
-                        >
-                          ₹
-                          {(selectedFromUser.balance - parsedAmount).toLocaleString("en-IN", {
-                            minimumFractionDigits: 2,
-                          })}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Flow Connector */}
-                  <div className="flex items-center justify-center text-xs text-[#65676b] font-medium gap-2">
-                    <div className="h-px bg-slate-200 flex-1" />
-                    <span className="px-3 py-1 rounded-full bg-slate-100 border border-slate-200 font-mono text-[11px] font-bold text-slate-700">
-                      ₹{parsedAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                    </span>
-                    <div className="h-px bg-slate-200 flex-1" />
-                  </div>
-
-                  {/* Receiver Card */}
-                  <div className="p-4 rounded-xl border border-emerald-100 bg-emerald-50/50">
-                    <div className="flex items-center justify-between text-xs font-semibold text-emerald-800 mb-2">
-                      <span className="font-bold">Destination: {selectedToUser.name}</span>
-                      {getRoleBadge(selectedToUser.role)}
-                    </div>
-                    <div className="space-y-1.5 text-xs">
-                      <div className="flex items-center justify-between text-[#65676b]">
-                        <span>Current Balance</span>
-                        <span className="font-semibold text-[#050505]">
-                          ₹{selectedToUser.balance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between text-emerald-600 font-medium">
-                        <span>Hawala Credit</span>
-                        <span className="font-bold">
-                          +₹{parsedAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between pt-2 border-t border-emerald-200/80 font-bold text-xs">
-                        <span className="text-emerald-900">Projected Balance</span>
-                        <span className="text-emerald-700 font-extrabold">
-                          ₹
-                          {(selectedToUser.balance + parsedAmount).toLocaleString("en-IN", {
-                            minimumFractionDigits: 2,
-                          })}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="py-14 text-center text-slate-400">
-                  <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-3 text-slate-300">
-                    <ArrowLeftRight className="w-6 h-6" />
-                  </div>
-                  <h4 className="text-xs font-bold text-slate-600 mb-1">Preview Awaiting Input</h4>
-                  <p className="text-[11px] text-slate-400 max-w-xs mx-auto">
-                    Select source & destination accounts and enter an amount to preview projected balance changes.
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Audit & Compliance Guide */}
-            <div className="bg-slate-50 rounded-2xl border border-[#e4e6eb] p-5 text-xs text-[#65676b] space-y-2.5">
-              <h4 className="font-bold text-[#050505] flex items-center gap-1.5 text-xs">
-                <FileText className="w-3.5 h-3.5 text-primary" />
-                <span>Dual-Entry Ledger Architecture</span>
-              </h4>
-              <p className="text-[11px] leading-relaxed">
-                Transactions are recorded with immediate ACID guarantee across both participant ledgers:
-              </p>
-              <div className="grid grid-cols-2 gap-2 pt-1 text-[11px]">
-                <div className="p-2.5 rounded-lg bg-white border border-slate-200">
-                  <span className="font-bold text-rose-700 block">Debit (DR)</span>
-                  <span className="text-slate-500">Source wallet reduced with category HAWALA</span>
-                </div>
-                <div className="p-2.5 rounded-lg bg-white border border-slate-200">
-                  <span className="font-bold text-emerald-700 block">Credit (CR)</span>
-                  <span className="text-slate-500">Destination wallet credited with category HAWALA</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
 
         {/* Transfer History Table */}
         <div className="bg-white rounded-2xl border border-[#e4e6eb] shadow-xs overflow-hidden">
@@ -987,7 +585,6 @@ export default function HawalaPage() {
                   <th className="py-3 px-4">Reference</th>
                   <th className="py-3 px-4">Date & Time</th>
                   <th className="py-3 px-4">From Account</th>
-                  <th className="py-3 px-4 text-center">Flow</th>
                   <th className="py-3 px-4">To Account</th>
                   <th className="py-3 px-4 text-right">Amount (₹)</th>
                   <th className="py-3 px-4">Remarks</th>
@@ -996,14 +593,14 @@ export default function HawalaPage() {
               <tbody className="divide-y divide-[#e4e6eb] text-[#050505]">
                 {loading ? (
                   <tr>
-                    <td colSpan={7} className="py-8 text-center text-slate-400">
+                    <td colSpan={6} className="py-8 text-center text-slate-400">
                       <RefreshCw className="w-5 h-5 mx-auto mb-2 animate-spin text-primary" />
                       Loading Hawala history...
                     </td>
                   </tr>
                 ) : filteredHistory.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-8 text-center text-slate-400">
+                    <td colSpan={6} className="py-8 text-center text-slate-400">
                       No Hawala transfers recorded yet.
                     </td>
                   </tr>
@@ -1016,7 +613,7 @@ export default function HawalaPage() {
                           <button
                             type="button"
                             onClick={() => copyToClipboard(item.hawalaRef)}
-                            className="p-1 hover:text-primary rounded text-slate-400 transition"
+                            className="p-1 hover:text-primary rounded text-slate-400 transition cursor-pointer"
                             title="Copy reference"
                           >
                             {copiedRef === item.hawalaRef ? (
@@ -1038,27 +635,12 @@ export default function HawalaPage() {
                           <span className="font-bold text-[#050505]">{item.fromUserName}</span>
                           {getRoleBadge(item.fromUserRole)}
                         </div>
-                        {item.fromBalanceAfter !== undefined && (
-                          <div className="text-[10px] text-slate-500 font-mono mt-0.5">
-                            New: ₹{Number(item.fromBalanceAfter).toFixed(2)}
-                          </div>
-                        )}
-                      </td>
-                      <td className="py-3 px-4 text-center">
-                        <span className="inline-flex p-1 rounded-full bg-slate-100 text-slate-400">
-                          <ArrowRight className="w-3 h-3" />
-                        </span>
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-1.5">
                           <span className="font-bold text-[#050505]">{item.toUserName}</span>
                           {getRoleBadge(item.toUserRole)}
                         </div>
-                        {item.toBalanceAfter !== undefined && (
-                          <div className="text-[10px] text-emerald-600 font-mono mt-0.5">
-                            New: ₹{Number(item.toBalanceAfter).toFixed(2)}
-                          </div>
-                        )}
                       </td>
                       <td className="py-3 px-4 text-right font-bold text-sm text-[#050505] whitespace-nowrap">
                         ₹{item.amount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
@@ -1133,6 +715,231 @@ export default function HawalaPage() {
             )}
           </div>
         </div>
+
+        {/* HAWALA TRANSFER MODAL */}
+        {showHawalaModal && (
+          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+            <div className="bg-white rounded-xl shadow-2xl max-w-3xl w-full my-8 animate-in fade-in zoom-in-95 duration-150 relative">
+              {/* Dark Slate Modal Header */}
+              <div className="p-4 bg-[#0f172a] text-white flex items-center justify-between rounded-t-xl">
+                <div className="flex items-center space-x-2">
+                  <ArrowLeftRight className="w-4 h-4 text-primary" />
+                  <h3 className="font-semibold text-sm">Initiate Hawala Transfer</h3>
+                </div>
+                <button
+                  disabled={submitting}
+                  onClick={() => {
+                    setShowHawalaModal(false);
+                    setErrorMsg("");
+                  }}
+                  className="text-white hover:text-gray-200 text-sm font-bold disabled:opacity-50 cursor-pointer"
+                >
+                  <X className="size-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleTransfer} className="p-6 space-y-5">
+                {/* Error Banner inside Modal */}
+                {errorMsg && (
+                  <div className="p-2.5 bg-red-50 text-red-700 text-xs rounded-lg border border-red-200 flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
+                      <span>{errorMsg}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setErrorMsg("")}
+                      className="text-red-700 font-bold ml-2 cursor-pointer"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
+
+                {/* From & To Side by Side */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  {/* FROM Field */}
+                  <div className="space-y-1.5">
+                    <UserSelector
+                      label="From (Source - Debit)"
+                      required
+                      users={users}
+                      selectedId={fromUserId}
+                      onSelect={(id) => {
+                        setFromUserId(id);
+                        if (id === toUserId) setToUserId("");
+                      }}
+                      excludeId={toUserId}
+                      placeholder="Select sender..."
+                      type="source"
+                    />
+                    {selectedFromUser && (
+                      <div className="p-2 bg-slate-100 rounded-lg border border-slate-200 flex items-center justify-between text-xs">
+                        <span className="text-slate-500">Available:</span>
+                        <span
+                          className={`font-semibold font-mono ${
+                            selectedFromUser.availableBalance < 0
+                              ? "text-rose-600"
+                              : "text-base-900"
+                          }`}
+                        >
+                          ₹{selectedFromUser.availableBalance.toLocaleString("en-IN", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* TO Field */}
+                  <div className="space-y-1.5">
+                    <UserSelector
+                      label="To (Destination - Credit)"
+                      required
+                      users={users}
+                      selectedId={toUserId}
+                      onSelect={(id) => setToUserId(id)}
+                      excludeId={fromUserId}
+                      placeholder="Select receiver..."
+                      type="destination"
+                    />
+                    {selectedToUser && (
+                      <div className="p-2 bg-slate-100 rounded-lg border border-slate-200 flex items-center justify-between text-xs">
+                        <span className="text-slate-500">Current:</span>
+                        <span className="font-semibold font-mono text-emerald-700">
+                          ₹{selectedToUser.balance.toLocaleString("en-IN", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Amount Field */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-[12px] font-semibold text-base-900">
+                      Transfer Amount (₹) *
+                    </label>
+                    {selectedFromUser && selectedFromUser.availableBalance > 0 && (
+                      <button
+                        type="button"
+                        disabled={submitting}
+                        onClick={() =>
+                          setAmount(
+                            Math.max(0, selectedFromUser.availableBalance).toString()
+                          )
+                        }
+                        className="text-[12px] font-semibold text-primary hover:underline cursor-pointer"
+                      >
+                        Max (₹{Math.max(0, selectedFromUser.availableBalance).toLocaleString("en-IN", { minimumFractionDigits: 2 })})
+                      </button>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2.5 text-slate-500 font-bold text-sm">₹</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="1"
+                      required
+                      autoFocus
+                      disabled={submitting}
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      placeholder="e.g. 5000"
+                      className="w-full pl-7 pr-3 py-2 text-sm font-bold border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
+                    />
+                  </div>
+                  {/* Quick Chips */}
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {[1000, 5000, 10000, 25000, 50000].map((chip) => (
+                      <button
+                        key={chip}
+                        type="button"
+                        disabled={submitting}
+                        onClick={() => setAmount(chip.toString())}
+                        className="px-2 py-0.5 text-[11px] font-semibold bg-base-100/40 hover:bg-slate-100 text-slate-900 rounded border border-slate-200 transition disabled:opacity-50 cursor-pointer"
+                      >
+                        +₹{chip.toLocaleString("en-IN")}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Remarks / Note */}
+                <div>
+                  <label className="block text-[12px] font-semibold text-base-900 mb-1.5">
+                    Remarks / Note (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    disabled={submitting}
+                    placeholder="e.g. Weekly settlement / Liquidity transfer"
+                    value={remarks}
+                    onChange={(e) => setRemarks(e.target.value)}
+                    className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
+                  />
+                </div>
+
+                {/* Validation Error inside Modal */}
+                {validationError && fromUserId && toUserId && parsedAmount > 0 && (
+                  <div className="p-2.5 bg-red-50 text-red-700 text-xs rounded-lg border border-red-200 flex items-center space-x-2">
+                    <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
+                    <span>{validationError}</span>
+                  </div>
+                )}
+
+                {/* Modal Footer Buttons */}
+                <div className="flex space-x-3 pt-2">
+                  <button
+                    type="button"
+                    disabled={submitting}
+                    onClick={() => {
+                      setShowHawalaModal(false);
+                      setErrorMsg("");
+                    }}
+                    className="flex-1 py-2 text-xs border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={
+                      Boolean(validationError) ||
+                      submitting ||
+                      !fromUserId ||
+                      !toUserId ||
+                      !parsedAmount ||
+                      parsedAmount <= 0
+                    }
+                    className="flex-1 btn-primary py-2 text-xs font-bold shadow flex items-center justify-center space-x-1.5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    {submitting ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        <span>Transferring...</span>
+                      </>
+                    ) : (
+                      <>
+                        <ArrowLeftRight className="w-3.5 h-3.5" />
+                        <span>
+                          Confirm & Transfer{" "}
+                          {parsedAmount > 0
+                            ? `₹${parsedAmount.toLocaleString("en-IN")}`
+                            : ""}
+                        </span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     </PortalLayout>
   );

@@ -72,7 +72,7 @@ export class OperatorService {
           transactionAllowed: true,
           qrProviderId: true,
           qrProvider: {
-            select: { id: true, name: true, email: true },
+            select: { id: true, name: true, email: true, phone: true },
           },
           createdAt: true,
           assignedQRCodes: {
@@ -152,7 +152,7 @@ export class OperatorService {
         transactionAllowed: true,
         qrProviderId: true,
         qrProvider: {
-          select: { id: true, name: true, email: true, balance: true, exposure: true, availableBalance: true },
+          select: { id: true, name: true, email: true, phone: true, balance: true, exposure: true, availableBalance: true },
         },
         createdAt: true,
         assignedQRCodes: {

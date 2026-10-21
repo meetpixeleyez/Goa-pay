@@ -216,7 +216,7 @@ export default function AdminMerchantsPage() {
                 type="text"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                placeholder="Search by store name, email, phone, or merchant ID..."
+                placeholder="Search by Store Name, email, phone, or merchant ID..."
                 className="w-full pl-9 pr-8 py-2 sm:pl-10 text-sm 2xl:py-2.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-slate-700 placeholder:text-slate-500"
               />
               {searchInput && (
@@ -850,13 +850,13 @@ export default function AdminMerchantsPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-semibold text-base-900 mb-1">
-                      Contact Phone (Indian or International)
+                      Contact Phone
                     </label>
                     <input
                       type="tel"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
-                      placeholder="e.g. 9876543210 or +14155552671"
+                      placeholder="e.g. +91 9876543210 or +1 443 456 7890"
                       className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg font-mono"
                     />
                   </div>

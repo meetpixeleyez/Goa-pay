@@ -656,13 +656,10 @@ export default function UsersDirectoryPage() {
                     type="tel"
                     value={editPhone}
                     onChange={(e) => setEditPhone(e.target.value)}
-                    placeholder="e.g. 9876543210 or +1 202 555 0199"
+                    placeholder="e.g. +91 9876543210 or +1 443 456 7890"
                     className="w-full pl-9 pr-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl text-base-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-mono"
                   />
                 </div>
-                <p className="text-[10px] text-slate-400 mt-1">
-                  Supports Indian 10-digit mobile or International formats with country code.
-                </p>
               </div>
 
               {/* Password */}
@@ -704,13 +701,14 @@ export default function UsersDirectoryPage() {
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                        Merchant Payin Fee (%)
+                        Payin / Deposit Fee (%)
                       </label>
                       <input
                         type="number"
                         step="0.01"
                         min="0"
                         max="100"
+                        placeholder="0.00"
                         value={editPayinMerchantFee}
                         onChange={(e) => setEditPayinMerchantFee(e.target.value)}
                         className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl font-mono text-base-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
@@ -718,13 +716,14 @@ export default function UsersDirectoryPage() {
                     </div>
                     <div>
                       <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                        Merchant Payout Fee (%)
+                        Payout / Withdrawal Fee (%)
                       </label>
                       <input
                         type="number"
                         step="0.01"
                         min="0"
                         max="100"
+                        placeholder="0.00"
                         value={editPayoutMerchantFee}
                         onChange={(e) => setEditPayoutMerchantFee(e.target.value)}
                         className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl font-mono text-base-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
@@ -754,13 +753,14 @@ export default function UsersDirectoryPage() {
                     <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
                       <div>
                         <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                          Broker Payin Fee (%)
+                          Payin / Deposit Fee (%)
                         </label>
                         <input
                           type="number"
                           step="0.01"
                           min="0"
                           max="100"
+                          placeholder="0.00"
                           value={editPayinBrokerFee}
                           onChange={(e) => setEditPayinBrokerFee(e.target.value)}
                           className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg font-mono text-base-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
@@ -768,13 +768,14 @@ export default function UsersDirectoryPage() {
                       </div>
                       <div>
                         <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                          Broker Payout Fee (%)
+                          Payout / Withdrawal Fee (%)
                         </label>
                         <input
                           type="number"
                           step="0.01"
                           min="0"
                           max="100"
+                          placeholder="0.00"
                           value={editPayoutBrokerFee}
                           onChange={(e) => setEditPayoutBrokerFee(e.target.value)}
                           className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg font-mono text-base-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
@@ -794,13 +795,14 @@ export default function UsersDirectoryPage() {
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                        Broker Payin Fee (%)
+                        Payin / Deposit Fee (%)
                       </label>
                       <input
                         type="number"
                         step="0.01"
                         min="0"
                         max="100"
+                        placeholder="0.00"
                         value={editDirectBrokerPayinFee}
                         onChange={(e) => setEditDirectBrokerPayinFee(e.target.value)}
                         className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl font-mono text-base-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
@@ -808,13 +810,14 @@ export default function UsersDirectoryPage() {
                     </div>
                     <div>
                       <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                        Broker Payout Fee (%)
+                        Payout / Withdrawal Fee (%)
                       </label>
                       <input
                         type="number"
                         step="0.01"
                         min="0"
                         max="100"
+                        placeholder="0.00"
                         value={editDirectBrokerPayoutFee}
                         onChange={(e) => setEditDirectBrokerPayoutFee(e.target.value)}
                         className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl font-mono text-base-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
@@ -833,13 +836,14 @@ export default function UsersDirectoryPage() {
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                        Provider Payin Fee (%)
+                        Payin / Deposit Fee (%)
                       </label>
                       <input
                         type="number"
                         step="0.01"
                         min="0"
                         max="100"
+                        placeholder="0.00"
                         value={editPayinQrProviderFee}
                         onChange={(e) => setEditPayinQrProviderFee(e.target.value)}
                         className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl font-mono text-base-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
@@ -847,13 +851,14 @@ export default function UsersDirectoryPage() {
                     </div>
                     <div>
                       <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                        Provider Payout Fee (%)
+                        Payout / Withdrawal Fee (%)
                       </label>
                       <input
                         type="number"
                         step="0.01"
                         min="0"
                         max="100"
+                        placeholder="0.00"
                         value={editPayoutQrProviderFee}
                         onChange={(e) => setEditPayoutQrProviderFee(e.target.value)}
                         className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl font-mono text-base-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
@@ -883,13 +888,14 @@ export default function UsersDirectoryPage() {
                     <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
                       <div>
                         <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                          Agent Payin Fee (%)
+                          Payin / Deposit Fee (%)
                         </label>
                         <input
                           type="number"
                           step="0.01"
                           min="0"
                           max="100"
+                          placeholder="0.00"
                           value={editPayinAgentFee}
                           onChange={(e) => setEditPayinAgentFee(e.target.value)}
                           className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg font-mono text-base-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
@@ -897,13 +903,14 @@ export default function UsersDirectoryPage() {
                       </div>
                       <div>
                         <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                          Agent Payout Fee (%)
+                          Payout / Withdrawal Fee (%)
                         </label>
                         <input
                           type="number"
                           step="0.01"
                           min="0"
                           max="100"
+                          placeholder="0.00"
                           value={editPayoutAgentFee}
                           onChange={(e) => setEditPayoutAgentFee(e.target.value)}
                           className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-lg font-mono text-base-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
@@ -923,13 +930,14 @@ export default function UsersDirectoryPage() {
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                        Agent Payin Fee (%)
+                        Payin / Deposit Fee (%)
                       </label>
                       <input
                         type="number"
                         step="0.01"
                         min="0"
                         max="100"
+                        placeholder="0.00"
                         value={editDirectAgentPayinFee}
                         onChange={(e) => setEditDirectAgentPayinFee(e.target.value)}
                         className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl font-mono text-base-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
@@ -937,13 +945,14 @@ export default function UsersDirectoryPage() {
                     </div>
                     <div>
                       <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                        Agent Payout Fee (%)
+                        Payout / Withdrawal Fee (%)
                       </label>
                       <input
                         type="number"
                         step="0.01"
                         min="0"
                         max="100"
+                        placeholder="0.00"
                         value={editDirectAgentPayoutFee}
                         onChange={(e) => setEditDirectAgentPayoutFee(e.target.value)}
                         className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl font-mono text-base-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
