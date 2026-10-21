@@ -492,7 +492,6 @@ export default function QRProviderOperatorsPage() {
                                   setSelectedQrDetails({
                                     ...activeQr,
                                     operatorName: op.name,
-                                    operatorEmail: op.email,
                                   })
                                 }
                                 className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 transition shadow-2xs group cursor-pointer max-w-full"

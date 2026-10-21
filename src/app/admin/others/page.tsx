@@ -77,7 +77,6 @@ export default function AdminOthersPage() {
         const q = searchTerm.toLowerCase();
         return (
           u.name?.toLowerCase().includes(q) ||
-          u.email?.toLowerCase().includes(q) ||
           u.phone?.toLowerCase().includes(q) ||
           String(u.id).includes(q)
         );

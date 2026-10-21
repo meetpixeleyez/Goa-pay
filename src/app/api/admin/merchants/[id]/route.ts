@@ -85,7 +85,7 @@ export async function POST(
       amount,
       description,
       adminUserId: session.userId,
-      adminEmail: session.email,
+      adminEmail: session.name || "Admin",
     });
 
     const formattedAmount = Number(amount).toLocaleString("en-IN", {

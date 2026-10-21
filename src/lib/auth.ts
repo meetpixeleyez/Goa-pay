@@ -12,7 +12,7 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 
 export interface AuthSession {
   userId: number;
-  email: string;
+  email?: string;
   name: string;
   role: "ADMIN" | "MERCHANT" | "AGENT" | "QR_PROVIDER" | "BROKER" | "OPERATOR";
   qrProviderId?: number | null;
@@ -37,14 +37,13 @@ export async function getSession(): Promise<AuthSession | null> {
     // Verify user still exists in database
     const user = await prisma.user.findUnique({
       where: { id: numericUserId },
-      select: { id: true, email: true, name: true, role: true, qrProviderId: true, portalAccess: true, status: true },
+      select: { id: true, name: true, role: true, qrProviderId: true, portalAccess: true, status: true },
     });
 
     if (!user || user.status === "INACTIVE") return null;
 
     return {
       userId: user.id,
-      email: user.email,
       name: user.name,
       role: user.role as AuthSession["role"],
       qrProviderId: user.qrProviderId,
@@ -68,12 +67,11 @@ export async function seedDefaultAdmin() {
     const passwordHash = await hashPassword("admin123");
     await prisma.user.create({
       data: {
-        name: "Platform Admin",
-        email: "admin@goapay.com",
+        name: "admin",
         role: "ADMIN",
         passwordHash,
       },
     });
-    console.log("Seeded default Admin: admin@goapay.com / admin123");
+    console.log("Seeded default Admin: admin / admin123");
   }
 }

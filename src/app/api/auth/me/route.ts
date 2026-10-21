@@ -18,7 +18,6 @@ export async function GET() {
         select: {
           id: true,
           name: true,
-          email: true,
           status: true,
           transactionAllowed: true,
           balance: true,
@@ -43,7 +42,6 @@ export async function GET() {
     user: {
       id: user.id,
       name: user.name,
-      email: user.email,
       role: user.role,
       phone: user.phone,
       telegramId: user.telegramId,

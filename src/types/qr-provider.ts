@@ -16,19 +16,19 @@ export interface QRCodeItem {
   operator?: {
     id: number | string;
     name: string;
-    email: string;
+    email?: string;
   } | null;
   provider?: {
     id: number | string;
     name: string;
-    email: string;
+    email?: string;
   } | null;
 }
 
 export interface OperatorItem {
   id: number | string;
   name: string;
-  email: string;
+  email?: string;
   phone?: string | null;
   status: string;
   portalAccess: boolean;
@@ -37,7 +37,7 @@ export interface OperatorItem {
   qrProvider?: {
     id: number | string;
     name: string;
-    email: string;
+    email?: string;
   } | null;
   assignedQRCodes?: QRCodeItem[];
   createdAt: Date | string;
@@ -46,7 +46,7 @@ export interface OperatorItem {
 export interface QRProviderListItem {
   id: number | string;
   name: string;
-  email: string;
+  email?: string;
   phone?: string | null;
   status: string;
   balance: number;
@@ -61,7 +61,7 @@ export interface QRProviderListItem {
   agent?: {
     id: number | string;
     name: string;
-    email: string;
+    email?: string;
   } | null;
   qrCodes?: QRCodeItem[];
   operators?: OperatorItem[];

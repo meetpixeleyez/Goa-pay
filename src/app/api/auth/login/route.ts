@@ -6,31 +6,27 @@ import { normalizeIndianPhone } from "@/lib/validation";
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const emailOrUsername = (body.username || body.email || "").trim();
+    const usernameInput = (body.username || body.name || body.email || "").trim();
     const password = body.password;
     const clientDeviceId = body.deviceId?.trim();
 
-    if (!emailOrUsername || !password) {
+    if (!usernameInput || !password) {
       return NextResponse.json(
-        { error: "Username/Email and password are required" },
+        { error: "Username and password are required" },
         { status: 400 }
       );
     }
 
-    const cleanInput = emailOrUsername.toLowerCase();
+    const cleanInput = usernameInput.toLowerCase();
     const cleanSlug = cleanInput.replace(/\s+/g, "_").replace(/[^a-z0-9_-]/g, "");
     const cleanPhone = normalizeIndianPhone(cleanInput);
 
     const candidateUsers = await prisma.user.findMany({
       where: {
         OR: [
-          { email: cleanInput },
-          { email: cleanInput.includes("@") ? cleanInput : `${cleanInput}@goapay.internal` },
-          { email: cleanSlug ? `${cleanSlug}@goapay.internal` : cleanInput },
-          { email: cleanSlug ? { contains: cleanSlug } : cleanInput },
-          { email: cleanInput.includes("@") ? cleanInput : `${cleanInput}@goapay.com` },
-          { name: { equals: emailOrUsername } },
-          { name: { equals: cleanSlug } },
+          { name: { equals: usernameInput } },
+          { name: { equals: cleanInput } },
+          ...(cleanSlug && cleanSlug !== cleanInput ? [{ name: { equals: cleanSlug } }] : []),
           ...(cleanPhone ? [{ phone: cleanPhone }] : []),
         ],
       },
@@ -38,7 +34,7 @@ export async function POST(request: Request) {
 
     if (!candidateUsers || candidateUsers.length === 0) {
       return NextResponse.json(
-        { error: "Invalid username/email or password" },
+        { error: "Invalid username or password" },
         { status: 401 }
       );
     }
@@ -54,7 +50,7 @@ export async function POST(request: Request) {
 
     if (!user) {
       return NextResponse.json(
-        { error: "Invalid username/email or password" },
+        { error: "Invalid username or password" },
         { status: 401 }
       );
     }
@@ -145,7 +141,6 @@ export async function POST(request: Request) {
             entityId: String(user.id),
             metadata: JSON.stringify({
               username: user.name,
-              email: user.email,
               role: user.role,
               qrProviderId: user.qrProviderId,
               ip: clientIp,
@@ -173,7 +168,6 @@ export async function POST(request: Request) {
 
     const sessionData = {
       userId: user.id,
-      email: user.email,
       name: user.name,
       role: user.role as any,
       qrProviderId: user.qrProviderId,

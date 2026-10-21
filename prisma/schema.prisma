@@ -10,8 +10,7 @@ generator client {
 model User {
   id              Int       @id @default(autoincrement())
   role            String    // "ADMIN" | "MERCHANT" | "AGENT" | "QR_PROVIDER" | "BROKER"
-  name            String
-  email           String    @unique
+  name            String    @unique
   phone           String?
   address         String?
   telegramId      String?

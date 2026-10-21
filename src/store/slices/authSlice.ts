@@ -4,7 +4,7 @@ import type { RootState } from "../index";
 export interface UserProfile {
   id: string;
   name: string;
-  email: string;
+  email?: string;
   role: "ADMIN" | "MERCHANT" | "AGENT" | "QR_PROVIDER" | "BROKER" | "OPERATOR";
   phone?: string | null;
   telegramId?: string | null;
@@ -21,7 +21,7 @@ export interface UserProfile {
   qrProvider?: {
     id: string;
     name: string;
-    email: string;
+    email?: string;
     status: string;
     transactionAllowed: boolean;
     balance: number;

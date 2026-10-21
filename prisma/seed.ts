@@ -14,14 +14,14 @@ async function main() {
   // Remove all extra/test users outside standard roles
   await prisma.user.deleteMany({
     where: {
-      email: {
+      name: {
         notIn: [
-          "admin@goapay.com",
-          "merchant@goapay.com",
-          "provider@goapay.com",
-          "agent@goapay.com",
-          "broker@goapay.com",
-          "operator@goapay.com",
+          "admin",
+          "merchant",
+          "provider",
+          "agent",
+          "broker",
+          "operator",
         ],
       },
     },
@@ -31,34 +31,33 @@ async function main() {
   // 1. Create Default Admin
   const adminPassword = await bcrypt.hash("admin123", 10);
   const admin = await prisma.user.upsert({
-    where: { email: "admin@goapay.com" },
+    where: { name: "admin" },
     update: {
       passwordHash: adminPassword,
+      role: "ADMIN",
     },
     create: {
       role: "ADMIN",
-      name: "Super Admin",
-      email: "admin@goapay.com",
+      name: "admin",
       phone: "+919876543210",
       telegramId: "@goa_admin",
       passwordHash: adminPassword,
     },
   });
-  console.log("Admin ready:", admin.email);
+  console.log("Admin ready:", admin.name);
 
   // 2. Create Agent
   const agentPassword = await bcrypt.hash("agent123", 10);
   const agent = await prisma.user.upsert({
-    where: { email: "agent@goapay.com" },
+    where: { name: "agent" },
     update: {
-      name: "Master Agent Rajesh",
       commissionPercent: 1.0,
       passwordHash: agentPassword,
+      role: "AGENT",
     },
     create: {
       role: "AGENT",
-      name: "Master Agent Rajesh",
-      email: "agent@goapay.com",
+      name: "agent",
       phone: "+919811122233",
       address: "Panaji, Goa",
       telegramId: "@agent_rajesh",
@@ -69,12 +68,12 @@ async function main() {
       },
     },
   });
-  console.log("Agent ready:", agent.email);
+  console.log("Agent ready:", agent.name);
 
   // 3. Create Dedicated Broker
   const brokerPassword = await bcrypt.hash("broker123", 10);
   const broker = await prisma.user.upsert({
-    where: { email: "broker@goapay.com" },
+    where: { name: "broker" },
     update: {
       role: "BROKER",
       commissionPercent: 1.0,
@@ -83,8 +82,7 @@ async function main() {
     },
     create: {
       role: "BROKER",
-      name: "Elite Merchant Broker",
-      email: "broker@goapay.com",
+      name: "broker",
       phone: "+919844455566",
       address: "Panaji, Goa",
       telegramId: "@elite_broker",
@@ -96,14 +94,13 @@ async function main() {
       },
     },
   });
-  console.log("Broker ready:", broker.email);
+  console.log("Broker ready:", broker.name);
 
-  // 4. Create Merchant (with Elite Merchant Broker assigned, 0.00 wallet)
+  // 4. Create Merchant (with Broker assigned, 0.00 wallet)
   const merchantPassword = await bcrypt.hash("merchant123", 10);
   const merchant = await prisma.user.upsert({
-    where: { email: "merchant@goapay.com" },
+    where: { name: "merchant" },
     update: {
-      name: "Goa Beachwear Store",
       brokerId: broker.id,
       payinMerchantFee: 5.0,
       payinQrProviderFee: 2.0,
@@ -115,11 +112,11 @@ async function main() {
       payoutBrokerFee: 2.0,
       status: "ACTIVE",
       passwordHash: merchantPassword,
+      role: "MERCHANT",
     },
     create: {
       role: "MERCHANT",
-      name: "Goa Beachwear Store",
-      email: "merchant@goapay.com",
+      name: "merchant",
       phone: "+919822233344",
       address: "Calangute, Goa",
       telegramId: "@beachwear_merchant",
@@ -133,7 +130,7 @@ async function main() {
       payoutQrProviderFee: 2.0,
       payoutAgentFee: 1.0,
       payoutBrokerFee: 2.0,
-      brokerId: broker.id, // Assigned to Elite Broker
+      brokerId: broker.id, // Assigned to Broker
       status: "ACTIVE",
       passwordHash: merchantPassword,
       wallet: {
@@ -141,27 +138,26 @@ async function main() {
       },
     },
   });
-  console.log("Merchant ready:", merchant.email);
+  console.log("Merchant ready:", merchant.name);
 
   // 5. Create QR Provider (Account Provider with 10,000 initial liquidity balance)
   const providerPassword = await bcrypt.hash("provider123", 10);
   const provider = await prisma.user.upsert({
-    where: { email: "provider@goapay.com" },
+    where: { name: "provider" },
     update: {
-      name: "FastPay Liquidity Provider",
       balance: 10000.0,
       exposure: 0.0,
       availableBalance: 10000.0,
       passwordHash: providerPassword,
+      role: "QR_PROVIDER",
     },
     create: {
       role: "QR_PROVIDER",
-      name: "FastPay Liquidity Provider",
-      email: "provider@goapay.com",
+      name: "provider",
       phone: "+919833344455",
       address: "Margao, Goa",
       telegramId: "@fastpay_provider",
-      agentId: agent.id, // Related to Agent Rajesh
+      agentId: agent.id, // Related to Agent
       balance: 10000.0,
       exposure: 0.0,
       availableBalance: 10000.0,
@@ -190,7 +186,7 @@ async function main() {
       },
     },
   });
-  console.log("QR Provider ready:", provider.email);
+  console.log("QR Provider ready:", provider.name);
 
   // Ensure provider has active QR codes
   const providerQrCount = await prisma.qRCode.count({ where: { providerId: provider.id } });
@@ -220,19 +216,18 @@ async function main() {
   // 6. Create Default Operator under FastPay QR Provider
   const operatorPassword = await bcrypt.hash("operator123", 10);
   const operator = await prisma.user.upsert({
-    where: { email: "operator@goapay.com" },
+    where: { name: "operator" },
     update: {
-      name: "FastPay Shift Operator",
       qrProviderId: provider.id,
       status: "ACTIVE",
       portalAccess: true,
       transactionAllowed: true,
       passwordHash: operatorPassword,
+      role: "OPERATOR",
     },
     create: {
       role: "OPERATOR",
-      name: "FastPay Shift Operator",
-      email: "operator@goapay.com",
+      name: "operator",
       phone: "+919877788899",
       address: "Margao, Goa",
       telegramId: "@fastpay_operator1",
@@ -243,7 +238,7 @@ async function main() {
       passwordHash: operatorPassword,
     },
   });
-  console.log("Operator ready:", operator.email, "(belongs to:", provider.name, ")");
+  console.log("Operator ready:", operator.name, "(belongs to:", provider.name, ")");
 
   // Assign the primary QR code to this Operator
   const primaryQR = await prisma.qRCode.findFirst({
@@ -258,7 +253,6 @@ async function main() {
   }
 
   // 7. Reset all wallets to their clean initial state
-  // Merchant, Broker, Agent wallets = 0.00
   await prisma.wallet.updateMany({
     where: {
       user: {
@@ -268,7 +262,6 @@ async function main() {
     data: { balance: 0.0 },
   });
 
-  // QR Provider wallet = 10,000.00
   await prisma.wallet.updateMany({
     where: {
       user: {

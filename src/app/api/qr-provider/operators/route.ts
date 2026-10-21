@@ -53,7 +53,6 @@ export async function POST(request: Request) {
     const operator = await OperatorService.createOperator(
       {
         name: body.name,
-        email: body.email,
         password: body.password,
         phone: body.phone,
         qrProviderId: targetProviderId,

@@ -6,7 +6,7 @@ import { CreateQRCodeInput, UpdateQRCodeInput, QRCodeItem } from "@/types/qr-pro
 export interface SessionUser {
   userId: number | string;
   role: string;
-  email: string;
+  email?: string;
   name?: string;
 }
 
@@ -46,8 +46,8 @@ export class QRCodeService {
     const qrCodes = await prisma.qRCode.findMany({
       where,
       include: {
-        operator: { select: { id: true, name: true, email: true } },
-        provider: { select: { id: true, name: true, email: true } },
+        operator: { select: { id: true, name: true } },
+        provider: { select: { id: true, name: true } },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -65,8 +65,8 @@ export class QRCodeService {
     const qrCode = await prisma.qRCode.findUnique({
       where: { id: numericId },
       include: {
-        operator: { select: { id: true, name: true, email: true } },
-        provider: { select: { id: true, name: true, email: true } },
+        operator: { select: { id: true, name: true } },
+        provider: { select: { id: true, name: true } },
       },
     });
 
@@ -166,8 +166,8 @@ export class QRCodeService {
         isActive: activeBool,
       },
       include: {
-        operator: { select: { id: true, name: true, email: true } },
-        provider: { select: { id: true, name: true, email: true } },
+        operator: { select: { id: true, name: true } },
+        provider: { select: { id: true, name: true } },
       },
     });
   }
@@ -202,8 +202,8 @@ export class QRCodeService {
         status: newActiveState ? "ACTIVE" : "INACTIVE",
       },
       include: {
-        operator: { select: { id: true, name: true, email: true } },
-        provider: { select: { id: true, name: true, email: true } },
+        operator: { select: { id: true, name: true } },
+        provider: { select: { id: true, name: true } },
       },
     });
   }
@@ -273,8 +273,8 @@ export class QRCodeService {
       where: { id: numericId },
       data,
       include: {
-        operator: { select: { id: true, name: true, email: true } },
-        provider: { select: { id: true, name: true, email: true } },
+        operator: { select: { id: true, name: true } },
+        provider: { select: { id: true, name: true } },
       },
     });
   }

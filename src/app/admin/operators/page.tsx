@@ -585,7 +585,6 @@ export default function AdminOperatorsPage() {
                                   setSelectedQrDetails({
                                     ...activeQr,
                                     operatorName: op.name,
-                                    operatorEmail: op.email,
                                     providerName: op.qrProvider?.name,
                                   })
                                 }

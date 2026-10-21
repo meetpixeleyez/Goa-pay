@@ -140,7 +140,6 @@ export async function GET(request: Request) {
       const s = search.trim();
       where.OR = [
         { name: { contains: s } },
-        { email: { contains: s } },
         { phone: { contains: s } },
         { telegramId: { contains: s } },
         { id: { contains: s } },
@@ -169,15 +168,14 @@ export async function GET(request: Request) {
         wallet: true,
         qrCodes: true,
         assignedQRCodes: true,
-        qrProvider: { select: { id: true, name: true, email: true } },
-        broker: { select: { id: true, name: true, email: true, commissionPercent: true } },
-        agent: { select: { id: true, name: true, email: true } },
-        operators: { select: { id: true, name: true, email: true, status: true } },
+        qrProvider: { select: { id: true, name: true } },
+        broker: { select: { id: true, name: true, commissionPercent: true } },
+        agent: { select: { id: true, name: true } },
+        operators: { select: { id: true, name: true, status: true } },
         brokeredMerchants: {
           select: {
             id: true,
             name: true,
-            email: true,
             status: true,
             payinMerchantFee: true,
             payinQrProviderFee: true,
@@ -334,11 +332,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Silent internal handle to satisfy database schema without requiring email
-    const internalHandle = `${baseSlug}_${role.toLowerCase()}_${Date.now()}_${Math.floor(100 + Math.random() * 900)}@internal.local`;
-    data.email = internalHandle;
     data.username = cleanName;
-    email = internalHandle;
 
     if (!role || !name || !password) {
       return NextResponse.json(
@@ -358,7 +352,6 @@ export async function POST(request: Request) {
       const user = await QRProviderService.createQRProvider(
         {
           name: data.name,
-          email: data.email,
           password: data.password,
           phone: data.phone,
           address: data.address,
@@ -390,7 +383,6 @@ export async function POST(request: Request) {
       const user = await OperatorService.createOperator(
         {
           name: data.name,
-          email: data.email,
           password: data.password,
           phone: data.phone,
           qrProviderId,
@@ -437,7 +429,6 @@ export async function POST(request: Request) {
         data: {
           role,
           name: name.trim(),
-          email: email.trim().toLowerCase(),
           phone: cleanPhone,
           address: address ? address.trim() : null,
           telegramId: cleanTelegram,

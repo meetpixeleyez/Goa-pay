@@ -3,7 +3,7 @@ import { PaginationMeta, PaginationParams } from "./api";
 export interface AgentItem {
   id: number | string;
   name: string;
-  email: string;
+  email?: string;
   phone?: string | null;
   telegramId?: string | null;
   address?: string | null;

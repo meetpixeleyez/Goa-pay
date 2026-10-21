@@ -3,7 +3,7 @@ import { PaginationMeta } from "./api";
 export interface MerchantBrokerInfo {
   id: number | string;
   name: string;
-  email: string;
+  email?: string;
   commissionPercent?: number;
 }
 
@@ -15,7 +15,7 @@ export interface MerchantWalletInfo {
 export interface MerchantListItem {
   id: number | string;
   name: string;
-  email: string;
+  email?: string;
   phone?: string | null;
   address?: string | null;
   telegramId?: string | null;

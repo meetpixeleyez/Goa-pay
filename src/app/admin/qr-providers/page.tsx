@@ -85,10 +85,9 @@ export default function AdminQRProvidersPage() {
         if (searchQuery.trim()) {
           const q = searchQuery.toLowerCase().trim();
           const nameMatch = (p.name || "").toLowerCase().includes(q);
-          const emailMatch = (p.email || "").toLowerCase().includes(q);
           const tgMatch = (p.telegramId || "").toLowerCase().includes(q);
           const phoneMatch = (p.phone || "").toLowerCase().includes(q);
-          if (!nameMatch && !emailMatch && !tgMatch && !phoneMatch) return false;
+          if (!nameMatch && !tgMatch && !phoneMatch) return false;
         }
 
         // Agent filter

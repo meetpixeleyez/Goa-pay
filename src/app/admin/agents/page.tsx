@@ -106,9 +106,8 @@ export default function AdminAgentsPage() {
         if (searchQuery.trim()) {
           const q = searchQuery.toLowerCase().trim();
           const matchName = (a.name || "").toLowerCase().includes(q);
-          const matchEmail = (a.email || "").toLowerCase().includes(q);
           const matchTelegram = (a.telegramId || "").toLowerCase().includes(q);
-          if (!matchName && !matchEmail && !matchTelegram) return false;
+          if (!matchName && !matchTelegram) return false;
         }
 
         // Status filter

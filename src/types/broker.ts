@@ -3,7 +3,7 @@ import { PaginationMeta, PaginationParams } from "./api";
 export interface BrokerItem {
   id: number | string;
   name: string;
-  email: string;
+  email?: string;
   phone?: string | null;
   telegramId?: string | null;
   address?: string | null;
@@ -14,7 +14,7 @@ export interface BrokerItem {
   merchants?: Array<{
     id: number | string;
     name: string;
-    email: string;
+    email?: string;
     phone?: string | null;
     status: string;
     payinMerchantFee?: number | null;

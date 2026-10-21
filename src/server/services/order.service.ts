@@ -182,8 +182,8 @@ export class OrderService {
         totalFees: feeSnapshot.totalFees,
       },
       include: {
-        merchant: { select: { id: true, name: true, email: true } },
-        qrProvider: { select: { id: true, name: true, email: true } },
+        merchant: { select: { id: true, name: true } },
+        qrProvider: { select: { id: true, name: true } },
         qrCode: {
           select: {
             id: true,
@@ -222,8 +222,8 @@ export class OrderService {
     const order = await prisma.order.findFirst({
       where,
       include: {
-        merchant: { select: { id: true, name: true, email: true, phone: true } },
-        qrProvider: { select: { id: true, name: true, email: true, phone: true } },
+        merchant: { select: { id: true, name: true, phone: true } },
+        qrProvider: { select: { id: true, name: true, phone: true } },
         qrCode: {
           select: {
             id: true,
@@ -375,11 +375,11 @@ export class OrderService {
       prisma.order.findMany({
         where,
         include: {
-          merchant: { select: { id: true, name: true, email: true, phone: true } },
-          qrProvider: { select: { id: true, name: true, email: true, phone: true } },
+          merchant: { select: { id: true, name: true, phone: true } },
+          qrProvider: { select: { id: true, name: true, phone: true } },
           qrCode: {
             include: {
-              operator: { select: { id: true, name: true, email: true } },
+              operator: { select: { id: true, name: true } },
             },
           },
         },
@@ -585,8 +585,8 @@ export class OrderService {
         status: "processing",
       },
       include: {
-        merchant: { select: { id: true, name: true, email: true } },
-        qrProvider: { select: { id: true, name: true, email: true } },
+        merchant: { select: { id: true, name: true } },
+        qrProvider: { select: { id: true, name: true } },
         qrCode: true,
       },
     });

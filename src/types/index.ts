@@ -26,7 +26,7 @@ export type LedgerCategory =
 export interface UserSummary {
   id: number | string;
   name: string;
-  email: string;
+  email?: string;
   phone?: string | null;
   role: UserRole;
   status?: AccountStatus | string;
@@ -39,7 +39,7 @@ export interface UserSummary {
 export interface OperatorSummary {
   id: number | string;
   name: string;
-  email: string;
+  email?: string;
 }
 
 export interface QRCodeSummary {
@@ -122,7 +122,7 @@ export interface LedgerEntryItem {
     user?: {
       id: number | string;
       name: string;
-      email: string;
+      email?: string;
       role: string;
     } | null;
   } | null;

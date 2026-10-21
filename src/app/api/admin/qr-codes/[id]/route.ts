@@ -21,7 +21,7 @@ export async function GET(
       where: { id: qrCodeId },
       include: {
         provider: {
-          select: { id: true, name: true, email: true },
+          select: { id: true, name: true },
         },
       },
     });
@@ -125,7 +125,7 @@ export async function PUT(
       where: { id: qrCodeId },
       data: updateData,
       include: {
-        operator: { select: { id: true, name: true, email: true } },
+        operator: { select: { id: true, name: true } },
       },
     });
 

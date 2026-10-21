@@ -218,7 +218,6 @@ export default function AdminBrokersPage() {
     const q = searchTerm.toLowerCase();
     const matchesSearch =
       b.name?.toLowerCase().includes(q) ||
-      b.email?.toLowerCase().includes(q) ||
       b.telegramId?.toLowerCase().includes(q) ||
       b.phone?.includes(q) ||
       `brk-${b.id}`.includes(q);

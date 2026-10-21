@@ -39,14 +39,13 @@ export async function GET(
         },
         qrCodes: {
           include: {
-            operator: { select: { id: true, name: true, email: true } },
+            operator: { select: { id: true, name: true } },
           },
         },
         operators: {
           select: {
             id: true,
             name: true,
-            email: true,
             phone: true,
             status: true,
             portalAccess: true,
@@ -57,19 +56,18 @@ export async function GET(
             },
           },
         },
-        qrProvider: { select: { id: true, name: true, email: true, phone: true } },
+        qrProvider: { select: { id: true, name: true, phone: true } },
         assignedQRCodes: {
           include: {
             provider: { select: { id: true, name: true } },
           },
         },
-        broker: { select: { id: true, name: true, email: true, commissionPercent: true } },
-        agent: { select: { id: true, name: true, email: true, commissionPercent: true } },
+        broker: { select: { id: true, name: true, commissionPercent: true } },
+        agent: { select: { id: true, name: true, commissionPercent: true } },
         brokeredMerchants: {
           select: {
             id: true,
             name: true,
-            email: true,
             phone: true,
             status: true,
             payinMerchantFee: true,
@@ -88,7 +86,6 @@ export async function GET(
           select: {
             id: true,
             name: true,
-            email: true,
             phone: true,
             status: true,
             balance: true,
@@ -364,7 +361,7 @@ export async function POST(
             balanceAfter: newBalance,
             description:
               description?.trim() ||
-              `Manual Balance Deposit by Admin (${session.email})`,
+              `Manual Balance Deposit by Admin (${session.name || "Admin"})`,
           },
         });
 
@@ -467,7 +464,7 @@ export async function POST(
             balanceAfter: newBalance,
             description:
               description?.trim() ||
-              `Manual Balance Withdrawal by Admin (${session.email})`,
+              `Manual Balance Withdrawal by Admin (${session.name || "Admin"})`,
           },
         });
 
@@ -596,7 +593,7 @@ export async function POST(
             balanceAfter: user.balance,
             description:
               description?.trim() ||
-              `Credit ${creditOperation === "ADD" ? "Added (+₹" + numAmount.toFixed(2) + ")" : "Deducted (-₹" + numAmount.toFixed(2) + ")"} by Admin (${session.email})`,
+              `Credit ${creditOperation === "ADD" ? "Added (+₹" + numAmount.toFixed(2) + ")" : "Deducted (-₹" + numAmount.toFixed(2) + ")"} by Admin (${session.name || "Admin"})`,
           },
         });
       }

@@ -11,11 +11,10 @@ import { ApiError } from "@/types/api";
 async function getNextSequence(role: "OPERATOR" | "OTHER"): Promise<{
   sequence: number;
   username: string;
-  email: string;
 }> {
   const users = await prisma.user.findMany({
     where: { role },
-    select: { name: true, email: true },
+    select: { name: true },
   });
 
   const prefix = role === "OPERATOR" ? "Operator" : "Other";
@@ -30,31 +29,17 @@ async function getNextSequence(role: "OPERATOR" | "OTHER"): Promise<{
         if (!isNaN(val) && val > maxNum) maxNum = val;
       }
     }
-    if (u.email) {
-      const emailUsername = u.email.split("@")[0];
-      const match = emailUsername.match(regex);
-      if (match) {
-        const val = parseInt(match[1], 10);
-        if (!isNaN(val) && val > maxNum) maxNum = val;
-      }
-    }
   }
 
   let nextNum = maxNum + 1;
 
-  // Double check that no user exists with this exact username or email
+  // Double check that no user exists with this exact username
   while (true) {
     const candidateName = `${prefix} ${nextNum}`;
-    const candidateEmail = `${prefix.toLowerCase()}_${nextNum}@goapay.internal`;
-    const candidateSlug = `${prefix.toLowerCase()}_${nextNum}`;
 
     const exists = await prisma.user.findFirst({
       where: {
-        OR: [
-          { name: candidateName },
-          { email: candidateEmail },
-          { email: `${candidateSlug}@goapay.internal` },
-        ],
+        name: candidateName,
       },
       select: { id: true },
     });
@@ -63,7 +48,6 @@ async function getNextSequence(role: "OPERATOR" | "OTHER"): Promise<{
       return {
         sequence: nextNum,
         username: candidateName,
-        email: candidateEmail,
       };
     }
     nextNum++;
@@ -108,7 +92,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Access denied." }, { status: 403 });
     }
 
-    const { sequence, username, email } = await getNextSequence(role);
+    const { sequence, username } = await getNextSequence(role);
     const suggestedPassword = generateSeriesPassword(role);
 
     // If Operator and Admin, load available QR Providers
@@ -116,7 +100,7 @@ export async function GET(request: Request) {
     if (role === "OPERATOR" && session.role === "ADMIN") {
       qrProviders = await prisma.user.findMany({
         where: { role: "QR_PROVIDER", status: "ACTIVE" },
-        select: { id: true, name: true, email: true },
+        select: { id: true, name: true },
         orderBy: { name: "asc" },
       });
     }
@@ -126,7 +110,6 @@ export async function GET(request: Request) {
       role,
       sequence,
       username,
-      email,
       suggestedPassword,
       qrProviders,
       userRole: session.role,
@@ -225,17 +208,11 @@ export async function POST(request: Request) {
 
     // OTHER ROLE CREATION FLOW
     if (role === "OTHER") {
-      const cleanSlug = finalUsername.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_-]/g, "");
-
       // Check if user with same role and username exists
       const existing = await prisma.user.findFirst({
         where: {
           role: "OTHER",
-          OR: [
-            { name: finalUsername },
-            { email: `${cleanSlug}@goapay.internal` },
-            { email: `${cleanSlug}.other@goapay.internal` },
-          ],
+          name: finalUsername,
         },
       });
 
@@ -246,12 +223,6 @@ export async function POST(request: Request) {
         );
       }
 
-      let finalEmail = `${cleanSlug}@goapay.internal`;
-      const emailTaken = await prisma.user.findUnique({ where: { email: finalEmail } });
-      if (emailTaken) {
-        finalEmail = `${cleanSlug}.other@goapay.internal`;
-      }
-
       const passwordHash = await hashPassword(finalPassword);
 
       const newUser = await prisma.$transaction(async (tx) => {
@@ -259,7 +230,6 @@ export async function POST(request: Request) {
           data: {
             role: "OTHER",
             name: finalUsername,
-            email: finalEmail,
             passwordHash,
             status: "ACTIVE",
             portalAccess: true,

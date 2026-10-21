@@ -34,7 +34,6 @@ export class BrokerService {
       const s = search.trim();
       const orConditions: any[] = [
         { name: { contains: s } },
-        { email: { contains: s } },
         { phone: { contains: s } },
         { telegramId: { contains: s } },
       ];
@@ -68,7 +67,6 @@ export class BrokerService {
     const formattedBrokers: BrokerItem[] = brokers.map((b) => ({
       id: b.id,
       name: b.name,
-      email: b.email,
       phone: b.phone,
       telegramId: b.telegramId,
       address: b.address,
@@ -154,23 +152,17 @@ export class BrokerService {
       throw new ApiError(`A Broker with username "${name.trim()}" already exists.`, 400);
     }
 
-    const cleanSlug = name.trim().toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_-]/g, "") || "broker";
-    const finalEmail = (email && email.trim())
-      ? email.trim().toLowerCase()
-      : `broker_${cleanSlug}_${Date.now()}_${Math.floor(100 + Math.random() * 900)}@internal.local`;
-
     const passwordHash = await hashPassword(password);
     const cleanPhone = phone ? normalizeIndianPhone(phone) : null;
     const cleanTelegram = normalizeTelegramId(telegramId);
     const commRate = parseFloat(String(commissionPercent ?? 0.0)) || 0.0;
-    const numericAdminId = typeof adminUserId === "number" ? adminUserId : parseInt(adminUserId, 10);
+    const numericAdminId = typeof adminUserId === "number" ? adminUserId : parseInt(adminUserId as any, 10);
 
     const user = await prisma.$transaction(async (tx) => {
       const newUser = await tx.user.create({
         data: {
           role: "BROKER",
           name: name.trim(),
-          email: finalEmail,
           passwordHash,
           phone: cleanPhone,
           telegramId: cleanTelegram,
@@ -197,7 +189,6 @@ export class BrokerService {
           entityId: String(newUser.id),
           metadata: JSON.stringify({
             name: newUser.name,
-            email: newUser.email,
             commissionPercent: commRate,
           }),
         },

@@ -1,6 +1,6 @@
 import prisma from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth";
-import { normalizeIndianPhone, isValidEmail, isValidUpiId } from "@/lib/validation";
+import { normalizeIndianPhone, isValidUpiId } from "@/lib/validation";
 import { ApiError } from "@/types/api";
 import { SessionUser } from "./qr-code.service";
 import { CreateOperatorInput, UpdateOperatorInput, OperatorItem } from "@/types/qr-provider";
@@ -43,7 +43,6 @@ export class OperatorService {
       const s = search.trim();
       const orConditions: any[] = [
         { name: { contains: s } },
-        { email: { contains: s } },
         { phone: { contains: s } },
         { qrProvider: { name: { contains: s } } },
       ];
@@ -65,14 +64,13 @@ export class OperatorService {
         select: {
           id: true,
           name: true,
-          email: true,
           phone: true,
           status: true,
           portalAccess: true,
           transactionAllowed: true,
           qrProviderId: true,
           qrProvider: {
-            select: { id: true, name: true, email: true, phone: true },
+            select: { id: true, name: true, phone: true },
           },
           createdAt: true,
           assignedQRCodes: {
@@ -145,14 +143,13 @@ export class OperatorService {
       select: {
         id: true,
         name: true,
-        email: true,
         phone: true,
         status: true,
         portalAccess: true,
         transactionAllowed: true,
         qrProviderId: true,
         qrProvider: {
-          select: { id: true, name: true, email: true, phone: true, balance: true, exposure: true, availableBalance: true },
+          select: { id: true, name: true, phone: true, balance: true, exposure: true, availableBalance: true },
         },
         createdAt: true,
         assignedQRCodes: {
@@ -226,30 +223,15 @@ export class OperatorService {
       throw new ApiError("Passwords do not match", 400);
     }
 
-    const cleanSlug = rawUsername.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_-]/g, "");
-    const generatedEmail = `${cleanSlug}@goapay.internal`;
-    let finalEmail = input.email && isValidEmail(input.email)
-      ? input.email.trim().toLowerCase()
-      : generatedEmail;
-
     // Check if operator with same username already exists
     const existing = await prisma.user.findFirst({
       where: {
         role: "OPERATOR",
-        OR: [
-          { name: rawUsername },
-          { email: finalEmail },
-          { email: generatedEmail },
-        ],
+        name: rawUsername,
       },
     });
     if (existing) {
       throw new ApiError("An operator with this username already exists. Please choose a different username.", 400);
-    }
-
-    const emailTaken = await prisma.user.findUnique({ where: { email: finalEmail } });
-    if (emailTaken) {
-      finalEmail = `${cleanSlug}.operator@goapay.internal`;
     }
 
     const passwordHash = await hashPassword(input.password);
@@ -260,7 +242,6 @@ export class OperatorService {
         data: {
           role: "OPERATOR",
           name: rawUsername,
-          email: finalEmail,
           passwordHash,
           phone: cleanPhone,
           status: "ACTIVE",
@@ -317,7 +298,6 @@ export class OperatorService {
           entityId: String(newOperator.id),
           metadata: JSON.stringify({
             operatorName: newOperator.name,
-            operatorEmail: newOperator.email,
             qrProviderId: targetProviderId,
           }),
         },

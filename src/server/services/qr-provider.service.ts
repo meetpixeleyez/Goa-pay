@@ -1,6 +1,6 @@
 import prisma from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth";
-import { normalizeIndianPhone, normalizeTelegramId, isValidEmail, isValidUpiId } from "@/lib/validation";
+import { normalizeIndianPhone, normalizeTelegramId, isValidUpiId } from "@/lib/validation";
 import { ApiError } from "@/types/api";
 import {
   QRProviderListItem,
@@ -45,7 +45,6 @@ export class QRProviderService {
       const s = search.trim();
       const orConditions: any[] = [
         { name: { contains: s } },
-        { email: { contains: s } },
         { phone: { contains: s } },
         { telegramId: { contains: s } },
       ];
@@ -80,13 +79,13 @@ export class QRProviderService {
         where,
         include: {
           wallet: true,
-          agent: { select: { id: true, name: true, email: true, commissionPercent: true } },
+          agent: { select: { id: true, name: true, commissionPercent: true } },
           qrCodes: {
             include: {
-              operator: { select: { id: true, name: true, email: true } },
+              operator: { select: { id: true, name: true } },
             },
           },
-          operators: { select: { id: true, name: true, email: true, status: true } },
+          operators: { select: { id: true, name: true, status: true } },
           _count: {
             select: {
               providerOrders: true,
@@ -158,10 +157,10 @@ export class QRProviderService {
             },
           },
         },
-        agent: { select: { id: true, name: true, email: true } },
+        agent: { select: { id: true, name: true } },
         qrCodes: {
           include: {
-            operator: { select: { id: true, name: true, email: true } },
+            operator: { select: { id: true, name: true } },
           },
           orderBy: { createdAt: "desc" },
         },
@@ -215,7 +214,6 @@ export class QRProviderService {
   static async createQRProvider(input: CreateQRProviderInput, adminUserId: number | string) {
     const {
       name,
-      email,
       password,
       phone,
       address,
@@ -244,11 +242,6 @@ export class QRProviderService {
       throw new ApiError(`A QR Provider with username "${name.trim()}" already exists.`, 400);
     }
 
-    const cleanSlug = name.trim().toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_-]/g, "") || "provider";
-    const finalEmail = (email && email.trim())
-      ? email.trim().toLowerCase()
-      : `provider_${cleanSlug}_${Date.now()}_${Math.floor(100 + Math.random() * 900)}@internal.local`;
-
     const numAgentId = agentId ? (typeof agentId === "number" ? agentId : parseInt(agentId, 10)) : null;
     if (numAgentId) {
       const agent = await prisma.user.findFirst({
@@ -265,14 +258,13 @@ export class QRProviderService {
     const cleanPhone = phone ? normalizeIndianPhone(phone) : null;
     const cleanTelegram = telegramId ? normalizeTelegramId(telegramId) : null;
     const parsedBalance = Math.max(0, Number(initialBalance) || 0);
-    const numericAdminId = typeof adminUserId === "number" ? adminUserId : parseInt(adminUserId, 10);
+    const numericAdminId = typeof adminUserId === "number" ? adminUserId : parseInt(adminUserId as any, 10);
 
     return await prisma.$transaction(async (tx) => {
       const provider = await tx.user.create({
         data: {
           role: "QR_PROVIDER",
           name: name.trim(),
-          email: finalEmail,
           passwordHash,
           phone: cleanPhone,
           address: address?.trim() || null,
@@ -327,7 +319,6 @@ export class QRProviderService {
           entityId: String(provider.id),
           metadata: JSON.stringify({
             name: provider.name,
-            email: provider.email,
             initialBalance: parsedBalance,
             agentId: provider.agentId,
           }),
@@ -396,7 +387,7 @@ export class QRProviderService {
         where: { id: numericId },
         data,
         include: {
-          agent: { select: { id: true, name: true, email: true } },
+          agent: { select: { id: true, name: true } },
           wallet: true,
         },
       });
@@ -445,7 +436,7 @@ export class QRProviderService {
         },
         qrCodes: {
           include: {
-            operator: { select: { id: true, name: true, email: true } },
+            operator: { select: { id: true, name: true } },
           },
         },
       },

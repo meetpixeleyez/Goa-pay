@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Lock, Mail, ArrowRight, ShieldCheck, AlertCircle, Eye, EyeOff } from "lucide-react";
+import { Lock, User, ArrowRight, ShieldCheck, AlertCircle, Eye, EyeOff } from "lucide-react";
 
 import { useAppDispatch } from "@/store/hooks";
 import { fetchCurrentUser } from "@/store/slices/authSlice";
@@ -116,16 +116,16 @@ export default function LoginPage() {
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-              Email, Username, or Mobile Number
+              Username or Mobile Number
             </label>
             <div className="relative">
-              <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+              <User className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
               <input
                 type="text"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="Email, username, or mobile"
+                placeholder="Enter username or mobile"
                 className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition"
               />
             </div>
@@ -174,51 +174,51 @@ export default function LoginPage() {
           <div className="grid grid-cols-2 gap-2 text-xs">
             <button
               type="button"
-              onClick={() => fillDemo("admin@goapay.com", "admin123")}
+              onClick={() => fillDemo("admin", "admin123")}
               className="p-2 border border-slate-200 rounded-lg hover:bg-slate-50 hover:border-slate-300 text-left transition cursor-pointer"
             >
               <div className="font-bold text-slate-900 text-xs">Super Admin</div>
-              <div className="text-[10px] text-slate-500 font-mono">admin@goapay.com</div>
+              <div className="text-[10px] text-slate-500 font-mono">admin</div>
             </button>
             <button
               type="button"
-              onClick={() => fillDemo("merchant@goapay.com", "merchant123")}
+              onClick={() => fillDemo("merchant", "merchant123")}
               className="p-2 border border-slate-200 rounded-lg hover:bg-slate-50 hover:border-slate-300 text-left transition cursor-pointer"
             >
               <div className="font-bold text-slate-900 text-xs">Merchant</div>
-              <div className="text-[10px] text-slate-500 font-mono">merchant@goapay.com</div>
+              <div className="text-[10px] text-slate-500 font-mono">merchant</div>
             </button>
             <button
               type="button"
-              onClick={() => fillDemo("provider@goapay.com", "provider123")}
+              onClick={() => fillDemo("provider", "provider123")}
               className="p-2 border border-slate-200 rounded-lg hover:bg-slate-50 hover:border-slate-300 text-left transition cursor-pointer"
             >
               <div className="font-bold text-slate-900 text-xs">QR Provider</div>
-              <div className="text-[10px] text-slate-500 font-mono">provider@goapay.com</div>
+              <div className="text-[10px] text-slate-500 font-mono">provider</div>
             </button>
             <button
               type="button"
-              onClick={() => fillDemo("agent@goapay.com", "agent123")}
+              onClick={() => fillDemo("agent", "agent123")}
               className="p-2 border border-slate-200 rounded-lg hover:bg-slate-50 hover:border-slate-300 text-left transition cursor-pointer"
             >
               <div className="font-bold text-slate-900 text-xs">Master Agent</div>
-              <div className="text-[10px] text-slate-500 font-mono">agent@goapay.com</div>
+              <div className="text-[10px] text-slate-500 font-mono">agent</div>
             </button>
             <button
               type="button"
-              onClick={() => fillDemo("broker@goapay.com", "broker123")}
+              onClick={() => fillDemo("broker", "broker123")}
               className="p-2 border border-slate-200 rounded-lg hover:bg-slate-50 hover:border-slate-300 text-left transition cursor-pointer"
             >
               <div className="font-bold text-slate-900 text-xs">Elite Broker</div>
-              <div className="text-[10px] text-slate-500 font-mono">broker@goapay.com</div>
+              <div className="text-[10px] text-slate-500 font-mono">broker</div>
             </button>
             <button
               type="button"
-              onClick={() => fillDemo("operator@goapay.com", "operator123")}
+              onClick={() => fillDemo("operator", "operator123")}
               className="p-2 border border-emerald-200 bg-emerald-50/40 rounded-lg hover:bg-emerald-50 hover:border-emerald-300 text-left transition cursor-pointer"
             >
               <div className="font-bold text-emerald-800 text-xs">QR Operator</div>
-              <div className="text-[10px] text-emerald-600 font-mono">operator@goapay.com</div>
+              <div className="text-[10px] text-emerald-600 font-mono">operator</div>
             </button>
           </div>
         </div>

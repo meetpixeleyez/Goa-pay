@@ -314,7 +314,7 @@ export async function POST(request: Request) {
             fromBalanceAfter: newFromBalance,
             toBalanceBefore: toCurrentBalance,
             toBalanceAfter: newToBalance,
-            executedBy: session.email,
+            executedBy: session.name || "Admin",
           }),
         },
       });

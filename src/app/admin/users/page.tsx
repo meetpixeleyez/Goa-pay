@@ -173,7 +173,6 @@ export default function UsersDirectoryPage() {
           const q = searchTerm.toLowerCase();
           return (
             u.name?.toLowerCase().includes(q) ||
-            u.email?.toLowerCase().includes(q) ||
             u.phone?.toLowerCase().includes(q) ||
             String(u.id).includes(q)
           );
@@ -567,7 +566,7 @@ export default function UsersDirectoryPage() {
                   filteredUsers.map((u) => {
                     const badge = getRoleBadge(u.role);
                     const profileUrl = getUserProfileUrl(u);
-                    const displayName = u.name || (u.email ? u.email.replace("@goapay.internal", "") : `user_${u.id}`);
+                    const displayName = u.name || `user_${u.id}`;
 
                     return (
                       <tr

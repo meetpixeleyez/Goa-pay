@@ -46,7 +46,6 @@ export class MerchantService {
       const s = search.trim();
       const orConditions: any[] = [
         { name: { contains: s } },
-        { email: { contains: s } },
         { phone: { contains: s } },
         { telegramId: { contains: s } },
       ];
@@ -77,7 +76,7 @@ export class MerchantService {
         where,
         include: {
           wallet: true,
-          broker: { select: { id: true, name: true, email: true, commissionPercent: true } },
+          broker: { select: { id: true, name: true, commissionPercent: true } },
           _count: {
             select: {
               merchantOrders: true,
@@ -238,7 +237,7 @@ export class MerchantService {
           },
         },
         broker: {
-          select: { id: true, name: true, email: true, commissionPercent: true },
+          select: { id: true, name: true, commissionPercent: true },
         },
         merchantOrders: {
           take: 50,
@@ -257,7 +256,6 @@ export class MerchantService {
   static async createMerchant(input: CreateMerchantInput, adminUserId: number | string) {
     const {
       name,
-      email,
       password = "merchant@12345",
       phone,
       address,
@@ -286,11 +284,6 @@ export class MerchantService {
       throw new ApiError(`A Merchant with username "${name.trim()}" already exists.`, 400);
     }
 
-    const cleanSlug = name.trim().toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_-]/g, "") || "merchant";
-    const finalEmail = (email && email.trim())
-      ? email.trim().toLowerCase()
-      : `merchant_${cleanSlug}_${Date.now()}_${Math.floor(100 + Math.random() * 900)}@internal.local`;
-
     const numBrokerId = brokerId ? (typeof brokerId === "number" ? brokerId : parseInt(brokerId, 10)) : null;
     if (numBrokerId) {
       const broker = await prisma.user.findFirst({
@@ -304,13 +297,12 @@ export class MerchantService {
     const passwordHash = await hashPassword(password);
     const cleanPhone = phone ? normalizeIndianPhone(phone) : null;
     const cleanTelegram = telegramId ? normalizeTelegramId(telegramId) : null;
-    const numericAdminId = typeof adminUserId === "number" ? adminUserId : parseInt(adminUserId, 10);
+    const numericAdminId = typeof adminUserId === "number" ? adminUserId : parseInt(adminUserId as any, 10);
 
     return await prisma.$transaction(async (tx) => {
       const user = await tx.user.create({
         data: {
           name: name.trim(),
-          email: finalEmail,
           passwordHash,
           role: "MERCHANT",
           phone: cleanPhone,
@@ -346,7 +338,6 @@ export class MerchantService {
           entityId: String(user.id),
           metadata: JSON.stringify({
             merchantName: user.name,
-            merchantEmail: user.email,
             walletId: wallet.id,
             brokerId: user.brokerId,
             fees: {
@@ -413,7 +404,7 @@ export class MerchantService {
         data,
         include: {
           wallet: true,
-          broker: { select: { id: true, name: true, email: true, commissionPercent: true } },
+          broker: { select: { id: true, name: true, commissionPercent: true } },
         },
       });
 

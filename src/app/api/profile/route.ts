@@ -11,9 +11,9 @@ export async function GET() {
     const user = await prisma.user.findUnique({
       where: { id: session.userId },
       include: {
-        broker: { select: { id: true, name: true, email: true } },
-        agent: { select: { id: true, name: true, email: true } },
-        qrProvider: { select: { id: true, name: true, email: true, phone: true } },
+        broker: { select: { id: true, name: true } },
+        agent: { select: { id: true, name: true } },
+        qrProvider: { select: { id: true, name: true, phone: true } },
         wallet: true,
         auditLogs: {
           where: { action: "OPERATOR_LOGIN" },

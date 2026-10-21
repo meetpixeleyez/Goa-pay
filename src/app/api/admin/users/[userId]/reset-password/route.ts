@@ -30,12 +30,12 @@ export async function POST(
     const user = await prisma.user.update({
       where: { id: userId },
       data: { passwordHash },
-      select: { id: true, name: true, email: true, role: true },
+      select: { id: true, name: true, role: true },
     });
 
     return NextResponse.json({
       success: true,
-      message: `Password reset successfully for ${user.email}`,
+      message: `Password reset successfully for ${user.name}`,
       user,
     });
   } catch (error: any) {

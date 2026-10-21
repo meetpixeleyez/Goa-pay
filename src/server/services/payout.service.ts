@@ -174,7 +174,7 @@ export class PayoutService {
     });
 
     try {
-      notifyPayoutClaimed(orderId, String(numericSessionUserId), user.name || user.email);
+      notifyPayoutClaimed(orderId, String(numericSessionUserId), user.name || "User");
     } catch (e) {
       console.warn("Socket notification failed:", e);
     }
@@ -389,7 +389,7 @@ export class PayoutService {
       throw new ApiError("You are not the assigned QR provider for this order", 403);
     }
 
-    let providerName = user.role === "QR_PROVIDER" ? (user.name || user.email) : undefined;
+    let providerName = user.role === "QR_PROVIDER" ? (user.name || "Provider") : undefined;
     if (order.qrProviderId) {
       const providerUser = await prisma.user.findUnique({
         where: { id: order.qrProviderId },
