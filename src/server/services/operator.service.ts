@@ -386,6 +386,57 @@ export class OperatorService {
   }
 
   /**
+   * Permanently removes an operator owned by the current QR Provider.
+   * Any assigned QR codes become available for reassignment.
+   */
+  static async deleteOperator(id: number | string, user: SessionUser) {
+    const numericId = typeof id === "number" ? id : parseInt(id, 10);
+    const numericSessionUserId = typeof user.userId === "number" ? user.userId : parseInt(user.userId as any, 10);
+
+    if (isNaN(numericId)) throw new ApiError("Invalid operator ID", 400);
+
+    const operator = await this.getOperatorById(numericId, user);
+
+    await prisma.$transaction(async (tx) => {
+      // Preserve QR codes and historical orders, while removing this operator's links.
+      await tx.qRCode.updateMany({
+        where: { operatorId: numericId },
+        data: { operatorId: null },
+      });
+      await tx.order.updateMany({
+        where: { verifiedById: numericId },
+        data: { verifiedById: null },
+      });
+
+      const wallet = await tx.wallet.findUnique({ where: { userId: numericId } });
+      if (wallet) {
+        await tx.ledgerEntry.deleteMany({ where: { walletId: wallet.id } });
+        await tx.wallet.delete({ where: { id: wallet.id } });
+      }
+
+      await tx.auditLog.updateMany({
+        where: { userId: numericId },
+        data: { userId: null },
+      });
+      await tx.user.delete({ where: { id: numericId } });
+      await tx.auditLog.create({
+        data: {
+          userId: numericSessionUserId,
+          action: "DELETE_OPERATOR",
+          entity: "User",
+          entityId: String(numericId),
+          metadata: JSON.stringify({
+            deletedOperatorName: operator.name,
+            qrProviderId: operator.qrProviderId,
+          }),
+        },
+      });
+    });
+
+    return { success: true, name: operator.name };
+  }
+
+  /**
    * Assigns a specific array of QR codes to an operator.
    */
   static async assignQRCodes(operatorId: number | string, qrIds: (number | string)[], user: SessionUser) {

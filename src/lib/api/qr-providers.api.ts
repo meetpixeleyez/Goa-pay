@@ -115,6 +115,12 @@ export const qrProvidersApi = {
     );
   },
 
+  deleteOperator: async (id: string) => {
+    return await apiClient.delete<{ success: boolean; message: string }>(
+      `/api/qr-provider/operators/${id}`
+    );
+  },
+
   assignQRCodesToOperator: async (operatorId: string, assignedQrIds: string[]) => {
     return await apiClient.post<{ success: boolean; assignedQRs: any[] }>(
       `/api/qr-provider/operators/${operatorId}/assign-qrs`,

@@ -38,3 +38,20 @@ export async function PUT(
     return handleApiError(error);
   }
 }
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const session = await requireAuth(["QR_PROVIDER"], { requireWrite: true });
+    const result = await OperatorService.deleteOperator(params.id, session);
+
+    return NextResponse.json({
+      success: true,
+      message: `Operator "${result.name}" has been permanently deleted.`,
+    });
+  } catch (error) {
+    return handleApiError(error);
+  }
+}

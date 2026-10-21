@@ -209,6 +209,12 @@ export default function PortalLayout({
   };
 
   const portalConfig = navItemsMap[portal];
+  const isActiveNavItem = (href: string) => {
+    // A portal's dashboard only owns its exact root URL. Other navigation
+    // sections can remain active for their nested detail/create pages.
+    const isPortalDashboard = href === `/${portal}`;
+    return pathname === href || (!isPortalDashboard && href !== "/" && pathname.startsWith(href + "/"));
+  };
 
   if (loading) {
     return (
@@ -288,7 +294,7 @@ export default function PortalLayout({
               <nav className="space-y-1">
                 {portalConfig.items.map((item) => {
                   const Icon = item.icon;
-                  const isActive = pathname === item.href || (item.href !== "/" && item.href !== "/admin" && pathname.startsWith(item.href + "/"));
+                  const isActive = isActiveNavItem(item.href);
                   const isAvailableOrdersItem = item.href.endsWith("/available-orders");
                   return (
                     <Link
@@ -359,7 +365,7 @@ export default function PortalLayout({
           <nav className="space-y-1">
             {portalConfig.items.map((item) => {
               const Icon = item.icon;
-              const isActive = pathname === item.href || (item.href !== "/" && item.href !== "/admin" && pathname.startsWith(item.href + "/"));
+              const isActive = isActiveNavItem(item.href);
               const isAvailableOrdersItem = item.href.endsWith("/available-orders");
               return (
                 <Link

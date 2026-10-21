@@ -83,12 +83,14 @@ export default function QRProviderOperatorsPage() {
   const [submittingStatus, setSubmittingStatus] = useState(false);
   const [statusModalError, setStatusModalError] = useState("");
 
+  // Permanent delete confirmation modal state
+  const [deleteModalOperator, setDeleteModalOperator] = useState<any | null>(null);
+  const [submittingDelete, setSubmittingDelete] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+
   // UPI Details Modal State
   const [selectedQrDetails, setSelectedQrDetails] = useState<any | null>(null);
   const [copiedUpi, setCopiedUpi] = useState(false);
-
-  // Action status tracker
-  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 
   // Debounced search handling
   useEffect(() => {
@@ -227,14 +229,32 @@ export default function QRProviderOperatorsPage() {
     }
   };
 
-  const handleDeactivate = (op: any) => {
+  const handleToggleOperatorStatus = (op: any) => {
     setStatusModalOperator(op);
     setStatusModalError("");
   };
 
-  const handleToggleOperatorStatus = (op: any) => {
-    setStatusModalOperator(op);
-    setStatusModalError("");
+  const openDeleteModal = (op: any) => {
+    setDeleteModalOperator(op);
+    setDeleteError("");
+  };
+
+  const handleDeleteOperator = async () => {
+    if (!deleteModalOperator) return;
+
+    try {
+      setSubmittingDelete(true);
+      setDeleteError("");
+      const result = await qrProvidersApi.deleteOperator(deleteModalOperator.id);
+
+      setSuccess(result.message || `Operator "${deleteModalOperator.name}" has been permanently deleted.`);
+      setDeleteModalOperator(null);
+      await fetchData();
+    } catch (err: any) {
+      setDeleteError(err.message || "Failed to delete operator");
+    } finally {
+      setSubmittingDelete(false);
+    }
   };
 
   const handleConfirmStatusChange = async (e?: React.FormEvent) => {
@@ -491,7 +511,7 @@ export default function QRProviderOperatorsPage() {
                         <td className="py-3.5 px-4">
                           <button
                             onClick={() => handleToggleOperatorStatus(op)}
-                            disabled={actionLoadingId === op.id}
+                            disabled={submittingStatus && statusModalOperator?.id === op.id}
                             className={`inline-flex items-center space-x-1 px-2.5 py-1 rounded text-[10px] font-extrabold uppercase tracking-wider border cursor-pointer hover:opacity-85 transition ${
                               isActive
                                 ? "bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100"
@@ -568,16 +588,14 @@ export default function QRProviderOperatorsPage() {
                             >
                               <Edit2 className="w-3.5 h-3.5" />
                             </button>
-                            {isActive && (
-                              <button
-                                onClick={() => handleDeactivate(op)}
-                                disabled={actionLoadingId === op.id}
-                                className="p-1.5 rounded bg-red-50 text-red-700 hover:bg-red-100 border border-red-200"
-                                title="Deactivate Operator"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            )}
+                            <button
+                              onClick={() => openDeleteModal(op)}
+                              disabled={submittingDelete}
+                              className="p-1.5 rounded bg-red-50 text-red-700 hover:bg-red-100 border border-red-200"
+                              title="Delete Operator Permanently"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -1270,6 +1288,58 @@ export default function QRProviderOperatorsPage() {
             </div>
           </div>
         </div>
+        </ModalPortal>
+      )}
+
+      {/* Permanent Delete Confirmation Modal */}
+      {deleteModalOperator && (
+        <ModalPortal>
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+            <div className="w-full max-w-md rounded-2xl border border-rose-200 bg-white p-6 shadow-2xl">
+              <div className="flex items-start gap-3">
+                <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-rose-100 bg-rose-50 text-rose-600">
+                  <Trash2 className="size-5" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-base font-bold text-slate-900">Delete Operator?</h3>
+                  <p className="mt-1 text-xs leading-5 text-slate-600">
+                    You are permanently deleting <span className="font-bold text-slate-900">{deleteModalOperator.name}</span>. This action cannot be undone.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
+                <span className="font-bold">What happens:</span> the operator account is removed and any assigned QR codes become unassigned, ready to be assigned to another operator. Payment and audit history remain intact.
+              </div>
+
+              {deleteError && (
+                <div className="mt-3 flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800">
+                  <AlertCircle className="mt-0.5 size-4 shrink-0 text-rose-600" />
+                  <span>{deleteError}</span>
+                </div>
+              )}
+
+              <div className="mt-5 flex justify-end gap-2.5 border-t border-slate-100 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setDeleteModalOperator(null)}
+                  disabled={submittingDelete}
+                  className="rounded-xl border border-slate-200 px-4 py-2.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeleteOperator}
+                  disabled={submittingDelete}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-rose-600 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-rose-700 disabled:opacity-50"
+                >
+                  {submittingDelete ? <RefreshCw className="size-3.5 animate-spin" /> : <Trash2 className="size-3.5" />}
+                  <span>{submittingDelete ? "Deleting..." : "Delete Permanently"}</span>
+                </button>
+              </div>
+            </div>
+          </div>
         </ModalPortal>
       )}
 

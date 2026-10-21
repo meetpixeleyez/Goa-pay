@@ -206,6 +206,23 @@ function UserSelector({
               {selectedUser.name}
             </span>
             {getRoleBadge(selectedUser.role)}
+            <span
+              className={`ml-auto shrink-0 text-[11px] font-bold font-mono ${
+                type === "source"
+                  ? selectedUser.availableBalance < 0
+                    ? "text-rose-600"
+                    : "text-slate-700"
+                  : selectedUser.balance < 0
+                  ? "text-rose-600"
+                  : "text-emerald-700"
+              }`}
+              title={type === "source" ? "Available balance" : "Current balance"}
+            >
+              ₹{(type === "source" ? selectedUser.availableBalance : selectedUser.balance).toLocaleString("en-IN", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
+            </span>
           </div>
         ) : (
           <span className="text-sm text-slate-400 font-normal">{placeholder}</span>
@@ -234,7 +251,7 @@ function UserSelector({
 
       {/* Dropdown Popover */}
       {isOpen && (
-        <div className="absolute z-50 left-0 right-0 mt-1.5 bg-white border border-[#e4e6eb] rounded-xl shadow-xl overflow-hidden animate-in fade-in-50 slide-in-from-top-1 duration-150">
+        <div className="relative z-20 mt-1.5 flex max-h-64 flex-col overflow-hidden rounded-xl border border-[#e4e6eb] bg-white shadow-xl animate-in fade-in-50 slide-in-from-top-1 duration-150">
           {/* Search Bar */}
           <div className="p-2.5 border-b border-[#e4e6eb] bg-slate-50/60">
             <div className="relative">
@@ -269,7 +286,7 @@ function UserSelector({
           </div>
 
           {/* List Options */}
-          <div className="max-h-60 overflow-y-auto divide-y divide-slate-100 p-1">
+          <div className="min-h-0 flex-1 overflow-y-auto divide-y divide-slate-100 p-1">
             {filteredUsers.length === 0 ? (
               <div className="py-6 text-center text-xs text-slate-400">
                 No users found matching "{search}"
@@ -721,7 +738,7 @@ export default function HawalaPage() {
         {showHawalaModal && (
           <ModalPortal>
             <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-            <div className="bg-white rounded-xl shadow-2xl max-w-3xl w-full my-8 animate-in fade-in zoom-in-95 duration-150 relative">
+            <div className="bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[calc(100dvh-2rem)] my-4 overflow-y-auto animate-in fade-in zoom-in-95 duration-150 relative">
               {/* Dark Slate Modal Header */}
               <div className="p-4 bg-[#0f172a] text-white flex items-center justify-between rounded-t-xl">
                 <div className="flex items-center space-x-2">
@@ -775,23 +792,6 @@ export default function HawalaPage() {
                       placeholder="Select sender..."
                       type="source"
                     />
-                    {selectedFromUser && (
-                      <div className="p-2 bg-slate-100 rounded-lg border border-slate-200 flex items-center justify-between text-xs">
-                        <span className="text-slate-500">Available:</span>
-                        <span
-                          className={`font-semibold font-mono ${
-                            selectedFromUser.availableBalance < 0
-                              ? "text-rose-600"
-                              : "text-base-900"
-                          }`}
-                        >
-                          ₹{selectedFromUser.availableBalance.toLocaleString("en-IN", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
-                        </span>
-                      </div>
-                    )}
                   </div>
 
                   {/* TO Field */}
@@ -806,17 +806,6 @@ export default function HawalaPage() {
                       placeholder="Select receiver..."
                       type="destination"
                     />
-                    {selectedToUser && (
-                      <div className="p-2 bg-slate-100 rounded-lg border border-slate-200 flex items-center justify-between text-xs">
-                        <span className="text-slate-500">Current:</span>
-                        <span className="font-semibold font-mono text-emerald-700">
-                          ₹{selectedToUser.balance.toLocaleString("en-IN", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
-                        </span>
-                      </div>
-                    )}
                   </div>
                 </div>
 
