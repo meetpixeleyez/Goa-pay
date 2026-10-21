@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import UpdateCustomerQrModal from "./UpdateCustomerQrModal";
 import BankTransferCard from "./BankTransferCard";
+import ModalPortal from "@/components/common/ModalPortal";
 
 interface OrderDetailsModalProps {
   orderId: number | string | null;
@@ -446,7 +447,8 @@ export default function OrderDetailsModal({
   const timerSecs = remainingSeconds % 60;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-fadeIn">
+    <ModalPortal>
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
       <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-base-200 overflow-hidden">
         {/* Modal Header */}
         <div className="px-5 py-4 border-b border-[#e4d8c2] bg-[#ffffff] flex items-center justify-between">
@@ -1421,5 +1423,6 @@ export default function OrderDetailsModal({
         }}
       />
     </div>
+    </ModalPortal>
   );
 }

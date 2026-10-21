@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import PortalLayout from "@/components/layout/PortalLayout";
+import ModalPortal from "@/components/common/ModalPortal";
 import {
   QrCode,
   ArrowLeft,
@@ -778,7 +779,7 @@ export default function QRProviderDetailPage() {
       actions={
         <Link
           href="/admin/users"
-          className="btn-secondary text-xs py-1.5 px-3 flex items-center space-x-1.5 shadow-2xs"
+          className="btn-back"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           <span>Back to Users</span>
@@ -1103,8 +1104,12 @@ export default function QRProviderDetailPage() {
                   </span>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">
-                        Payin / Deposit Fee (%) <span className="text-red-500">*</span>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center gap-1.5">
+                        <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-sky-100 text-sky-700 border border-sky-200">
+                          Payin
+                        </span>
+                        <span>Fee (%)</span>
+                        <span className="text-rose-500 font-bold">*</span>
                       </label>
                       {isEditing ? (
                         <div className="relative">
@@ -1117,20 +1122,28 @@ export default function QRProviderDetailPage() {
                             value={payinQrProviderFee}
                             placeholder="0.00"
                             onChange={(e) => setPayinQrProviderFee(e.target.value)}
-                            className="w-full px-3 py-2 text-xs font-bold border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+                            className="w-full pl-3.5 pr-8 py-2 text-xs font-mono font-bold bg-sky-50/40 border border-sky-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 focus:bg-white transition"
                           />
-                          <span className="absolute right-3 top-2 text-slate-500 font-bold text-xs">%</span>
+                          <span className="absolute right-3 top-2 text-sky-600 font-bold text-xs">%</span>
                         </div>
                       ) : (
-                        <div className="w-full px-3.5 py-2.5 text-xs font-bold text-primary bg-blue-50/60 rounded-lg border border-blue-100 flex items-center justify-between">
-                          <span>{payinQrProviderFee || "0"}%</span>
+                        <div className="w-full px-3.5 py-2.5 text-xs font-bold text-sky-700 bg-sky-50/70 rounded-xl border border-sky-200 flex items-center justify-between shadow-2xs">
+                          <div className="flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-sky-500"></span>
+                            <span className="text-[11px] font-bold uppercase tracking-wider text-sky-700">Payin Fee</span>
+                          </div>
+                          <span className="font-mono text-sm">{payinQrProviderFee || "0"}%</span>
                         </div>
                       )}
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">
-                        Payout / Withdrawal Fee (%) <span className="text-red-500">*</span>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center gap-1.5">
+                        <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-200">
+                          Payout
+                        </span>
+                        <span>Fee (%)</span>
+                        <span className="text-rose-500 font-bold">*</span>
                       </label>
                       {isEditing ? (
                         <div className="relative">
@@ -1143,13 +1156,17 @@ export default function QRProviderDetailPage() {
                             value={payoutQrProviderFee}
                             placeholder="0.00"
                             onChange={(e) => setPayoutQrProviderFee(e.target.value)}
-                            className="w-full px-3 py-2 text-xs font-bold border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+                            className="w-full pl-3.5 pr-8 py-2 text-xs font-mono font-bold bg-amber-50/40 border border-amber-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 focus:bg-white transition"
                           />
-                          <span className="absolute right-3 top-2 text-slate-500 font-bold text-xs">%</span>
+                          <span className="absolute right-3 top-2 text-amber-600 font-bold text-xs">%</span>
                         </div>
                       ) : (
-                        <div className="w-full px-3.5 py-2.5 text-xs font-bold text-orange-600 bg-orange-50/60 rounded-lg border border-orange-100 flex items-center justify-between">
-                          <span>{payoutQrProviderFee || "0"}%</span>
+                        <div className="w-full px-3.5 py-2.5 text-xs font-bold text-amber-800 bg-amber-50/70 rounded-xl border border-amber-200 flex items-center justify-between shadow-2xs">
+                          <div className="flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                            <span className="text-[11px] font-bold uppercase tracking-wider text-amber-800">Payout Fee</span>
+                          </div>
+                          <span className="font-mono text-sm">{payoutQrProviderFee || "0"}%</span>
                         </div>
                       )}
                     </div>
@@ -1157,7 +1174,7 @@ export default function QRProviderDetailPage() {
                 </div>
 
                 {/* Assigned Agent & Direct Commission Fees */}
-                <div className="md:col-span-2 p-4 rounded-xl border border-base-200 bg-[#ffffff] space-y-3">
+                <div className="md:col-span-2 p-4 rounded-xl border border-slate-200 bg-[#ffffff] space-y-3">
                   <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider">
                     Assigned Agent & Direct Commission Fees
                   </label>
@@ -1166,12 +1183,12 @@ export default function QRProviderDetailPage() {
                       <select
                         value={agentId}
                         onChange={(e) => setAgentId(e.target.value)}
-                        className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+                        className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
                       >
                         <option value="">Direct (No Agent Assigned)</option>
                         {agents.map((ag) => (
                           <option key={ag.id} value={ag.id}>
-                            {ag.name} ({ag.email})
+                            {ag.name} {ag.phone ? `(${ag.phone})` : ""}
                           </option>
                         ))}
                       </select>
@@ -1179,8 +1196,11 @@ export default function QRProviderDetailPage() {
                       {agentId && (
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                           <div>
-                            <label className="block text-xs font-semibold text-slate-700 mb-1">
-                              Agent Payin Fee (%)
+                            <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center gap-1.5">
+                              <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-sky-100 text-sky-700 border border-sky-200">
+                                Payin
+                              </span>
+                              <span>Agent Fee (%)</span>
                             </label>
                             <div className="relative">
                               <input
@@ -1190,14 +1210,17 @@ export default function QRProviderDetailPage() {
                                 value={payinAgentFee}
                                 placeholder="0.00"
                                 onChange={(e) => setPayinAgentFee(e.target.value)}
-                                className="w-full px-3 py-2 text-xs font-bold border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+                                className="w-full pl-3.5 pr-8 py-2 text-xs font-mono font-bold bg-sky-50/40 border border-sky-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 focus:bg-white transition"
                               />
-                              <span className="absolute right-3 top-2 text-slate-400 font-bold text-xs">%</span>
+                              <span className="absolute right-3 top-2 text-sky-600 font-bold text-xs">%</span>
                             </div>
                           </div>
                           <div>
-                            <label className="block text-xs font-semibold text-slate-700 mb-1">
-                              Agent Payout Fee (%)
+                            <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center gap-1.5">
+                              <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-200">
+                                Payout
+                              </span>
+                              <span>Agent Fee (%)</span>
                             </label>
                             <div className="relative">
                               <input
@@ -1207,29 +1230,31 @@ export default function QRProviderDetailPage() {
                                 value={payoutAgentFee}
                                 placeholder="0.00"
                                 onChange={(e) => setPayoutAgentFee(e.target.value)}
-                                className="w-full px-3 py-2 text-xs font-bold border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+                                className="w-full pl-3.5 pr-8 py-2 text-xs font-mono font-bold bg-amber-50/40 border border-amber-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 focus:bg-white transition"
                               />
-                              <span className="absolute right-3 top-2 text-slate-400 font-bold text-xs">%</span>
+                              <span className="absolute right-3 top-2 text-amber-600 font-bold text-xs">%</span>
                             </div>
                           </div>
                         </div>
                       )}
                     </>
                   ) : (
-                    <div className="w-full px-3.5 py-2.5 text-xs font-medium text-gray-800 bg-gray-50 rounded-lg border border-gray-200 flex items-center justify-between flex-wrap gap-2">
-                      <span>
+                    <div className="w-full px-3.5 py-2.5 text-xs font-medium text-slate-800 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between flex-wrap gap-2">
+                      <span className="font-semibold">
                         {(() => {
                           const ag = agents.find((a) => a.id.toString() === agentId?.toString());
-                          return ag ? `${ag.name} (${ag.email})` : "Direct (No Agent Assigned)";
+                          return ag ? `${ag.name}${ag.phone ? ` (${ag.phone})` : ""}` : "Direct (No Agent Assigned)";
                         })()}
                       </span>
                       {agentId && (
-                        <div className="flex items-center space-x-2">
-                          <span className="px-2 py-0.5 text-[11px] font-bold rounded bg-blue-100 text-blue-700">
-                            Payin: {payinAgentFee}%
+                        <div className="flex items-center gap-2">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-lg bg-sky-50 text-sky-700 border border-sky-200 shadow-2xs">
+                            <span className="w-1.5 h-1.5 rounded-full bg-sky-500"></span>
+                            <span>Payin: {payinAgentFee}%</span>
                           </span>
-                          <span className="px-2 py-0.5 text-[11px] font-bold rounded bg-orange-100 text-orange-700">
-                            Payout: {payoutAgentFee}%
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-lg bg-amber-50 text-amber-800 border border-amber-200 shadow-2xs">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                            <span>Payout: {payoutAgentFee}%</span>
                           </span>
                         </div>
                       )}
@@ -1651,7 +1676,8 @@ export default function QRProviderDetailPage() {
 
         {/* ADD BALANCE / DEPOSIT MODAL */}
         {showAddBalanceModal && (
-          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <ModalPortal>
+            <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
             <div className="bg-white rounded-xl shadow-xl max-w-md w-full overflow-hidden">
               <div className="p-4 bg-[#0f172a] text-white flex items-center justify-between">
                 <div className="flex items-center space-x-2">
@@ -1786,11 +1812,13 @@ export default function QRProviderDetailPage() {
               </form>
             </div>
           </div>
+          </ModalPortal>
         )}
 
         {/* CLEAR BALANCE / WITHDRAWAL MODAL */}
         {showClearModal && (
-          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <ModalPortal>
+            <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
             <div className="bg-white rounded-xl shadow-xl max-w-md w-full overflow-hidden">
               <div className="p-4 bg-[#0f172a] text-white flex items-center justify-between">
                 <div className="flex items-center space-x-2">
@@ -1938,11 +1966,13 @@ export default function QRProviderDetailPage() {
               </form>
             </div>
           </div>
+          </ModalPortal>
         )}
 
         {/* MANAGE CREDIT MODAL */}
         {showCreditModal && (
-          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <ModalPortal>
+            <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
             <div className="bg-white rounded-xl shadow-xl max-w-md w-full overflow-hidden">
               <div className="p-4 bg-[#0f172a] text-white flex items-center justify-between">
                 <div className="flex items-center space-x-2">
@@ -2130,6 +2160,7 @@ export default function QRProviderDetailPage() {
               </form>
             </div>
           </div>
+          </ModalPortal>
         )}
 
 

@@ -21,6 +21,7 @@ import {
   EyeOff,
   BookOpen,
 } from "lucide-react";
+import ModalPortal from "@/components/common/ModalPortal";
 
 interface MerchantApiSettingsTabProps {
   merchantId?: string;
@@ -616,7 +617,8 @@ export default function MerchantApiSettingsTab({
 
       {/* GENERATE SECRET MODAL */}
       {showGenModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+        <ModalPortal>
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
           <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-gray-200 space-y-5 animate-in fade-in zoom-in duration-150">
             {!generatedKey ? (
               <div className="space-y-4">
@@ -723,6 +725,7 @@ export default function MerchantApiSettingsTab({
             )}
           </div>
         </div>
+        </ModalPortal>
       )}
     </div>
   );

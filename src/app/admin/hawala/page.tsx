@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo, useRef } from "react";
 import PortalLayout from "@/components/layout/PortalLayout";
+import ModalPortal from "@/components/common/ModalPortal";
 import {
   ArrowLeftRight,
   ArrowRight,
@@ -461,10 +462,10 @@ export default function HawalaPage() {
             setShowHawalaModal(true);
             setErrorMsg("");
           }}
-          className="btn-primary text-xs py-1.5 px-3 rounded-lg shadow-sm inline-flex items-center space-x-1.5 font-bold cursor-pointer"
+          className="btn-primary"
         >
           <ArrowLeftRight className="w-3.5 h-3.5" />
-          <span>+ Hawala</span>
+          <span>+ Hawala Transfer</span>
         </button>
       }
     >
@@ -552,14 +553,14 @@ export default function HawalaPage() {
         )}
 
         {/* Transfer History Table */}
-        <div className="bg-white rounded-2xl border border-[#e4e6eb] shadow-xs overflow-hidden">
-          <div className="p-4 sm:p-5 border-b border-[#e4e6eb] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+          <div className="p-4 sm:p-5 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h3 className="text-sm font-bold text-[#050505] flex items-center gap-2">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                 <Clock className="w-4 h-4 text-primary" />
                 <span>Recent Hawala Transfers</span>
               </h3>
-              <p className="text-xs text-[#65676b] mt-0.5">
+              <p className="text-xs text-slate-500 mt-0.5">
                 Complete audit trail of administrative inter-account balance movements
               </p>
             </div>
@@ -572,7 +573,7 @@ export default function HawalaPage() {
                 placeholder="Search by ref, user, or note..."
                 value={historySearch}
                 onChange={(e) => setHistorySearch(e.target.value)}
-                className="w-full pl-8 pr-3 py-1.5 text-xs border border-[#ced0d4] rounded-lg focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-slate-900 transition"
               />
             </div>
           </div>
@@ -580,7 +581,7 @@ export default function HawalaPage() {
           {/* Desktop Table View */}
           <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-[#f0f2f5] text-[#65676b] font-semibold border-b border-[#e4e6eb]">
+              <thead className="bg-slate-50/80 text-slate-500 font-bold border-b border-slate-200 text-[11px] uppercase tracking-wider">
                 <tr>
                   <th className="py-3 px-4">Reference</th>
                   <th className="py-3 px-4">Date & Time</th>
@@ -590,7 +591,7 @@ export default function HawalaPage() {
                   <th className="py-3 px-4">Remarks</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#e4e6eb] text-[#050505]">
+              <tbody className="divide-y divide-slate-100 text-slate-900">
                 {loading ? (
                   <tr>
                     <td colSpan={6} className="py-8 text-center text-slate-400">
@@ -718,7 +719,8 @@ export default function HawalaPage() {
 
         {/* HAWALA TRANSFER MODAL */}
         {showHawalaModal && (
-          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <ModalPortal>
+            <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
             <div className="bg-white rounded-xl shadow-2xl max-w-3xl w-full my-8 animate-in fade-in zoom-in-95 duration-150 relative">
               {/* Dark Slate Modal Header */}
               <div className="p-4 bg-[#0f172a] text-white flex items-center justify-between rounded-t-xl">
@@ -939,6 +941,7 @@ export default function HawalaPage() {
               </form>
             </div>
           </div>
+          </ModalPortal>
         )}
       </div>
     </PortalLayout>

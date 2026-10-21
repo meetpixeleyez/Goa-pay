@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import PortalLayout from "@/components/layout/PortalLayout";
+import ModalPortal from "@/components/common/ModalPortal";
 import { qrProvidersApi } from "@/lib/api/qr-providers.api";
 import {
   Users,
@@ -546,10 +547,11 @@ export default function QRProviderOperatorsPage() {
                           <div className="inline-flex items-center space-x-1.5">
                             <Link
                               href={`/qr-provider/operators/${op.id}`}
-                              className="p-1.5 rounded bg-primary/15 text-[#0c4a6e] hover:bg-primary/30 border border-primary/40 transition"
-                              title="View Operator Info & Full Details"
+                              className="btn-redirect"
+                              title="View Operator Profile"
                             >
-                              <Eye className="w-3.5 h-3.5" />
+                              <ExternalLink className="w-3 h-3" />
+                              <span>Profile</span>
                             </Link>
 
                             <button
@@ -671,7 +673,8 @@ export default function QRProviderOperatorsPage() {
 
       {/* EDIT OPERATOR MODAL */}
       {editModalOperator && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+        <ModalPortal>
+          <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-base-200 animate-in zoom-in-95 duration-200 overflow-hidden">
             {/* Header */}
             <div className="flex items-center justify-between pb-4 border-b border-base-200 mb-5 gap-3">
@@ -893,11 +896,13 @@ export default function QRProviderOperatorsPage() {
             </form>
           </div>
         </div>
+        </ModalPortal>
       )}
 
       {/* RESET PASSWORD MODAL */}
       {resetModalOperator && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+        <ModalPortal>
+          <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-base-200">
             <div className="flex items-center justify-between pb-4 border-b border-base-200 mb-4">
               <div className="flex items-center space-x-2">
@@ -988,11 +993,13 @@ export default function QRProviderOperatorsPage() {
             </form>
           </div>
         </div>
+        </ModalPortal>
       )}
 
       {/* STATUS CONFIRMATION POPUP FORM */}
       {statusModalOperator && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+        <ModalPortal>
+          <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-base-200 animate-in zoom-in-95 duration-200">
             {/* Header */}
             <div className="flex items-center justify-between pb-3.5 border-b border-base-200 mb-4">
@@ -1048,9 +1055,9 @@ export default function QRProviderOperatorsPage() {
                   <span className="font-bold text-base-900">{statusModalOperator.name}</span>
                 </div>
                 <div className="flex justify-between items-center gap-2">
-                  <span className="text-base-700 font-medium shrink-0">Login Email:</span>
-                  <span className="font-mono text-gray-600 truncate max-w-[220px]" title={statusModalOperator.email}>
-                    {statusModalOperator.email}
+                  <span className="text-base-700 font-medium shrink-0">Phone:</span>
+                  <span className="font-mono text-gray-600 truncate max-w-[220px]">
+                    {statusModalOperator.phone || "--"}
                   </span>
                 </div>
                 <div className="flex justify-between items-center pt-1.5 border-t border-[#e0f2fe]">
@@ -1112,11 +1119,13 @@ export default function QRProviderOperatorsPage() {
             </form>
           </div>
         </div>
+        </ModalPortal>
       )}
 
       {/* UPI ID & QR DETAILS MODAL */}
       {selectedQrDetails && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+        <ModalPortal>
+          <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-base-200 animate-in zoom-in-95 duration-200">
             {/* Header */}
             <div className="flex items-center justify-between pb-3.5 border-b border-base-200 mb-4">
@@ -1261,6 +1270,7 @@ export default function QRProviderOperatorsPage() {
             </div>
           </div>
         </div>
+        </ModalPortal>
       )}
 
       {/* Quick Create Operator Modal */}

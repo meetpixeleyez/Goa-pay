@@ -29,6 +29,7 @@ import {
   validateName,
 } from "@/lib/validation";
 import { brokersApi } from "@/lib/api/brokers.api";
+import ModalPortal from "@/components/common/ModalPortal";
 
 export default function AdminBrokersPage() {
   const [brokers, setBrokers] = useState<any[]>([]);
@@ -315,8 +316,8 @@ export default function AdminBrokersPage() {
                         {store.status || "ACTIVE"}
                       </span>
                     </div>
-                    <div className="text-[11px] text-slate-500 font-mono truncate" title={store.email}>
-                      {store.email}
+                    <div className="text-[11px] text-slate-500 font-mono truncate">
+                      {store.phone || "--"}
                     </div>
                     <div className="flex flex-wrap items-center justify-between gap-1 pt-1.5 border-t border-base-200/60 text-xs font-mono">
                       <span className="text-slate-500 text-[11px] whitespace-nowrap">
@@ -695,74 +696,77 @@ export default function AdminBrokersPage() {
 
       {/* 4. MOBILE DRAWER: SLIDE-IN FROM RIGHT TO LEFT WITH BACKDROP */}
       {selectedBroker && (
-        <div
-          className="xl:hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex justify-end"
-          onClick={() => setSelectedBroker(null)}
-        >
+        <ModalPortal>
           <div
-            className="w-full max-w-md h-full bg-base-100 p-4 sm:p-5 flex flex-col justify-between shadow-2xl border-l border-base-200 animate-slide-in-right overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
+            className="xl:hidden fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex justify-end"
+            onClick={() => setSelectedBroker(null)}
           >
-            {renderStoreLinkageDesk(true)}
+            <div
+              className="w-full max-w-md h-full bg-base-100 p-4 sm:p-5 flex flex-col justify-between shadow-2xl border-l border-base-200 animate-slide-in-right overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {renderStoreLinkageDesk(true)}
+            </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
 
       {/* MODAL: EDIT BROKER */}
       {editBroker && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="max-w-lg w-full bg-white rounded-xl shadow-xl overflow-hidden">
-            <div className="p-4 bg-[#0f172a] text-white flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Edit className="size-4 text-primary" />
-                <h3 className="font-semibold text-base truncate">Edit Broker: {editBroker.name}</h3>
+        <ModalPortal>
+          <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
+            <div className="max-w-lg w-full bg-white rounded-xl shadow-xl overflow-hidden">
+              <div className="p-4 bg-[#0f172a] text-white flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Edit className="size-4 text-primary" />
+                  <h3 className="font-semibold text-base truncate">Edit Broker: {editBroker.name}</h3>
+                </div>
+                <button
+                  onClick={() => setEditBroker(null)}
+                  className="text-slate-500 hover:text-slate-100 text-xl font-bold"
+                >
+                  &times;
+                </button>
               </div>
-              <button
-                onClick={() => setEditBroker(null)}
-                className="text-slate-500 hover:text-slate-100 text-xl font-bold"
-              >
-                &times;
-              </button>
-            </div>
 
-            <div className="p-4">
-              {editError && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg">
-                  {editError}
-                </div>
-              )}
-              {editSuccess && (
-                <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 text-xs rounded-lg">
-                  {editSuccess}
-                </div>
-              )}
-
-              <form onSubmit={handleSaveEdit} className="space-y-3.5 text-xs sm:text-sm">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[12px] font-semibold mb-1">Broker Name</label>
-                    <input
-                      type="text"
-                      required
-                      value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
-                      className="w-full px-3 py-2 border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
+              <div className="p-4">
+                {editError && (
+                  <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg">
+                    {editError}
                   </div>
-
-                  <div>
-                    <label className="block text-[12px] font-semibold mb-1">
-                      Contact Phone
-                    </label>
-                    <input
-                      type="tel"
-                      value={editPhone}
-                      onChange={(e) => setEditPhone(e.target.value)}
-                      placeholder="e.g. +91 9876543210 or +1 443 456 7890"
-                      className="w-full px-3 py-2 border border-base-200 rounded-lg font-mono focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
+                )}
+                {editSuccess && (
+                  <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 text-xs rounded-lg">
+                    {editSuccess}
                   </div>
-                </div>
+                )}
+
+                <form onSubmit={handleSaveEdit} className="space-y-3.5 text-xs sm:text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[12px] font-semibold mb-1">Broker Name</label>
+                      <input
+                        type="text"
+                        required
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        className="w-full px-3 py-2 border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[12px] font-semibold mb-1">
+                        Contact Phone
+                      </label>
+                      <input
+                        type="tel"
+                        value={editPhone}
+                        onChange={(e) => setEditPhone(e.target.value)}
+                        placeholder="e.g. +91 9876543210 or +1 443 456 7890"
+                        className="w-full px-3 py-2 border border-base-200 rounded-lg font-mono focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                    </div>
+                  </div>
 
                   <div>
                     <label className="block text-[12px] font-semibold mb-2">Account Status</label>
@@ -796,89 +800,92 @@ export default function AdminBrokersPage() {
                     </div>
                   </div>
 
-                <div className="flex justify-end space-x-2 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => setEditBroker(null)}
-                    className="px-4 py-2 border border-base-200 rounded-lg text-xs font-semibold hover:bg-gray-100"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={editing}
-                    className="px-5 py-2 bg-primary hover:bg-primary-600 text-white rounded-lg text-xs font-semibold shadow-sm transition"
-                  >
-                    {editing ? "Saving..." : "Save Changes"}
-                  </button>
-                </div>
-              </form>
+                  <div className="flex justify-end space-x-2 pt-4">
+                    <button
+                      type="button"
+                      onClick={() => setEditBroker(null)}
+                      className="px-4 py-2 border border-base-200 rounded-lg text-xs font-semibold hover:bg-gray-100"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={editing}
+                      className="px-5 py-2 bg-primary hover:bg-primary-600 text-white rounded-lg text-xs font-semibold shadow-sm transition"
+                    >
+                      {editing ? "Saving..." : "Save Changes"}
+                    </button>
+                  </div>
+                </form>
+              </div>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
 
       {/* MODAL: RESET PASSWORD */}
       {resetUser && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="max-w-sm w-full bg-white rounded-xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-            <div className="p-5 bg-[#0f172a] text-white flex items-center gap-2">
-              <KeyRound className="size-4 text-primary" />
-              <h3 className="font-semibold text-base">Reset Broker Password</h3>
-            </div>
+        <ModalPortal>
+          <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
+            <div className="max-w-sm w-full bg-white rounded-xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+              <div className="p-5 bg-[#0f172a] text-white flex items-center gap-2">
+                <KeyRound className="size-4 text-primary" />
+                <h3 className="font-semibold text-base">Reset Broker Password</h3>
+              </div>
 
-            <div className="p-5">
-              <p className="text-xs text-slate-500 mb-4">
-                Setting new password for <b>{resetUser.name}</b> ({resetUser.email}).
-              </p>
+              <div className="p-5">
+                <p className="text-xs text-slate-500 mb-4">
+                  Setting new password for <b>{resetUser.name || `Broker #${resetUser.id}`}</b>.
+                </p>
 
-              {resetError && (
-                <div className="mb-3 p-2.5 bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg">
-                  {resetError}
-                </div>
-              )}
-              {resetSuccess && (
-                <div className="mb-3 p-2.5 bg-green-50 border border-green-200 text-green-700 text-xs rounded-lg">
-                  {resetSuccess}
-                </div>
-              )}
+                {resetError && (
+                  <div className="mb-3 p-2.5 bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg">
+                    {resetError}
+                  </div>
+                )}
+                {resetSuccess && (
+                  <div className="mb-3 p-2.5 bg-green-50 border border-green-200 text-green-700 text-xs rounded-lg">
+                    {resetSuccess}
+                  </div>
+                )}
 
-              <form onSubmit={handleResetPassword} className="space-y-3">
-                <div>
-                  <label className="block text-[12px] font-semibold mb-1.5">
-                    New Password (min 6 chars)
-                  </label>
-                  <input
-                    type="password"
-                    required
-                    minLength={6}
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full px-3 py-2 text-xs sm:text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-primary"
-                  />
-                </div>
+                <form onSubmit={handleResetPassword} className="space-y-3">
+                  <div>
+                    <label className="block text-[12px] font-semibold mb-1.5">
+                      New Password (min 6 chars)
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      minLength={6}
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full px-3 py-2 text-xs sm:text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-primary"
+                    />
+                  </div>
 
-                <div className="flex justify-end space-x-2 pt-3">
-                  <button
-                    type="button"
-                    onClick={() => setResetUser(null)}
-                    className="px-3.5 py-1.5 border border-base-200 rounded-lg text-xs font-semibold hover:bg-gray-100"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={resetting}
-                    className="px-4 py-1.5 bg-primary hover:bg-primary-600 text-white rounded-lg text-xs font-semibold shadow-sm transition"
-                  >
-                    {resetting ? "Resetting..." : "Update Password"}
-                  </button>
-                </div>
-              </form>
+                  <div className="flex justify-end space-x-2 pt-3">
+                    <button
+                      type="button"
+                      onClick={() => setResetUser(null)}
+                      className="px-3.5 py-1.5 border border-base-200 rounded-lg text-xs font-semibold hover:bg-gray-100"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={resetting || !newPassword || newPassword.trim().length < 6}
+                      className="px-4 py-1.5 bg-primary hover:bg-primary-600 text-white rounded-lg text-xs font-semibold shadow-sm transition disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      {resetting ? "Resetting..." : "Update Password"}
+                    </button>
+                  </div>
+                </form>
+              </div>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
     </PortalLayout>
   );

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import PortalLayout from "@/components/layout/PortalLayout";
+import ModalPortal from "@/components/common/ModalPortal";
 import PayoutFulfillmentModal from "@/components/orders/PayoutFulfillmentModal";
 import BankTransferCard from "@/components/orders/BankTransferCard";
 import {
@@ -625,7 +626,8 @@ export default function QRProviderOrdersPage() {
 
       {/* VERIFY / SUBMIT PROOF MODAL */}
       {selectedOrder && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <ModalPortal>
+          <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full border border-base-200 overflow-hidden max-h-[92vh] flex flex-col animate-in fade-in zoom-in-95 duration-200">
             <div
               className={`p-4 text-white flex items-center justify-between shrink-0 ${
@@ -943,15 +945,17 @@ export default function QRProviderOrdersPage() {
             </div>
           </div>
         </div>
+        </ModalPortal>
       )}
 
       {/* Lightbox Modal for enlarged receipt viewing */}
       {lightboxImage && (
-        <div
-          className="fixed inset-0 z-[70] bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in"
-          onClick={() => setLightboxImage(null)}
-        >
+        <ModalPortal>
           <div
+            className="fixed inset-0 z-[110] bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in"
+            onClick={() => setLightboxImage(null)}
+          >
+            <div
             className="relative max-w-7xl max-h-[92vh] w-full flex flex-col items-center bg-zinc-950/90 rounded-2xl border border-white/20 p-4 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
@@ -987,6 +991,7 @@ export default function QRProviderOrdersPage() {
             </div>
           </div>
         </div>
+        </ModalPortal>
       )}
 
       {/* Payout Fulfillment Popup Screen with Customer QR & Proof Upload */}

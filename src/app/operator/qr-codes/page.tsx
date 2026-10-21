@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import PortalLayout from "@/components/layout/PortalLayout";
+import ModalPortal from "@/components/common/ModalPortal";
 import {
   QrCode,
   CheckCircle2,
@@ -410,7 +411,8 @@ export default function OperatorQRCodesPage() {
 
       {/* MODAL: UPLOAD NEW QR CODE */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <ModalPortal>
+          <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full border border-base-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
             <div className="p-4 bg-primary text-white flex items-center justify-between">
               <div className="flex items-center space-x-2">
@@ -520,28 +522,31 @@ export default function OperatorQRCodesPage() {
             </form>
           </div>
         </div>
+        </ModalPortal>
       )}
 
       {/* LIGHTBOX MODAL */}
       {lightboxImage && (
-        <div
-          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
-          onClick={() => setLightboxImage(null)}
-        >
-          <div className="relative max-w-sm max-h-[90vh] bg-white p-4 rounded-2xl shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <button
-              onClick={() => setLightboxImage(null)}
-              className="absolute -top-10 right-0 text-white hover:text-gray-300 p-1"
-            >
-              <X className="w-6 h-6" />
-            </button>
-            <img
-              src={lightboxImage}
-              alt="UPI QR Code"
-              className="w-72 h-72 object-contain mx-auto"
-            />
+        <ModalPortal>
+          <div
+            className="fixed inset-0 z-[110] bg-black/85 backdrop-blur-md flex items-center justify-center p-4"
+            onClick={() => setLightboxImage(null)}
+          >
+            <div className="relative max-w-sm max-h-[90vh] bg-white p-4 rounded-2xl shadow-2xl" onClick={(e) => e.stopPropagation()}>
+              <button
+                onClick={() => setLightboxImage(null)}
+                className="absolute -top-10 right-0 text-white hover:text-gray-300 p-1 cursor-pointer"
+              >
+                <X className="w-6 h-6" />
+              </button>
+              <img
+                src={lightboxImage}
+                alt="UPI QR Code"
+                className="w-72 h-72 object-contain mx-auto"
+              />
+            </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
     </PortalLayout>
   );

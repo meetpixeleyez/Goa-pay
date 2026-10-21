@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import PortalLayout from "@/components/layout/PortalLayout";
+import ModalPortal from "@/components/common/ModalPortal";
 import {
   QrCode,
   Plus,
@@ -497,7 +498,8 @@ export default function QRProviderQRCodesPage() {
       {/* MODAL 1: ADD NEW QR CODE                                                 */}
       {/* ========================================================================= */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-fadeIn">
+        <ModalPortal>
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
           <div className="bg-white rounded-2xl max-w-lg w-full max-h-[92vh] flex flex-col shadow-2xl border border-base-200 overflow-hidden">
             {/* Modal Header */}
             <div className="px-5 py-4 bg-[#ffffff] border-b border-base-200 flex items-center justify-between">
@@ -683,13 +685,15 @@ export default function QRProviderQRCodesPage() {
             </form>
           </div>
         </div>
+        </ModalPortal>
       )}
 
       {/* ========================================================================= */}
       {/* MODAL 2: EDIT QR CODE                                                    */}
       {/* ========================================================================= */}
       {editingQr && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-fadeIn">
+        <ModalPortal>
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
           <div className="bg-white rounded-2xl max-w-lg w-full max-h-[92vh] flex flex-col shadow-2xl border border-base-200 overflow-hidden">
             {/* Modal Header */}
             <div className="px-5 py-4 bg-[#ffffff] border-b border-base-200 flex items-center justify-between">
@@ -858,6 +862,7 @@ export default function QRProviderQRCodesPage() {
             </form>
           </div>
         </div>
+        </ModalPortal>
       )}
     </PortalLayout>
   );

@@ -13,7 +13,7 @@ export default function AdminCreateOperatorNoticePage() {
       actions={
         <Link
           href="/admin/operators"
-          className="btn-secondary text-xs py-2 px-3 inline-flex items-center space-x-1.5"
+          className="btn-back"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           <span>Back to Operators Directory</span>

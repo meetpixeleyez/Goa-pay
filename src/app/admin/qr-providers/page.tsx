@@ -24,6 +24,7 @@ import {
 
 import { qrProvidersApi } from "@/lib/api/qr-providers.api";
 import { apiClient } from "@/lib/api/client";
+import ModalPortal from "@/components/common/ModalPortal";
 
 export default function AdminQRProvidersPage() {
   const [providers, setProviders] = useState<any[]>([]);
@@ -356,8 +357,8 @@ export default function AdminQRProvidersPage() {
                                 >
                                   {p.name}
                                 </Link>
-                                <div className="text-[11px] text-slate-500 font-mono truncate" title={p.email}>
-                                  {p.email}
+                                <div className="text-[11px] text-slate-500 font-mono truncate">
+                                  {p.phone || `--`}
                                 </div>
                                 {/*  <div className="mt-0.5">
                                   {p.telegramId ? (
@@ -544,7 +545,7 @@ export default function AdminQRProvidersPage() {
                             >
                               {p.name}
                             </Link>
-                            <div className="text-[11px] text-slate-500 font-mono truncate">{p.email}</div>
+                            <div className="text-[11px] text-slate-500 font-mono truncate">{p.phone || `--`}</div>
                             {/*  {p.telegramId && (
                               <a
                                 href={`https://t.me/${p.telegramId.replace("@", "")}`}
@@ -732,114 +733,116 @@ export default function AdminQRProvidersPage() {
 
       {/* =============== PASSWORD RESET MODAL OVERLAY ===============*/}
       {resetUser && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full overflow-hidden">
-            {/* Header */}
-            <div className="p-4 bg-[#0f172a] text-white flex items-center justify-between">
-              <div className="flex items-center space-x-2.5">
-                <div className="w-8 h-8 rounded-lg bg-primary/15 text-primary flex items-center justify-center font-bold">
-                  <KeyRound className="size-4" />
-                </div>
-                <div >
-                  <h3 className="font-semibold text-sm">Reset Provider Password</h3>
-                  <p className="text-[11px] text-slate-200">Rotate console credentials for this entity</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setResetUser(null)} className="hover:opacity-75">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="p-4">
-              {/* Provider Meta Box */}
-              <div className="p-3 bg-base-100/40 rounded-xl border border-base-200/80 flex items-center justify-between text-xs">
-                <div>
-                  <div className="font-bold text-base-900">{resetUser.name}</div>
-                  <div className="text-[11px] text-slate-500 font-mono">{resetUser.email}</div>
-                </div>
-                <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-white border border-base-200 text-gray-600 font-semibold">
-                  ID: {resetUser.id}
-                </span>
-              </div>
-
-              <form onSubmit={handleResetPassword} className="space-y-3.5 mt-2">
-                {resetError && (
-                  <div className="p-2.5 bg-red-50 text-red-500 text-xs rounded-lg flex items-center space-x-2 border border-red-200">
-                    <AlertTriangle className="w-4 h-4 shrink-0 text-red-500" />
-                    <span>{resetError}</span>
+        <ModalPortal>
+          <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
+            <div className="bg-white rounded-xl shadow-xl max-w-sm w-full overflow-hidden">
+              {/* Header */}
+              <div className="p-4 bg-[#0f172a] text-white flex items-center justify-between">
+                <div className="flex items-center space-x-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-primary/15 text-primary flex items-center justify-center font-bold">
+                    <KeyRound className="size-4" />
                   </div>
-                )}
-                {resetSuccess && (
-                  <div className="p-2.5 bg-green-50 text-green-500 text-xs rounded-lg flex items-center space-x-2 border border-green-200">
-                    <CheckCircle2 className="w-4 h-4 shrink-0 text-green-500" />
-                    <span>{resetSuccess}</span>
+                  <div>
+                    <h3 className="font-semibold text-sm">Reset Provider Password</h3>
+                    <p className="text-[11px] text-slate-200">Rotate console credentials for this entity</p>
                   </div>
-                )}
+                </div>
+                <button
+                  onClick={() => setResetUser(null)} className="hover:opacity-75">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="p-4">
+                {/* Provider Meta Box */}
+                <div className="p-3 bg-base-100/40 rounded-xl border border-base-200/80 flex items-center justify-between text-xs">
+                  <div>
+                    <div className="font-bold text-base-900">{resetUser.name}</div>
+                    <div className="text-[11px] text-slate-500 font-mono">{resetUser.phone || `Provider #${resetUser.id}`}</div>
+                  </div>
+                  <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-white border border-base-200 text-gray-600 font-semibold">
+                    ID: {resetUser.id}
+                  </span>
+                </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-base-900 mb-1">New Password  <span className="text-red-500">*</span></label>
-                  <div className="relative">
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      required
-                      minLength={6}
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="Minimum 6 characters"
-                      className="w-full pl-3 pr-9 py-2 text-xs border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white text-base-900"
-                    />
+                <form onSubmit={handleResetPassword} className="space-y-3.5 mt-2">
+                  {resetError && (
+                    <div className="p-2.5 bg-red-50 text-red-500 text-xs rounded-lg flex items-center space-x-2 border border-red-200">
+                      <AlertTriangle className="w-4 h-4 shrink-0 text-red-500" />
+                      <span>{resetError}</span>
+                    </div>
+                  )}
+                  {resetSuccess && (
+                    <div className="p-2.5 bg-green-50 text-green-500 text-xs rounded-lg flex items-center space-x-2 border border-green-200">
+                      <CheckCircle2 className="w-4 h-4 shrink-0 text-green-500" />
+                      <span>{resetSuccess}</span>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-xs font-semibold text-base-900 mb-1">New Password  <span className="text-red-500">*</span></label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        required
+                        minLength={6}
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="Minimum 6 characters"
+                        className="w-full pl-3 pr-9 py-2 text-xs border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white text-base-900"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-[11px]"
+                      >
+                        {showPassword ? "Hide" : "Show"}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Informational security note */}
+                  <div className="p-3 bg-primary-50 border border-primary-100 rounded-xl text-[11px] space-y-1">
+                    <div className="font-semibold flex items-center space-x-1 text-primary">
+                      <ShieldCheck className="w-3.5 h-3.5 text-primary" />
+                      <span>Security Protocol</span>
+                    </div>
+                    <p className="text-slate-500 leading-relaxed">
+                      Resetting credentials will require the provider to log in again. Sub-operator assignments and wallet balances remain intact.
+                    </p>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex space-x-2 pt-2">
                     <button
                       type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-[11px]"
+                      onClick={() => setResetUser(null)}
+                      className="flex-1 py-2 text-xs border border-slate-200 rounded-lg text-slate-700 hover:bg-slate-100 font-semibold transition"
                     >
-                      {showPassword ? "Hide" : "Show"}
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={resetting || !newPassword || newPassword.trim().length < 6}
+                      className="flex-1 btn-primary py-2 text-xs font-semibold shadow-sm rounded-lg flex items-center justify-center space-x-1.5 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                    >
+                      {resetting ? (
+                        <>
+                          <RefreshCw className="size-3.5 animate-spin" />
+                          <span>Updating...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Lock className="size-3.5" />
+                          <span>Confirm & Rotate</span>
+                        </>
+                      )}
                     </button>
                   </div>
-                </div>
-
-                {/* Informational security note */}
-                <div className="p-3 bg-primary-50 border border-primary-100 rounded-xl text-[11px] space-y-1">
-                  <div className="font-semibold flex items-center space-x-1 text-primary">
-                    <ShieldCheck className="w-3.5 h-3.5 text-primary" />
-                    <span>Security Protocol</span>
-                  </div>
-                  <p className="text-slate-500 leading-relaxed">
-                    Resetting credentials will require the provider to log in again. Sub-operator assignments and wallet balances remain intact.
-                  </p>
-                </div>
-
-                {/* Actions */}
-                <div className="flex space-x-2 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setResetUser(null)}
-                    className="flex-1 py-2 text-xs border border-slate-200 rounded-lg text-slate-700 hover:bg-slate-100 font-semibold transition"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={resetting}
-                    className="flex-1 btn-primary py-2 text-xs font-semibold shadow-sm rounded-lg flex items-center justify-center space-x-1.5"
-                  >
-                    {resetting ? (
-                      <>
-                        <RefreshCw className="size-3.5 animate-spin" />
-                        <span>Updating...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Lock className="size-3.5" />
-                        <span>Confirm & Rotate</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </form>
+                </form>
+              </div>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
     </>
   );

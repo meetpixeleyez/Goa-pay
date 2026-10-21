@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 import { parseBankDetails } from "@/lib/validation";
 import { AdminDashboardData, OrderItem } from "@/types";
+import ModalPortal from "@/components/common/ModalPortal";
 
 function getInitials(name?: string) {
   if (!name) return "MP";
@@ -763,91 +764,93 @@ export default function AdminDashboard() {
 
         {/* ==================== INTERACTIVE DUAL-UTR VERIFY MODAL ==================== */}
         {verifyModalOrder && (
-          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full p-6 flex flex-col gap-5 relative animate-in fade-in zoom-in-95 duration-150">
-              <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-sky-100 text-primary flex items-center justify-center">
-                    <ShieldCheck className="w-5 h-5 text-primary" />
+          <ModalPortal>
+            <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full p-6 flex flex-col gap-5 relative animate-in fade-in zoom-in-95 duration-150">
+                <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-sky-100 text-primary flex items-center justify-center">
+                      <ShieldCheck className="w-5 h-5 text-primary" />
+                    </div>
+                    <h3 className="font-bold text-base text-base-900">Dual-UTR Recon Audit</h3>
                   </div>
-                  <h3 className="font-bold text-base text-base-900">Dual-UTR Recon Audit</h3>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setVerifyModalOrder(null)}
-                  className="p-1 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="flex flex-col gap-2.5 font-mono text-xs">
-                <div className="flex justify-between py-1.5 border-b border-sky-100">
-                  <span className="text-slate-500">Order Identifier:</span>
-                  <span className="font-bold text-base-900">#{verifyModalOrder.orderNumber}</span>
-                </div>
-                <div className="flex justify-between py-1.5 border-b border-sky-100">
-                  <span className="text-slate-500">Transaction Total:</span>
-                  <span className="font-bold text-primary">₹{verifyModalOrder.amount.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between py-1.5 border-b border-sky-100">
-                  <span className="text-slate-500">Origin Merchant:</span>
-                  <span className="text-base-900 font-semibold">{verifyModalOrder.merchant?.name || "N/A"}</span>
-                </div>
-                <div className="flex justify-between py-1.5 border-b border-sky-100">
-                  <span className="text-slate-500">Customer Submitted UTR:</span>
-                  <span className="font-bold text-base-900">{verifyModalOrder.customerUtr || "Pending Customer UTR"}</span>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <div>
-                  <label className="text-xs font-bold text-base-900 block mb-1">
-                    12-Digit Banking UTR for Dual Match:
-                  </label>
-                  <input
-                    type="text"
-                    value={verifyUtrInput}
-                    onChange={(e) => setVerifyUtrInput(e.target.value)}
-                    placeholder="Enter 12-digit UTR reference"
-                    className="w-full text-xs font-mono p-2.5 rounded-lg border border-slate-200 bg-white text-base-900 focus:outline-none focus:ring-2 focus:ring-primary transition"
-                  />
+                  <button
+                    type="button"
+                    onClick={() => setVerifyModalOrder(null)}
+                    className="p-1 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
                 </div>
 
-                <div>
-                  <label className="text-xs font-bold text-base-900 block mb-1">
-                    Auditor Verification Note:
-                  </label>
-                  <textarea
-                    value={verifyNote}
-                    onChange={(e) => setVerifyNote(e.target.value)}
-                    placeholder="Input manual bank token or dual signoff override justification..."
-                    rows={2}
-                    className="w-full text-xs p-2.5 rounded-lg border border-slate-200 bg-white text-base-900 focus:outline-none focus:ring-2 focus:ring-primary transition"
-                  />
+                <div className="flex flex-col gap-2.5 font-mono text-xs">
+                  <div className="flex justify-between py-1.5 border-b border-sky-100">
+                    <span className="text-slate-500">Order Identifier:</span>
+                    <span className="font-bold text-base-900">#{verifyModalOrder.orderNumber}</span>
+                  </div>
+                  <div className="flex justify-between py-1.5 border-b border-sky-100">
+                    <span className="text-slate-500">Transaction Total:</span>
+                    <span className="font-bold text-primary">₹{verifyModalOrder.amount.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between py-1.5 border-b border-sky-100">
+                    <span className="text-slate-500">Origin Merchant:</span>
+                    <span className="text-base-900 font-semibold">{verifyModalOrder.merchant?.name || "N/A"}</span>
+                  </div>
+                  <div className="flex justify-between py-1.5 border-b border-sky-100">
+                    <span className="text-slate-500">Customer Submitted UTR:</span>
+                    <span className="font-bold text-base-900">{verifyModalOrder.customerUtr || "Pending Customer UTR"}</span>
+                  </div>
                 </div>
-              </div>
 
-              <div className="flex items-center justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setVerifyModalOrder(null)}
-                  className="px-4 py-2 rounded-lg border border-slate-200 bg-white text-base-900 text-xs font-semibold hover:bg-gray-50 transition"
-                >
-                  Dismiss
-                </button>
-                <button
-                  type="button"
-                  disabled={verifying}
-                  onClick={handleAuthorizeMatch}
-                  className="btn-primary text-xs py-2 px-4 font-bold flex items-center gap-1.5 shadow-sm"
-                >
-                  {verifying && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
-                  <span>Authorize &amp; Force Match</span>
-                </button>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs font-bold text-base-900 block mb-1">
+                      12-Digit Banking UTR for Dual Match:
+                    </label>
+                    <input
+                      type="text"
+                      value={verifyUtrInput}
+                      onChange={(e) => setVerifyUtrInput(e.target.value)}
+                      placeholder="Enter 12-digit UTR reference"
+                      className="w-full text-xs font-mono p-2.5 rounded-lg border border-slate-200 bg-white text-base-900 focus:outline-none focus:ring-2 focus:ring-primary transition"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-base-900 block mb-1">
+                      Auditor Verification Note:
+                    </label>
+                    <textarea
+                      value={verifyNote}
+                      onChange={(e) => setVerifyNote(e.target.value)}
+                      placeholder="Input manual bank token or dual signoff override justification..."
+                      rows={2}
+                      className="w-full text-xs p-2.5 rounded-lg border border-slate-200 bg-white text-base-900 focus:outline-none focus:ring-2 focus:ring-primary transition"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setVerifyModalOrder(null)}
+                    className="px-4 py-2 rounded-lg border border-slate-200 bg-white text-base-900 text-xs font-semibold hover:bg-gray-50 transition"
+                  >
+                    Dismiss
+                  </button>
+                  <button
+                    type="button"
+                    disabled={verifying}
+                    onClick={handleAuthorizeMatch}
+                    className="btn-primary text-xs py-2 px-4 font-bold flex items-center gap-1.5 shadow-sm"
+                  >
+                    {verifying && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                    <span>Authorize &amp; Force Match</span>
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
+          </ModalPortal>
         )}
 
         {/* ==================== TOAST NOTIFICATION CONTAINER ==================== */}

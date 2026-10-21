@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { parseBankDetails, validateBankAccountDetails } from "@/lib/validation";
 import BankNameInput from "@/components/ui/BankNameInput";
+import ModalPortal from "@/components/common/ModalPortal";
 
 interface UpdateCustomerQrModalProps {
   order: any;
@@ -195,7 +196,8 @@ export default function UpdateCustomerQrModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-fadeIn">
+    <ModalPortal>
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
       <div className="bg-white rounded-2xl max-w-lg w-full max-h-[92vh] flex flex-col shadow-2xl border border-base-200 overflow-hidden">
         {/* Modal Header */}
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-base-100/30">
@@ -492,5 +494,6 @@ export default function UpdateCustomerQrModal({
         </form>
       </div>
     </div>
+    </ModalPortal>
   );
 }

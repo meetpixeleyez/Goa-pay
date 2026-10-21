@@ -101,6 +101,8 @@ export default function CreateUserPage() {
         setLoadingAux(false);
       }
     }
+
+    loadAuxData();
   }, []);
 
 
@@ -296,14 +298,14 @@ export default function CreateUserPage() {
       actions={
         <Link
           href="/admin/users"
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl text-xs font-semibold shadow-xs transition"
+          className="btn-back"
         >
-          <ArrowLeft className="w-3.5 h-3.5 text-slate-500" />
-          <span>Users</span>
+          <ArrowLeft className="w-3.5 h-3.5" />
+          <span>Back to Users</span>
         </Link>
       }
     >
-      <div className="w-full max-w-3xl mx-auto space-y-6 pb-16">
+      <div className="w-full max-w-3xl mx-auto space-y-6 pb-8 sm:pb-0">
         {/* Navigation Breadcrumb */}
         <div className="flex items-center gap-2 text-xs text-slate-500">
           <Link href="/admin/users" className="hover:text-primary transition font-medium">
@@ -622,8 +624,11 @@ export default function CreateUserPage() {
               <div className="pt-4 border-t border-slate-100 space-y-4 animate-in fade-in duration-150">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                      Payin / Deposit Fee (%)
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center gap-1.5">
+                      <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-sky-100 text-sky-700 border border-sky-200">
+                        Payin
+                      </span>
+                      <span>Merchant Fee (%)</span>
                     </label>
                     <div className="relative">
                       <input
@@ -643,13 +648,13 @@ export default function CreateUserPage() {
                             });
                           }
                         }}
-                        className={`w-full px-3.5 py-2.5 text-xs bg-white border rounded-xl text-base-900 focus:outline-none focus:ring-2 font-mono transition shadow-xs ${
+                        className={`w-full pl-3.5 pr-8 py-2.5 text-xs bg-sky-50/30 border rounded-xl text-slate-900 focus:outline-none focus:ring-2 font-mono font-bold transition shadow-xs ${
                           fieldErrors.payinMerchantFee
                             ? "border-rose-300 focus:ring-rose-200 focus:border-rose-500"
-                            : "border-slate-200 focus:ring-primary/20 focus:border-primary"
+                            : "border-sky-200 focus:ring-sky-500/20 focus:border-sky-500 focus:bg-white"
                         }`}
                       />
-                      <Percent className="w-3.5 h-3.5 text-slate-400 absolute right-3.5 top-3" />
+                      <span className="absolute right-3.5 top-3 text-sky-600 font-bold text-xs">%</span>
                     </div>
                     {fieldErrors.payinMerchantFee && (
                       <p className="text-[11px] text-rose-600 mt-1">{fieldErrors.payinMerchantFee}</p>
@@ -657,8 +662,11 @@ export default function CreateUserPage() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                      Payout / Withdrawal Fee (%)
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center gap-1.5">
+                      <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-200">
+                        Payout
+                      </span>
+                      <span>Merchant Fee (%)</span>
                     </label>
                     <div className="relative">
                       <input
@@ -678,13 +686,13 @@ export default function CreateUserPage() {
                             });
                           }
                         }}
-                        className={`w-full px-3.5 py-2.5 text-xs bg-white border rounded-xl text-base-900 focus:outline-none focus:ring-2 font-mono transition shadow-xs ${
+                        className={`w-full pl-3.5 pr-8 py-2.5 text-xs bg-amber-50/30 border rounded-xl text-slate-900 focus:outline-none focus:ring-2 font-mono font-bold transition shadow-xs ${
                           fieldErrors.payoutMerchantFee
                             ? "border-rose-300 focus:ring-rose-200 focus:border-rose-500"
-                            : "border-slate-200 focus:ring-primary/20 focus:border-primary"
+                            : "border-amber-200 focus:ring-amber-500/20 focus:border-amber-500 focus:bg-white"
                         }`}
                       />
-                      <Percent className="w-3.5 h-3.5 text-slate-400 absolute right-3.5 top-3" />
+                      <span className="absolute right-3.5 top-3 text-amber-600 font-bold text-xs">%</span>
                     </div>
                     {fieldErrors.payoutMerchantFee && (
                       <p className="text-[11px] text-rose-600 mt-1">{fieldErrors.payoutMerchantFee}</p>
@@ -706,7 +714,7 @@ export default function CreateUserPage() {
                     <option value="">None (Direct Merchant - No Broker)</option>
                     {brokers.map((b) => (
                       <option key={b.id} value={b.id}>
-                        {b.name} ({b.email})
+                        {b.name} {b.phone ? `(${b.phone})` : ""}
                       </option>
                     ))}
                   </select>
@@ -714,8 +722,11 @@ export default function CreateUserPage() {
                   {selectedBrokerId && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-200">
                       <div>
-                        <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                          Payin / Deposit Fee (%)
+                        <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center gap-1.5">
+                          <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-sky-100 text-sky-700 border border-sky-200">
+                            Payin
+                          </span>
+                          <span>Broker Fee (%)</span>
                         </label>
                         <div className="relative">
                           <input
@@ -726,15 +737,18 @@ export default function CreateUserPage() {
                             value={payinBrokerFee}
                             onChange={(e) => setPayinBrokerFee(e.target.value)}
                             placeholder="0.00"
-                            className="w-full px-3.5 py-2.5 text-xs bg-white border border-slate-200 rounded-xl text-base-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-mono transition shadow-xs"
+                            className="w-full pl-3.5 pr-8 py-2.5 text-xs bg-sky-50/30 border border-sky-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 focus:bg-white font-mono font-bold transition shadow-xs"
                           />
-                          <Percent className="w-3.5 h-3.5 text-slate-400 absolute right-3.5 top-3" />
+                          <span className="absolute right-3.5 top-3 text-sky-600 font-bold text-xs">%</span>
                         </div>
                       </div>
 
                       <div>
-                        <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                          Payout / Withdrawal Fee (%)
+                        <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center gap-1.5">
+                          <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-200">
+                            Payout
+                          </span>
+                          <span>Broker Fee (%)</span>
                         </label>
                         <div className="relative">
                           <input
@@ -745,9 +759,9 @@ export default function CreateUserPage() {
                             value={payoutBrokerFee}
                             onChange={(e) => setPayoutBrokerFee(e.target.value)}
                             placeholder="0.00"
-                            className="w-full px-3.5 py-2.5 text-xs bg-white border border-slate-200 rounded-xl text-base-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-mono transition shadow-xs"
+                            className="w-full pl-3.5 pr-8 py-2.5 text-xs bg-amber-50/30 border border-amber-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 focus:bg-white font-mono font-bold transition shadow-xs"
                           />
-                          <Percent className="w-3.5 h-3.5 text-slate-400 absolute right-3.5 top-3" />
+                          <span className="absolute right-3.5 top-3 text-amber-600 font-bold text-xs">%</span>
                         </div>
                       </div>
                     </div>
@@ -761,8 +775,11 @@ export default function CreateUserPage() {
               <div className="pt-4 border-t border-slate-100 space-y-4 animate-in fade-in duration-150">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                      Payin / Deposit Fee (%)
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center gap-1.5">
+                      <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-sky-100 text-sky-700 border border-sky-200">
+                        Payin
+                      </span>
+                      <span>Provider Fee (%)</span>
                     </label>
                     <div className="relative">
                       <input
@@ -773,15 +790,18 @@ export default function CreateUserPage() {
                         placeholder="0.00"
                         value={payinQrProviderFee}
                         onChange={(e) => setPayinQrProviderFee(e.target.value)}
-                        className="w-full px-3.5 py-2.5 text-xs bg-white border border-slate-200 rounded-xl text-base-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-mono transition shadow-xs"
+                        className="w-full pl-3.5 pr-8 py-2.5 text-xs bg-sky-50/30 border border-sky-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 focus:bg-white font-mono font-bold transition shadow-xs"
                       />
-                      <Percent className="w-3.5 h-3.5 text-slate-400 absolute right-3.5 top-3" />
+                      <span className="absolute right-3.5 top-3 text-sky-600 font-bold text-xs">%</span>
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                      Payout / Withdrawal Fee (%)
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center gap-1.5">
+                      <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-200">
+                        Payout
+                      </span>
+                      <span>Provider Fee (%)</span>
                     </label>
                     <div className="relative">
                       <input
@@ -792,9 +812,9 @@ export default function CreateUserPage() {
                         placeholder="0.00"
                         value={payoutQrProviderFee}
                         onChange={(e) => setPayoutQrProviderFee(e.target.value)}
-                        className="w-full px-3.5 py-2.5 text-xs bg-white border border-slate-200 rounded-xl text-base-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-mono transition shadow-xs"
+                        className="w-full pl-3.5 pr-8 py-2.5 text-xs bg-amber-50/30 border border-amber-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 focus:bg-white font-mono font-bold transition shadow-xs"
                       />
-                      <Percent className="w-3.5 h-3.5 text-slate-400 absolute right-3.5 top-3" />
+                      <span className="absolute right-3.5 top-3 text-amber-600 font-bold text-xs">%</span>
                     </div>
                   </div>
                 </div>
@@ -813,7 +833,7 @@ export default function CreateUserPage() {
                     <option value="">None (Direct Provider - No Agent)</option>
                     {agents.map((a) => (
                       <option key={a.id} value={a.id}>
-                        {a.name} ({a.email})
+                        {a.name} {a.phone ? `(${a.phone})` : ""}
                       </option>
                     ))}
                   </select>
@@ -821,8 +841,11 @@ export default function CreateUserPage() {
                   {selectedAgentId && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-200">
                       <div>
-                        <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                          Payin / Deposit Fee (%)
+                        <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center gap-1.5">
+                          <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-sky-100 text-sky-700 border border-sky-200">
+                            Payin
+                          </span>
+                          <span>Agent Fee (%)</span>
                         </label>
                         <div className="relative">
                           <input
@@ -833,15 +856,18 @@ export default function CreateUserPage() {
                             value={payinAgentFee}
                             onChange={(e) => setPayinAgentFee(e.target.value)}
                             placeholder="0.00"
-                            className="w-full px-3.5 py-2.5 text-xs bg-white border border-slate-200 rounded-xl text-base-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-mono transition shadow-xs"
+                            className="w-full pl-3.5 pr-8 py-2.5 text-xs bg-sky-50/30 border border-sky-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 focus:bg-white font-mono font-bold transition shadow-xs"
                           />
-                          <Percent className="w-3.5 h-3.5 text-slate-400 absolute right-3.5 top-3" />
+                          <span className="absolute right-3.5 top-3 text-sky-600 font-bold text-xs">%</span>
                         </div>
                       </div>
 
                       <div>
-                        <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                          Payout / Withdrawal Fee (%)
+                        <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center gap-1.5">
+                          <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-200">
+                            Payout
+                          </span>
+                          <span>Agent Fee (%)</span>
                         </label>
                         <div className="relative">
                           <input
@@ -852,9 +878,9 @@ export default function CreateUserPage() {
                             value={payoutAgentFee}
                             onChange={(e) => setPayoutAgentFee(e.target.value)}
                             placeholder="0.00"
-                            className="w-full px-3.5 py-2.5 text-xs bg-white border border-slate-200 rounded-xl text-base-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-mono transition shadow-xs"
+                            className="w-full pl-3.5 pr-8 py-2.5 text-xs bg-amber-50/30 border border-amber-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 focus:bg-white font-mono font-bold transition shadow-xs"
                           />
-                          <Percent className="w-3.5 h-3.5 text-slate-400 absolute right-3.5 top-3" />
+                          <span className="absolute right-3.5 top-3 text-amber-600 font-bold text-xs">%</span>
                         </div>
                       </div>
                     </div>

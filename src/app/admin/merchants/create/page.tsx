@@ -228,9 +228,9 @@ export default function CreateMerchantPage() {
       action={
         <Link
           href="/admin/merchants"
-          className="inline-flex items-center space-x-1.5 px-3 py-1.5 border border-base-200 rounded-lg text-xs font-semibold bg-white text-base-700 hover:bg-base-100/40 transition"
+          className="btn-back"
         >
-          <ArrowLeft className="w-4 h-4" />
+          <ArrowLeft className="w-3.5 h-3.5" />
           <span>Back to Merchants</span>
         </Link>
       }
@@ -414,8 +414,9 @@ export default function CreateMerchantPage() {
                 <div className="grid grid-cols-1 p-5 sm:p-6 sm:grid-cols-2 gap-4">
                   {/* Payin Merchant Fee */}
                   <div>
-                    <label className="block text-xs font-semibold text-base-900 mb-1">
-                      Payin / Deposit Fee (%) <span className="text-red-500">*</span>
+                    <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 mb-1.5">
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-sky-100 text-sky-700 border border-sky-200">Payin</span>
+                      <span>Deposit Fee (%) <span className="text-red-500">*</span></span>
                     </label>
                     <div className="relative">
                       <input
@@ -425,16 +426,17 @@ export default function CreateMerchantPage() {
                         value={payinMerchantFee}
                         onChange={(e) => setPayinMerchantFee(e.target.value)}
                         placeholder="0.00"
-                        className="w-full px-3 py-2.5 text-xs sm:text-sm border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white font-medium"
+                        className="w-full px-3 py-2.5 text-xs sm:text-sm border border-sky-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 bg-sky-50/30 text-slate-900 font-semibold"
                       />
-                      <span className="absolute right-3 top-2.5 text-xs font-bold text-gray-400">%</span>
+                      <span className="absolute right-3 top-2.5 text-xs font-bold text-sky-600">%</span>
                     </div>
                   </div>
 
                   {/* Payout Merchant Fee */}
                   <div>
-                    <label className="block text-xs font-semibold text-base-900 mb-1">
-                      Payout / Withdrawal Fee (%) <span className="text-red-500">*</span>
+                    <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 mb-1.5">
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">Payout</span>
+                      <span>Withdrawal Fee (%) <span className="text-red-500">*</span></span>
                     </label>
                     <div className="relative">
                       <input
@@ -444,9 +446,9 @@ export default function CreateMerchantPage() {
                         value={payoutMerchantFee}
                         onChange={(e) => setPayoutMerchantFee(e.target.value)}
                         placeholder="0.00"
-                        className="w-full px-3 py-2.5 text-xs sm:text-sm border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white font-medium"
+                        className="w-full px-3 py-2.5 text-xs sm:text-sm border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 bg-amber-50/30 text-slate-900 font-semibold"
                       />
-                      <span className="absolute right-3 top-2.5 text-xs font-bold text-gray-400">%</span>
+                      <span className="absolute right-3 top-2.5 text-xs font-bold text-amber-600">%</span>
                     </div>
                   </div>
                 </div>
@@ -478,7 +480,7 @@ export default function CreateMerchantPage() {
                       <option value="">None (Direct Merchant - No Broker)</option>
                       {brokers.map((b) => (
                         <option key={b.id} value={b.id}>
-                          {b.name} ({b.email})
+                          {b.name} {b.phone ? `(${b.phone})` : ""}
                         </option>
                       ))}
                     </select>
@@ -487,8 +489,9 @@ export default function CreateMerchantPage() {
                   {brokerId && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4 pt-4 border-t border-base-200">
                       <div>
-                        <label className="block text-xs font-semibold text-base-900 mb-1">
-                          Broker Payin Fee (%)
+                        <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 mb-1">
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-sky-100 text-sky-700 border border-sky-200">Payin</span>
+                          <span>Broker Commission Fee (%)</span>
                         </label>
                         <div className="relative">
                           <input
@@ -498,15 +501,16 @@ export default function CreateMerchantPage() {
                             value={payinBrokerFee}
                             onChange={(e) => setPayinBrokerFee(e.target.value)}
                             placeholder="0.00"
-                            className="w-full px-3 py-2.5 text-xs sm:text-sm border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white font-medium"
+                            className="w-full px-3 py-2.5 text-xs sm:text-sm border border-sky-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 bg-sky-50/30 text-slate-900 font-semibold"
                           />
-                          <span className="absolute right-3 top-2.5 text-xs font-bold text-gray-400">%</span>
+                          <span className="absolute right-3 top-2.5 text-xs font-bold text-sky-600">%</span>
                         </div>
                       </div>
 
                       <div>
-                        <label className="block text-xs font-semibold text-base-900 mb-1">
-                          Broker Payout Fee (%)
+                        <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 mb-1">
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">Payout</span>
+                          <span>Broker Commission Fee (%)</span>
                         </label>
                         <div className="relative">
                           <input
@@ -516,9 +520,9 @@ export default function CreateMerchantPage() {
                             value={payoutBrokerFee}
                             onChange={(e) => setPayoutBrokerFee(e.target.value)}
                             placeholder="0.00"
-                            className="w-full px-3 py-2.5 text-xs sm:text-sm border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white font-medium"
+                            className="w-full px-3 py-2.5 text-xs sm:text-sm border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 bg-amber-50/30 text-slate-900 font-semibold"
                           />
-                          <span className="absolute right-3 top-2.5 text-xs font-bold text-gray-400">%</span>
+                          <span className="absolute right-3 top-2.5 text-xs font-bold text-amber-600">%</span>
                         </div>
                       </div>
                     </div>

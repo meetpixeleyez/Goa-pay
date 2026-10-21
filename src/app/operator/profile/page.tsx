@@ -110,7 +110,7 @@ export default function OperatorProfilePage() {
                 <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 uppercase">
                   OPERATOR
                 </span>
-                <span className="text-xs text-slate-500">{profile?.email}</span>
+                <span className="text-xs text-slate-500">{profile?.phone || profile?.name}</span>
               </div>
             </div>
           </div>
@@ -147,7 +147,7 @@ export default function OperatorProfilePage() {
                   <span>{profile?.qrProvider?.name || "FastPay Liquidity Provider"}</span>
                 </div>
                 <div className="text-gray-600 text-[11px]">
-                  {profile?.qrProvider?.email || "provider@goapay.com"}
+                  {profile?.qrProvider?.phone || ""}
                 </div>
               </div>
             </div>

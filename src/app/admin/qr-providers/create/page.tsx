@@ -248,7 +248,7 @@ export default function CreateQRProviderPage() {
       actions={
         <Link
           href="/admin/qr-providers"
-          className="btn-secondary text-xs py-2 px-3.5 flex items-center space-x-1.5 shadow-xs"
+          className="btn-back"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           <span>Back to QR Providers</span>
@@ -423,8 +423,9 @@ export default function CreateQRProviderPage() {
               {/* Dual Fee Configuration: Payin and Payout Rates */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-base-900 mb-1.5">
-                    Payin / Deposit Fee (%) *
+                  <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 mb-1.5">
+                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-sky-100 text-sky-700 border border-sky-200">Payin</span>
+                    <span>Deposit Fee (%) *</span>
                   </label>
                   <div className="relative">
                     <input
@@ -436,15 +437,16 @@ export default function CreateQRProviderPage() {
                       placeholder="0.00"
                       value={payinQrProviderFee}
                       onChange={(e) => setPayinQrProviderFee(e.target.value)}
-                      className="w-full px-3.5 py-2 text-sm font-bold border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+                      className="w-full px-3.5 py-2 text-sm font-bold border border-sky-200 rounded-lg bg-sky-50/30 text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500"
                     />
-                    <span className="absolute right-3.5 top-2.5 text-primary font-bold text-xs">%</span>
+                    <span className="absolute right-3.5 top-2.5 text-sky-600 font-bold text-xs">%</span>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-base-900 mb-1.5">
-                    Payout / Withdrawal Fee (%) *
+                  <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 mb-1.5">
+                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">Payout</span>
+                    <span>Withdrawal Fee (%) *</span>
                   </label>
                   <div className="relative">
                     <input
@@ -456,9 +458,9 @@ export default function CreateQRProviderPage() {
                       placeholder="0.00"
                       value={payoutQrProviderFee}
                       onChange={(e) => setPayoutQrProviderFee(e.target.value)}
-                      className="w-full px-3.5 py-2 text-sm font-bold border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+                      className="w-full px-3.5 py-2 text-sm font-bold border border-amber-200 rounded-lg bg-amber-50/30 text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
                     />
-                    <span className="absolute right-3.5 top-2.5 text-blue-600 font-bold text-xs">%</span>
+                    <span className="absolute right-3.5 top-2.5 text-amber-600 font-bold text-xs">%</span>
                   </div>
                 </div>
               </div>
@@ -477,7 +479,7 @@ export default function CreateQRProviderPage() {
                     <option value="">Direct (No Agent Assigned)</option>
                     {agents.map((ag) => (
                       <option key={ag.id} value={ag.id}>
-                        {ag.name} ({ag.email})
+                        {ag.name} {ag.phone ? `(${ag.phone})` : ""}
                       </option>
                     ))}
                   </select>
@@ -486,8 +488,9 @@ export default function CreateQRProviderPage() {
                 {agentId && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3 pt-3 border-t border-base-200">
                     <div>
-                      <label className="block text-xs font-semibold text-base-900 mb-1">
-                        Agent Payin Fee (%)
+                      <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 mb-1">
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-sky-100 text-sky-700 border border-sky-200">Payin</span>
+                        <span>Agent Commission Fee (%)</span>
                       </label>
                       <div className="relative">
                         <input
@@ -496,16 +499,17 @@ export default function CreateQRProviderPage() {
                           min="0"
                           value={payinAgentFee}
                           onChange={(e) => setPayinAgentFee(e.target.value)}
-                          placeholder="0"
-                          className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+                          placeholder="0.00"
+                          className="w-full px-3 py-2 text-xs border border-sky-200 rounded-lg bg-sky-50/30 text-slate-900 font-semibold focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500"
                         />
-                        <span className="absolute right-3 top-2 text-primary font-bold text-xs">%</span>
+                        <span className="absolute right-3 top-2 text-sky-600 font-bold text-xs">%</span>
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-base-900 mb-1">
-                        Agent Payout Fee (%)
+                      <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 mb-1">
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">Payout</span>
+                        <span>Agent Commission Fee (%)</span>
                       </label>
                       <div className="relative">
                         <input
@@ -515,9 +519,9 @@ export default function CreateQRProviderPage() {
                           value={payoutAgentFee}
                           onChange={(e) => setPayoutAgentFee(e.target.value)}
                           placeholder="0.00"
-                          className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+                          className="w-full px-3 py-2 text-xs border border-amber-200 rounded-lg bg-amber-50/30 text-slate-900 font-semibold focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
                         />
-                        <span className="absolute right-3 top-2 text-blue-600 font-bold text-xs">%</span>
+                        <span className="absolute right-3 top-2 text-amber-600 font-bold text-xs">%</span>
                       </div>
                     </div>
                   </div>

@@ -123,7 +123,7 @@ export default function AgentDashboard() {
                   <tr key={p.id} className="hover:bg-[#ffffff] transition">
                     <td className="p-3">
                       <div className="font-bold text-base-900">{p.name}</div>
-                      <div className="text-[11px] text-slate-500">{p.email}</div>
+                      {p.phone && <div className="text-[11px] text-slate-500">{p.phone}</div>}
                     </td>
                     <td className="p-3 font-mono text-[11px]">
                       {p.telegramId || <span className="text-gray-400 italic">None</span>}

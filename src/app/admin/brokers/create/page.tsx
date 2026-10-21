@@ -150,7 +150,7 @@ export default function CreateBrokerPage() {
       actions={
         <Link
           href="/admin/brokers"
-          className="btn-secondary text-xs py-2 px-3.5 flex items-center space-x-1.5 shadow-xs"
+          className="btn-back"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           <span>Back to Brokers</span>

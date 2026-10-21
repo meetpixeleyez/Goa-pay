@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import PortalLayout from "@/components/layout/PortalLayout";
+import ModalPortal from "@/components/common/ModalPortal";
 import BankTransferCard from "@/components/orders/BankTransferCard";
 import PayoutFulfillmentModal from "@/components/orders/PayoutFulfillmentModal";
 import {
@@ -466,7 +467,8 @@ export default function OperatorOrdersPage() {
 
       {/* PAYIN VERIFICATION MODAL */}
       {selectedPayinOrder && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+        <ModalPortal>
+          <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-base-200">
             <div className="flex items-center justify-between pb-4 border-b border-base-200 mb-4">
               <div className="flex items-center space-x-2">
@@ -621,6 +623,7 @@ export default function OperatorOrdersPage() {
             </div>
           </div>
         </div>
+        </ModalPortal>
       )}
 
       {/* PAYOUT FULFILLMENT MODAL */}
@@ -638,24 +641,26 @@ export default function OperatorOrdersPage() {
 
       {/* LIGHTBOX PREVIEW */}
       {lightboxImage && (
-        <div
-          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
-          onClick={() => setLightboxImage(null)}
-        >
-          <div className="relative max-w-2xl max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
-            <button
-              onClick={() => setLightboxImage(null)}
-              className="absolute -top-10 right-0 text-white hover:text-gray-300 p-1"
-            >
-              <X className="w-6 h-6" />
-            </button>
-            <img
-              src={lightboxImage}
-              alt="Payment Screenshot"
-              className="max-h-[85vh] max-w-full rounded-xl object-contain shadow-2xl border border-white/20"
-            />
+        <ModalPortal>
+          <div
+            className="fixed inset-0 z-[110] bg-black/85 backdrop-blur-md flex items-center justify-center p-4"
+            onClick={() => setLightboxImage(null)}
+          >
+            <div className="relative max-w-2xl max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+              <button
+                onClick={() => setLightboxImage(null)}
+                className="absolute -top-10 right-0 text-white hover:text-gray-300 p-1 cursor-pointer"
+              >
+                <X className="w-6 h-6" />
+              </button>
+              <img
+                src={lightboxImage}
+                alt="Payment Screenshot"
+                className="max-h-[85vh] max-w-full rounded-xl object-contain shadow-2xl border border-white/20"
+              />
+            </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
     </PortalLayout>
   );

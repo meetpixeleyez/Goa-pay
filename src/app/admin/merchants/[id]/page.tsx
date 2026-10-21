@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 import BankStatementTable from "@/components/wallet/BankStatementTable";
 import MerchantApiSettingsTab from "@/components/merchant/MerchantApiSettingsTab";
+import ModalPortal from "@/components/common/ModalPortal";
 import {
   isValidEmail,
   validateName,
@@ -631,7 +632,7 @@ export default function AdminMerchantDetailPage() {
         actions={
           <Link
             href="/admin/users"
-            className="px-3 py-2 text-xs bg-white border border-base-200 rounded-lg text-gray-700 hover:bg-gray-50 flex items-center space-x-1 transition shadow-xs"
+            className="btn-back"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Back to Users</span>
@@ -862,8 +863,12 @@ export default function AdminMerchantDetailPage() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {/* Payin Merchant Fee */}
                       <div>
-                        <label className="block text-[13px] font-semibold text-base-900 mb-1.5">
-                          Payin / Deposit Fee (%)
+                        <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center gap-1.5">
+                          <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-sky-100 text-sky-700 border border-sky-200">
+                            Payin
+                          </span>
+                          <span>Fee (%)</span>
+                          <span className="text-rose-500 font-bold">*</span>
                         </label>
                         {isEditing ? (
                           <div className="relative">
@@ -874,21 +879,29 @@ export default function AdminMerchantDetailPage() {
                               value={payinMerchantFee}
                               placeholder="0.00"
                               onChange={(e) => setPayinMerchantFee(e.target.value)}
-                              className="w-full px-2.5 py-1.5 text-xs font-bold border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+                              className="w-full pl-3.5 pr-8 py-2 text-xs font-mono font-bold bg-sky-50/40 border border-sky-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 focus:bg-white transition"
                             />
-                            <span className="absolute right-2.5 top-1.5 text-xs font-bold text-slate-500">%</span>
+                            <span className="absolute right-3 top-2 text-sky-600 font-bold text-xs">%</span>
                           </div>
                         ) : (
-                          <div className="w-full px-3 py-2 text-xs font-bold text-primary bg-white rounded-lg border border-slate-200">
-                            <span className="text-sm font-extrabold">{payinMerchantFee}%</span>
+                          <div className="w-full px-3.5 py-2.5 text-xs font-bold text-sky-700 bg-sky-50/70 rounded-xl border border-sky-200 flex items-center justify-between shadow-2xs">
+                            <div className="flex items-center gap-1.5">
+                              <span className="w-2 h-2 rounded-full bg-sky-500"></span>
+                              <span className="text-[11px] font-bold uppercase tracking-wider text-sky-700">Payin Fee</span>
+                            </div>
+                            <span className="font-mono text-sm">{payinMerchantFee}%</span>
                           </div>
                         )}
                       </div>
 
                       {/* Payout Merchant Fee */}
                       <div>
-                        <label className="block text-[13px] font-semibold text-base-900 mb-1">
-                          Payout / Withdrawal Fee (%)
+                        <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center gap-1.5">
+                          <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-200">
+                            Payout
+                          </span>
+                          <span>Fee (%)</span>
+                          <span className="text-rose-500 font-bold">*</span>
                         </label>
                         {isEditing ? (
                           <div className="relative">
@@ -899,13 +912,17 @@ export default function AdminMerchantDetailPage() {
                               value={payoutMerchantFee}
                               placeholder="0.00"
                               onChange={(e) => setPayoutMerchantFee(e.target.value)}
-                              className="w-full px-2.5 py-1.5 text-xs font-bold border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+                              className="w-full pl-3.5 pr-8 py-2 text-xs font-mono font-bold bg-amber-50/40 border border-amber-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 focus:bg-white transition"
                             />
-                            <span className="absolute right-2.5 top-1.5 text-xs font-bold text-gray-400">%</span>
+                            <span className="absolute right-3 top-2 text-amber-600 font-bold text-xs">%</span>
                           </div>
                         ) : (
-                          <div className="w-full px-3 py-2 text-xs font-bold text-orange-600 bg-white rounded-lg border border-slate-200">
-                            <span className="text-sm font-extrabold">{payoutMerchantFee}%</span>
+                          <div className="w-full px-3.5 py-2.5 text-xs font-bold text-amber-800 bg-amber-50/70 rounded-xl border border-amber-200 flex items-center justify-between shadow-2xs">
+                            <div className="flex items-center gap-1.5">
+                              <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                              <span className="text-[11px] font-bold uppercase tracking-wider text-amber-800">Payout Fee</span>
+                            </div>
+                            <span className="font-mono text-sm">{payoutMerchantFee}%</span>
                           </div>
                         )}
                       </div>
@@ -913,8 +930,8 @@ export default function AdminMerchantDetailPage() {
                   </div>
 
                   {/* Broker Assignment & Direct Fees */}
-                  <div className="p-4 rounded-xl border border-base-200 bg-[#ffffff] space-y-3">
-                    <span className="text-[13px] font-semibold text-base-900 uppercase tracking-wider block">
+                  <div className="p-4 rounded-xl border border-slate-200 bg-[#ffffff] space-y-3">
+                    <span className="text-xs font-bold text-slate-800 uppercase tracking-wider block">
                       Assigned Merchant Broker & Fees
                     </span>
                     {isEditing ? (
@@ -922,20 +939,23 @@ export default function AdminMerchantDetailPage() {
                         <select
                           value={brokerId}
                           onChange={(e) => setBrokerId(e.target.value)}
-                          className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+                          className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
                         >
                           <option value="">Direct (No Broker Assigned)</option>
                           {(brokers || []).map((b) => (
                             <option key={b.id} value={b.id}>
-                              {b.name} ({b.email})
+                              {b.name} {b.phone ? `(${b.phone})` : ""}
                             </option>
                           ))}
                         </select>
                         {brokerId && (
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                             <div>
-                              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                                Broker Payin Fee (%)
+                              <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center gap-1.5">
+                                <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-sky-100 text-sky-700 border border-sky-200">
+                                  Payin
+                                </span>
+                                <span>Broker Fee (%)</span>
                               </label>
                               <div className="relative">
                                 <input
@@ -944,14 +964,17 @@ export default function AdminMerchantDetailPage() {
                                   min="0"
                                   value={payinBrokerFee}
                                   onChange={(e) => setPayinBrokerFee(e.target.value)}
-                                  className="w-full px-2.5 py-1.5 text-xs font-bold border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+                                  className="w-full pl-3.5 pr-8 py-2 text-xs font-mono font-bold bg-sky-50/40 border border-sky-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 focus:bg-white transition"
                                 />
-                                <span className="absolute right-2.5 top-1.5 text-xs font-bold text-slate-400">%</span>
+                                <span className="absolute right-3 top-2 text-sky-600 font-bold text-xs">%</span>
                               </div>
                             </div>
                             <div>
-                              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                                Broker Payout Fee (%)
+                              <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center gap-1.5">
+                                <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-200">
+                                  Payout
+                                </span>
+                                <span>Broker Fee (%)</span>
                               </label>
                               <div className="relative">
                                 <input
@@ -960,9 +983,9 @@ export default function AdminMerchantDetailPage() {
                                   min="0"
                                   value={payoutBrokerFee}
                                   onChange={(e) => setPayoutBrokerFee(e.target.value)}
-                                  className="w-full px-2.5 py-1.5 text-xs font-bold border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+                                  className="w-full pl-3.5 pr-8 py-2 text-xs font-mono font-bold bg-amber-50/40 border border-amber-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 focus:bg-white transition"
                                 />
-                                <span className="absolute right-2.5 top-1.5 text-xs font-bold text-slate-400">%</span>
+                                <span className="absolute right-3 top-2 text-amber-600 font-bold text-xs">%</span>
                               </div>
                             </div>
                           </div>
@@ -970,19 +993,21 @@ export default function AdminMerchantDetailPage() {
                       </div>
                     ) : (
                       <div className="space-y-2">
-                        <div className="w-full px-3 py-2 text-xs font-medium text-gray-800 bg-white rounded-lg border border-gray-200 flex items-center justify-between">
-                          <span>
+                        <div className="w-full px-3.5 py-2.5 text-xs font-medium text-slate-800 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between flex-wrap gap-2">
+                          <span className="font-semibold">
                             {merchant.broker
-                              ? `${merchant.broker.name} (${merchant.broker.email})`
+                              ? `${merchant.broker.name}${merchant.broker.phone ? ` (${merchant.broker.phone})` : ""}`
                               : "Direct (No Broker Assigned)"}
                           </span>
                           {merchant.broker && (
-                            <div className="flex items-center gap-1.5">
-                              <span className="px-2 py-0.5 bg-blue-100 text-blue-700 font-bold rounded text-[11px]">
-                                Payin: {merchant.payinBrokerFee ?? payinBrokerFee ?? 0}%
+                            <div className="flex items-center gap-2">
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-lg bg-sky-50 text-sky-700 border border-sky-200 shadow-2xs">
+                                <span className="w-1.5 h-1.5 rounded-full bg-sky-500"></span>
+                                <span>Payin: {merchant.payinBrokerFee ?? payinBrokerFee ?? 0}%</span>
                               </span>
-                              <span className="px-2 py-0.5 bg-amber-100 text-amber-700 font-bold rounded text-[11px]">
-                                Payout: {merchant.payoutBrokerFee ?? payoutBrokerFee ?? 0}%
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-lg bg-amber-50 text-amber-800 border border-amber-200 shadow-2xs">
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                <span>Payout: {merchant.payoutBrokerFee ?? payoutBrokerFee ?? 0}%</span>
                               </span>
                             </div>
                           )}
@@ -1321,163 +1346,74 @@ export default function AdminMerchantDetailPage() {
       </PortalLayout>
       {/* PASSWORD RESET MODAL */}
       {showResetModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full overflow-hidden">
-            <div className="p-4 bg-[#0f172a] text-white flex items-center justify-between">
-              <h3 className="font-sembold text-sm">Reset Password</h3>
-              <button
-                onClick={() => setShowResetModal(false)}
-                className="text-white hover:text-slate-200 text-sm font-sembold"
-              >
-                <X className="size-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleResetPassword} className="p-5 space-y-4">
-              <p className="text-xs text-base-700">
-                Set a new password for merchant: <b>{merchant.email}</b>
-              </p>
-
-              {resetErr && <div className="p-2 bg-red-50 text-red-700 text-xs rounded">{resetErr}</div>}
-              {resetMsg && <div className="p-2 bg-green-50 text-green-700 text-xs rounded">{resetMsg}</div>}
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  New Password <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="password"
-                  required
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Min 6 characters"
-                  className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg"
-                />
-              </div>
-
-              <div className="flex space-x-3 pt-2">
+        <ModalPortal>
+          <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
+            <div className="bg-white rounded-xl shadow-xl max-w-sm w-full overflow-hidden">
+              <div className="p-4 bg-[#0f172a] text-white flex items-center justify-between">
+                <h3 className="font-semibold text-sm">Reset Password</h3>
                 <button
-                  type="button"
                   onClick={() => setShowResetModal(false)}
-                  className="flex-1 py-2 text-xs border border-gray-300 rounded-lg text-gray-600"
+                  className="text-white hover:text-slate-200 text-sm font-semibold"
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={resetting}
-                  className="flex-1 btn-primary py-2 text-xs"
-                >
-                  {resetting ? "Updating..." : "Update Password"}
+                  <X className="size-5" />
                 </button>
               </div>
-            </form>
+
+              <form onSubmit={handleResetPassword} className="p-5 space-y-4">
+                <p className="text-xs text-base-700">
+                  Set a new password for merchant: <b>{merchant.name || `Merchant #${merchant.id}`}</b>
+                </p>
+
+                {resetErr && <div className="p-2 bg-red-50 text-red-700 text-xs rounded">{resetErr}</div>}
+                {resetMsg && <div className="p-2 bg-green-50 text-green-700 text-xs rounded">{resetMsg}</div>}
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    New Password <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Min 6 characters"
+                    className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg"
+                  />
+                </div>
+
+                <div className="flex space-x-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowResetModal(false)}
+                    className="flex-1 py-2 text-xs border border-gray-300 rounded-lg text-gray-600"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={resetting}
+                    className="flex-1 btn-primary py-2 text-xs font-bold"
+                  >
+                    {resetting ? "Updating..." : "Update Password"}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
 
       {/* ADD BALANCE MODAL */}
       {showAddBalanceModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full overflow-hidden">
-            <div className="p-4 bg-[#0f172a] text-white flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <PlusCircle className="w-4 h-4 text-primary" />
-                <h3 className="font-semibold text-sm">Add Funds to Merchant Wallet</h3>
-              </div>
-              <button
-                onClick={() => {
-                  setShowAddBalanceModal(false);
-                  setAddAmount("");
-                  setAddDescription("");
-                  setAddBalanceError("");
-                  setAddBalanceSuccess("");
-                }}
-                className="text-white hover:text-gray-200 text-sm font-bold"
-              >
-                <X className="size-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleAddBalance} className="p-5 space-y-4">
-              <div>
-                <p className="text-xs text-slate-500">
-                  Manually credit funds directly into <b>{merchant.name}</b>'s settled wallet.
-                </p>
-                <div className="mt-2 p-2.5 bg-slate-100 rounded-lg border border-slate-200 flex items-center justify-between text-xs">
-                  <span className="text-slate-500">Current Settled Balance:</span>
-                  <span className="font-semibold text-base-900">
-                    ₹{currentBalance.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
+        <ModalPortal>
+          <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
+            <div className="bg-white rounded-xl shadow-xl max-w-md w-full overflow-hidden">
+              <div className="p-4 bg-[#0f172a] text-white flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <PlusCircle className="w-4 h-4 text-primary" />
+                  <h3 className="font-semibold text-sm">Add Funds to Merchant Wallet</h3>
                 </div>
-              </div>
-
-              {addBalanceError && (
-                <div className="p-2.5 bg-red-50 text-red-700 text-xs rounded-lg border border-red-200 flex items-center space-x-2">
-                  <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
-                  <span>{addBalanceError}</span>
-                </div>
-              )}
-
-              {addBalanceSuccess && (
-                <div className="p-2.5 bg-green-50 text-green-700 text-xs rounded-lg border border-green-200 flex items-center space-x-2">
-                  <CheckCircle2 className="w-4 h-4 shrink-0 text-green-600" />
-                  <span>{addBalanceSuccess}</span>
-                </div>
-              )}
-
-              <div>
-                <label className="block text-[12px] font-semibold mb-1.5">
-                  Deposit Amount (₹)*
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-2.5 text-slate-500 font-bold text-sm">₹</span>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="1"
-                    required
-                    autoFocus
-                    value={addAmount}
-                    onChange={(e) => setAddAmount(e.target.value)}
-                    placeholder="e.g. 5000"
-                    className="w-full pl-7 pr-3 py-2 text-sm font-bold border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
-                </div>
-                {/* Quick Chips */}
-                <div className="flex flex-wrap gap-1.5 mt-2">
-                  {[500, 1000, 5000, 10000, 25000].map((amt) => (
-                    <button
-                      key={amt}
-                      type="button"
-                      disabled={addingBalance || !!addBalanceSuccess}
-                      onClick={() => setAddAmount(amt.toString())}
-                      className="px-2 py-0.5 text-[11px] font-semibold bg-base-100/40 hover:bg-slate-100 text-slate-900 rounded border border-slate-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      +₹{amt.toLocaleString("en-IN")}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[12px] font-semibold text-base-900 mb-1.5">
-                  Reference Note / Description
-                </label>
-                <input
-                  type="text"
-                  disabled={addingBalance || !!addBalanceSuccess}
-                  value={addDescription}
-                  onChange={(e) => setAddDescription(e.target.value)}
-                  placeholder="e.g. Manual top-up, Bank transfer settlement"
-                  className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
-                />
-              </div>
-
-              <div className="flex space-x-3 pt-2">
                 <button
-                  type="button"
-                  disabled={addingBalance || !!addBalanceSuccess}
                   onClick={() => {
                     setShowAddBalanceModal(false);
                     setAddAmount("");
@@ -1485,150 +1421,139 @@ export default function AdminMerchantDetailPage() {
                     setAddBalanceError("");
                     setAddBalanceSuccess("");
                   }}
-                  className="flex-1 py-2 text-xs border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="text-white hover:text-gray-200 text-sm font-bold"
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={addingBalance || !!addBalanceSuccess || !addAmount || parseFloat(addAmount) <= 0}
-                  className="flex-1 btn-primary py-2 text-xs font-bold shadow flex items-center justify-center space-x-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {addingBalance ? (
-                    <>
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      <span>Crediting...</span>
-                    </>
-                  ) : addBalanceSuccess ? (
-                    <>
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>Credited Successfully</span>
-                    </>
-                  ) : (
-                    <span>Credit ₹{parseFloat(addAmount) > 0 ? parseFloat(addAmount).toLocaleString("en-IN") : "0"}</span>
-                  )}
+                  <X className="size-5" />
                 </button>
               </div>
-            </form>
+
+              <form onSubmit={handleAddBalance} className="p-5 space-y-4">
+                <div>
+                  <p className="text-xs text-slate-500">
+                    Manually credit funds directly into <b>{merchant.name}</b>'s settled wallet.
+                  </p>
+                  <div className="mt-2 p-2.5 bg-slate-100 rounded-lg border border-slate-200 flex items-center justify-between text-xs">
+                    <span className="text-slate-500">Current Settled Balance:</span>
+                    <span className="font-semibold text-base-900">
+                      ₹{currentBalance.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                </div>
+
+                {addBalanceError && (
+                  <div className="p-2.5 bg-red-50 text-red-700 text-xs rounded-lg border border-red-200 flex items-center space-x-2">
+                    <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
+                    <span>{addBalanceError}</span>
+                  </div>
+                )}
+
+                {addBalanceSuccess && (
+                  <div className="p-2.5 bg-green-50 text-green-700 text-xs rounded-lg border border-green-200 flex items-center space-x-2">
+                    <CheckCircle2 className="w-4 h-4 shrink-0 text-green-600" />
+                    <span>{addBalanceSuccess}</span>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-[12px] font-semibold mb-1.5">
+                    Deposit Amount (₹)*
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2.5 text-slate-500 font-bold text-sm">₹</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="1"
+                      required
+                      autoFocus
+                      value={addAmount}
+                      onChange={(e) => setAddAmount(e.target.value)}
+                      placeholder="e.g. 5000"
+                      className="w-full pl-7 pr-3 py-2 text-sm font-bold border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
+                  {/* Quick Chips */}
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {[500, 1000, 5000, 10000, 25000].map((amt) => (
+                      <button
+                        key={amt}
+                        type="button"
+                        disabled={addingBalance || !!addBalanceSuccess}
+                        onClick={() => setAddAmount(amt.toString())}
+                        className="px-2 py-0.5 text-[11px] font-semibold bg-base-100/40 hover:bg-slate-100 text-slate-900 rounded border border-slate-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        +₹{amt.toLocaleString("en-IN")}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[12px] font-semibold text-base-900 mb-1.5">
+                    Reference Note / Description
+                  </label>
+                  <input
+                    type="text"
+                    disabled={addingBalance || !!addBalanceSuccess}
+                    value={addDescription}
+                    onChange={(e) => setAddDescription(e.target.value)}
+                    placeholder="e.g. Manual top-up, Bank transfer settlement"
+                    className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
+                  />
+                </div>
+
+                <div className="flex space-x-3 pt-2">
+                  <button
+                    type="button"
+                    disabled={addingBalance || !!addBalanceSuccess}
+                    onClick={() => {
+                      setShowAddBalanceModal(false);
+                      setAddAmount("");
+                      setAddDescription("");
+                      setAddBalanceError("");
+                      setAddBalanceSuccess("");
+                    }}
+                    className="flex-1 py-2 text-xs border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={addingBalance || !!addBalanceSuccess || !addAmount || parseFloat(addAmount) <= 0}
+                    className="flex-1 btn-primary py-2 text-xs font-bold shadow flex items-center justify-center space-x-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {addingBalance ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        <span>Crediting...</span>
+                      </>
+                    ) : addBalanceSuccess ? (
+                      <>
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>Credited Successfully</span>
+                      </>
+                    ) : (
+                      <span>Credit ₹{parseFloat(addAmount) > 0 ? parseFloat(addAmount).toLocaleString("en-IN") : "0"}</span>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
 
       {/* CLEAR BALANCE MODAL (MANUAL WITHDRAWAL / DEDUCTION) */}
       {showClearModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full overflow-hidden">
-            <div className="p-4 bg-[#0f172a] text-white flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <MinusCircle className="w-4 h-4 text-rose-400" />
-                <h3 className="font-semibold text-sm">Withdraw Funds from Merchant Wallet</h3>
-              </div>
-              <button
-                disabled={clearingBalance || !!clearSuccess}
-                onClick={() => {
-                  setShowClearModal(false);
-                  setClearAmount("");
-                  setClearDescription("");
-                  setClearError("");
-                  setClearSuccess("");
-                }}
-                className="text-white hover:text-gray-200 text-sm font-bold disabled:opacity-50"
-              >
-                <X className="size-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleClearBalance} className="p-5 space-y-4">
-              <div>
-                <p className="text-xs text-slate-500">
-                  Manually debit funds directly from <b>{merchant.name}</b>'s settled wallet.
-                </p>
-                <div className="mt-2 p-2.5 bg-slate-100 rounded-lg border border-slate-200 flex items-center justify-between text-xs">
-                  <span className="text-slate-500">Current Settled Balance:</span>
-                  <span className="font-semibold text-base-900">
-                    ₹{currentBalance.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
+        <ModalPortal>
+          <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
+            <div className="bg-white rounded-xl shadow-xl max-w-md w-full overflow-hidden">
+              <div className="p-4 bg-[#0f172a] text-white flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <MinusCircle className="w-4 h-4 text-rose-400" />
+                  <h3 className="font-semibold text-sm">Withdraw Funds from Merchant Wallet</h3>
                 </div>
-              </div>
-
-              {clearError && (
-                <div className="p-2.5 bg-red-50 text-red-700 text-xs rounded-lg border border-red-200 flex items-center space-x-2">
-                  <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
-                  <span>{clearError}</span>
-                </div>
-              )}
-
-              {clearSuccess && (
-                <div className="p-2.5 bg-green-50 text-green-700 text-xs rounded-lg border border-green-200 flex items-center space-x-2">
-                  <CheckCircle2 className="w-4 h-4 shrink-0 text-green-600" />
-                  <span>{clearSuccess}</span>
-                </div>
-              )}
-
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-[12px] font-semibold text-base-900">
-                    Withdrawal Amount (₹)*
-                  </label>
-                  {currentBalance > 0 && (
-                    <button
-                      type="button"
-                      disabled={clearingBalance || !!clearSuccess}
-                      onClick={() => setClearAmount(currentBalance.toString())}
-                      className="text-[12px] font-semibold text-primary hover:text-primary-400 underline disabled:opacity-50"
-                    >
-                      Clear Exact Balance (₹{currentBalance.toFixed(2)})
-                    </button>
-                  )}
-                </div>
-                <div className="relative">
-                  <span className="absolute left-3 top-2.5 text-slate-500 font-bold text-sm">₹</span>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="1"
-                    required
-                    disabled={clearingBalance || !!clearSuccess}
-                    autoFocus
-                    value={clearAmount}
-                    onChange={(e) => setClearAmount(e.target.value)}
-                    placeholder="e.g. 5000"
-                    className="w-full pl-7 pr-3 py-2 text-sm font-bold border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
-                  />
-                </div>
-                {/* Quick Chips */}
-                <div className="flex flex-wrap gap-1.5 mt-2">
-                  {[500, 1000, 5000, 10000, 25000].map((amt) => (
-                    <button
-                      key={amt}
-                      type="button"
-                      disabled={clearingBalance || !!clearSuccess}
-                      onClick={() => setClearAmount(amt.toString())}
-                      className="px-2 py-0.5 text-[11px] font-semibold bg-base-100/40 hover:bg-slate-100 text-slate-900 rounded border border-slate-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      ₹{amt.toLocaleString("en-IN")}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[12px] font-semibold text-base-900 mb-1.5">
-                  Reference Note / Description
-                </label>
-                <input
-                  type="text"
-                  disabled={clearingBalance || !!clearSuccess}
-                  value={clearDescription}
-                  onChange={(e) => setClearDescription(e.target.value)}
-                  placeholder="e.g. Bank payout issued, settlement withdrawal"
-                  className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
-                />
-              </div>
-
-              <div className="flex space-x-3 pt-2">
                 <button
-                  type="button"
                   disabled={clearingBalance || !!clearSuccess}
                   onClick={() => {
                     setShowClearModal(false);
@@ -1637,33 +1562,139 @@ export default function AdminMerchantDetailPage() {
                     setClearError("");
                     setClearSuccess("");
                   }}
-                  className="flex-1 py-2 text-xs border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="text-white hover:text-gray-200 text-sm font-bold disabled:opacity-50"
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={clearingBalance || !!clearSuccess || !clearAmount || parseFloat(clearAmount) <= 0}
-                  className="flex-1 btn-primary py-2 text-xs font-bold shadow flex items-center justify-center space-x-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {clearingBalance ? (
-                    <>
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      <span>Debiting...</span>
-                    </>
-                  ) : clearSuccess ? (
-                    <>
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>Debited Successfully</span>
-                    </>
-                  ) : (
-                    <span>Debit ₹{parseFloat(clearAmount) > 0 ? parseFloat(clearAmount).toLocaleString("en-IN") : "0"}</span>
-                  )}
+                  <X className="size-5" />
                 </button>
               </div>
-            </form>
+
+              <form onSubmit={handleClearBalance} className="p-5 space-y-4">
+                <div>
+                  <p className="text-xs text-slate-500">
+                    Manually debit funds directly from <b>{merchant.name}</b>'s settled wallet.
+                  </p>
+                  <div className="mt-2 p-2.5 bg-slate-100 rounded-lg border border-slate-200 flex items-center justify-between text-xs">
+                    <span className="text-slate-500">Current Settled Balance:</span>
+                    <span className="font-semibold text-base-900">
+                      ₹{currentBalance.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                </div>
+
+                {clearError && (
+                  <div className="p-2.5 bg-red-50 text-red-700 text-xs rounded-lg border border-red-200 flex items-center space-x-2">
+                    <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
+                    <span>{clearError}</span>
+                  </div>
+                )}
+
+                {clearSuccess && (
+                  <div className="p-2.5 bg-green-50 text-green-700 text-xs rounded-lg border border-green-200 flex items-center space-x-2">
+                    <CheckCircle2 className="w-4 h-4 shrink-0 text-green-600" />
+                    <span>{clearSuccess}</span>
+                  </div>
+                )}
+
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-[12px] font-semibold text-base-900">
+                      Withdrawal Amount (₹)*
+                    </label>
+                    {currentBalance > 0 && (
+                      <button
+                        type="button"
+                        disabled={clearingBalance || !!clearSuccess}
+                        onClick={() => setClearAmount(currentBalance.toString())}
+                        className="text-[12px] font-semibold text-primary hover:text-primary-400 underline disabled:opacity-50"
+                      >
+                        Clear Exact Balance (₹{currentBalance.toFixed(2)})
+                      </button>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2.5 text-slate-500 font-bold text-sm">₹</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="1"
+                      required
+                      disabled={clearingBalance || !!clearSuccess}
+                      autoFocus
+                      value={clearAmount}
+                      onChange={(e) => setClearAmount(e.target.value)}
+                      placeholder="e.g. 5000"
+                      className="w-full pl-7 pr-3 py-2 text-sm font-bold border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
+                    />
+                  </div>
+                  {/* Quick Chips */}
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {[500, 1000, 5000, 10000, 25000].map((amt) => (
+                      <button
+                        key={amt}
+                        type="button"
+                        disabled={clearingBalance || !!clearSuccess}
+                        onClick={() => setClearAmount(amt.toString())}
+                        className="px-2 py-0.5 text-[11px] font-semibold bg-base-100/40 hover:bg-slate-100 text-slate-900 rounded border border-slate-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        ₹{amt.toLocaleString("en-IN")}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[12px] font-semibold text-base-900 mb-1.5">
+                    Reference Note / Description
+                  </label>
+                  <input
+                    type="text"
+                    disabled={clearingBalance || !!clearSuccess}
+                    value={clearDescription}
+                    onChange={(e) => setClearDescription(e.target.value)}
+                    placeholder="e.g. Bank payout issued, settlement withdrawal"
+                    className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
+                  />
+                </div>
+
+                <div className="flex space-x-3 pt-2">
+                  <button
+                    type="button"
+                    disabled={clearingBalance || !!clearSuccess}
+                    onClick={() => {
+                      setShowClearModal(false);
+                      setClearAmount("");
+                      setClearDescription("");
+                      setClearError("");
+                      setClearSuccess("");
+                    }}
+                    className="flex-1 py-2 text-xs border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={clearingBalance || !!clearSuccess || !clearAmount || parseFloat(clearAmount) <= 0}
+                    className="flex-1 btn-primary py-2 text-xs font-bold shadow flex items-center justify-center space-x-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {clearingBalance ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        <span>Debiting...</span>
+                      </>
+                    ) : clearSuccess ? (
+                      <>
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>Debited Successfully</span>
+                      </>
+                    ) : (
+                      <span>Debit ₹{parseFloat(clearAmount) > 0 ? parseFloat(clearAmount).toLocaleString("en-IN") : "0"}</span>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
 
     </>

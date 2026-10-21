@@ -26,6 +26,7 @@ import {
   Landmark,
 } from "lucide-react";
 import BankTransferCard from "@/components/orders/BankTransferCard";
+import ModalPortal from "@/components/common/ModalPortal";
 
 interface PayoutFulfillmentModalProps {
   order: any;
@@ -256,7 +257,8 @@ export default function PayoutFulfillmentModal({
   const timerSecs = remainingSeconds % 60;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/70 backdrop-blur-sm animate-fadeIn">
+    <ModalPortal>
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-2.5 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
       <div className="bg-white rounded-2xl max-w-xl w-full max-h-[96vh] sm:max-h-[92vh] flex flex-col shadow-2xl border-2 border-sky-400 overflow-hidden">
         {/* Modal Top Header */}
         <div className="px-3.5 sm:px-5 py-3 sm:py-3.5 bg-gradient-to-r from-sky-700 via-sky-800 to-sky-900 text-white flex items-center justify-between shadow-xs">
@@ -542,5 +544,6 @@ export default function PayoutFulfillmentModal({
         </div>
       </div>
     </div>
+    </ModalPortal>
   );
 }

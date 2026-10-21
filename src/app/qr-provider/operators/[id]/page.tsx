@@ -82,10 +82,10 @@ export default function OperatorDetailPage() {
       actions={
         <Link
           href="/qr-provider/operators"
-          className="btn-secondary text-xs py-1.5 px-3 flex items-center space-x-1.5 shadow-2xs whitespace-nowrap shrink-0"
+          className="btn-back"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
-          <span>All Operators</span>
+          <span>Back to Operators</span>
         </Link>
       }
     >

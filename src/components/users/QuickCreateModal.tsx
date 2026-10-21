@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
   UserPlus,
   X,
@@ -51,6 +52,11 @@ export default function QuickCreateModal({
   // Created State
   const [createdData, setCreatedData] = useState<any | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const fetchNextSequence = async () => {
     try {
@@ -154,10 +160,10 @@ export default function QuickCreateModal({
     }
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-150">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-150">
       <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full overflow-hidden animate-in zoom-in-95 duration-150">
         {/* Modal Header */}
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
@@ -336,7 +342,7 @@ export default function QuickCreateModal({
                     >
                       {qrProviders.map((p) => (
                         <option key={p.id} value={p.id}>
-                          {p.name} ({p.email})
+                          {p.name} {p.phone ? `(${p.phone})` : ""}
                         </option>
                       ))}
                     </select>
@@ -446,6 +452,7 @@ export default function QuickCreateModal({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

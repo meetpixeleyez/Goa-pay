@@ -118,7 +118,7 @@ export default function AdminOperatorDetailPage() {
       actions={
         <Link
           href="/admin/users"
-          className="btn-secondary text-xs py-2 px-3 inline-flex items-center space-x-1.5"
+          className="btn-back"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           <span>Back to Users</span>
@@ -129,21 +129,21 @@ export default function AdminOperatorDetailPage() {
 
         {/* Parent QR Provider Information Card */}
         {operator.qrProvider && (
-          <div className="card-theme p-4 shadow-sm border border-base-200 bg-[#fdfbf7] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 overflow-hidden">
+          <div className="card-theme p-4 shadow-sm border border-slate-200 bg-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 overflow-hidden">
             <div className="flex items-center space-x-3 min-w-0 flex-1">
-              <div className="w-10 h-10 rounded-xl bg-primary/15 text-[#0c4a6e] flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-700 border border-sky-200 flex items-center justify-center shrink-0">
                 <Building2 className="w-5 h-5" />
               </div>
               <div className="min-w-0 flex-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-base-700 block truncate">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block truncate">
                   Parent QR Provider
                 </span>
                 <Link
                   href={`/admin/qr-providers/${operator.qrProvider.id}`}
-                  className="font-bold text-sm text-base-900 hover:text-primary hover:underline flex items-center space-x-1.5 truncate"
+                  className="font-bold text-sm text-slate-900 hover:text-primary flex items-center space-x-1.5 truncate transition"
                 >
                   <span className="truncate">{operator.qrProvider.name}</span>
-                  <ExternalLink className="w-3 h-3 text-gray-400 shrink-0" />
+                  <ExternalLink className="w-3 h-3 text-slate-400 shrink-0" />
                 </Link>
                 <div className="text-[11px] text-slate-500 font-mono truncate max-w-full mt-0.5 flex items-center gap-2">
                   <span>ID: {operator.qrProvider.id}</span>
@@ -162,10 +162,10 @@ export default function AdminOperatorDetailPage() {
 
             <Link
               href={`/admin/qr-providers/${operator.qrProvider.id}`}
-              className="px-3 py-1.5 bg-white border border-base-200 hover:bg-base-100/40 text-xs font-semibold rounded-lg text-base-900 flex items-center space-x-1.5 transition shrink-0 whitespace-nowrap shadow-2xs self-start sm:self-auto"
+              className="btn-redirect self-start sm:self-auto"
             >
               <span>View Parent Provider</span>
-              <ExternalLink className="w-3 h-3 text-primary" />
+              <ExternalLink className="w-3 h-3" />
             </Link>
           </div>
         )}

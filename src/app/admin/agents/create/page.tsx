@@ -150,7 +150,7 @@ export default function CreateAgentPage() {
       actions={
         <Link
           href="/admin/agents"
-          className="btn-secondary text-xs py-2 px-3.5 flex items-center space-x-1.5 shadow-xs"
+          className="btn-back"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           <span>Back to Agents</span>

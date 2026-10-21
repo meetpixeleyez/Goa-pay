@@ -88,7 +88,7 @@ export default function OperatorDashboardPage() {
       title="Operator Dashboard"
       subtitle={
         profile?.qrProvider
-          ? `Operating on behalf of ${profile.qrProvider.name} (${profile.qrProvider.email})`
+          ? `Operating on behalf of ${profile.qrProvider.name}`
           : "Fulfill deposit verifications and payouts for your assigned collection QR codes"
       }
       actions={

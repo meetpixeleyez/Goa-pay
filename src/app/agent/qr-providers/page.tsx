@@ -72,7 +72,7 @@ export default function AgentQRProvidersPage() {
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="font-bold text-base-900 truncate" title={p.name}>{p.name}</div>
-                          <div className="text-[11px] text-slate-500 font-mono truncate" title={p.email}>{p.email}</div>
+                          {p.phone && <div className="text-[11px] text-slate-500 font-mono truncate">{p.phone}</div>}
                         </div>
                       </div>
                     </td>
@@ -127,9 +127,11 @@ export default function AgentQRProvidersPage() {
                       <p className="font-bold text-xs text-base-900 truncate" title={p.name}>
                         {p.name}
                       </p>
-                      <p className="text-[11px] text-slate-500 font-mono truncate" title={p.email}>
-                        {p.email}
-                      </p>
+                      {p.phone && (
+                        <p className="text-[11px] text-slate-500 font-mono truncate">
+                          {p.phone}
+                        </p>
+                      )}
                     </div>
                   </div>
 

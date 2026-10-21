@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import PortalLayout from "@/components/layout/PortalLayout";
+import ModalPortal from "@/components/common/ModalPortal";
 import OrderDetailsModal from "@/components/orders/OrderDetailsModal";
 import {
   ShoppingBag,
@@ -926,7 +927,8 @@ export default function AdminOrdersPage() {
           : null;
 
         return (
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-fadeIn">
+          <ModalPortal>
+            <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-fadeIn">
             <div className="bg-white rounded-2xl shadow-2xl max-w-xl w-full max-h-[94vh] flex flex-col border border-base-200 overflow-hidden">
 
               {/* Header */}
@@ -1300,6 +1302,7 @@ export default function AdminOrdersPage() {
               </div>
             </div>
           </div>
+          </ModalPortal>
         );
       })()}
     </PortalLayout>

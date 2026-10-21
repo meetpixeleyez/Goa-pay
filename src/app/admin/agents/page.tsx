@@ -18,6 +18,7 @@ import {
   X,
 } from "lucide-react";
 import { agentsApi } from "@/lib/api/agents.api";
+import ModalPortal from "@/components/common/ModalPortal";
 
 export default function AdminAgentsPage() {
   const [agents, setAgents] = useState<any[]>([]);
@@ -409,8 +410,8 @@ export default function AdminAgentsPage() {
                               <p className="font-bold text-base-900 truncate" title={a.name}>
                                 {a.name}
                               </p>
-                              <p className="text-[11px] text-slate-500 font-mono truncate" title={a.email}>
-                                {a.email}
+                              <p className="text-[11px] text-slate-500 font-mono truncate">
+                                {a.phone || "--"}
                               </p>
                             </div>
                           </div>
@@ -532,7 +533,7 @@ export default function AdminAgentsPage() {
                         </div>
                         <div className="min-w-0">
                           <p className="font-bold text-xs text-base-900 truncate">{a.name}</p>
-                          <p className="text-[11px] text-slate-500 font-mono truncate">{a.email}</p>
+                          <p className="text-[11px] text-slate-500 font-mono truncate">{a.phone || "--"}</p>
                         </div>
                       </div>
 
@@ -684,68 +685,70 @@ export default function AdminAgentsPage() {
 
       {/* PASSWORD RESET MODAL */}
       {resetUser && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="card-theme max-w-sm w-full p-6 rounded-2xl border border-base-200 shadow-xl relative animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center space-x-2 pb-3 border-b border-base-200 mb-4">
-              <KeyRound className="w-5 h-5 text-primary" />
-              <h3 className="font-bold text-[16px] text-base-900">Reset Agent Password</h3>
+        <ModalPortal>
+          <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
+            <div className="card-theme max-w-sm w-full p-6 rounded-2xl border border-base-200 shadow-xl relative animate-in fade-in zoom-in-95 duration-150">
+              <div className="flex items-center space-x-2 pb-3 border-b border-base-200 mb-4">
+                <KeyRound className="w-5 h-5 text-primary" />
+                <h3 className="font-bold text-[16px] text-base-900">Reset Agent Password</h3>
+              </div>
+
+              <form onSubmit={handleResetPassword} className="space-y-4">
+                <p className="text-xs text-base-700">
+                  Resetting password for: <b>{resetUser.name || `Agent #${resetUser.id}`}</b>
+                </p>
+
+                {resetError && (
+                  <div className="p-2.5 bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg flex items-center space-x-2">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{resetError}</span>
+                  </div>
+                )}
+
+                {resetSuccess && (
+                  <div className="p-2.5 bg-green-50 border border-green-200 text-green-700 text-xs rounded-lg flex items-center space-x-2">
+                    <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    <span>{resetSuccess}</span>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-xs font-semibold text-base-900 mb-1">New Password *</label>
+                  <input
+                    type="password"
+                    required
+                    minLength={6}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Min 6 characters"
+                    className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                  />
+                </div>
+
+                <div className="p-3 bg-red-50/70 border border-red-200 rounded-lg text-[11px] text-red-700">
+                  Warning: Updating this key will require the partner to re-authenticate with their new credentials.
+                </div>
+
+                <div className="flex space-x-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setResetUser(null)}
+                    className="flex-1 py-2 text-xs border border-base-200 rounded-lg text-gray-600 hover:bg-gray-100 transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={resetting || !newPassword || newPassword.trim().length < 6}
+                    className="flex-1 btn-primary py-2 text-xs font-bold rounded-lg shadow-sm disabled:opacity-40 disabled:cursor-not-allowed transition"
+                  >
+                    {resetting ? "Updating..." : "Update Password"}
+                  </button>
+                </div>
+              </form>
             </div>
-
-            <form onSubmit={handleResetPassword} className="space-y-4">
-              <p className="text-xs text-base-700">
-                Resetting password for: <b>{resetUser.name}</b> ({resetUser.email})
-              </p>
-
-              {resetError && (
-                <div className="p-2.5 bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg flex items-center space-x-2">
-                  <AlertCircle className="w-4 h-4 shrink-0" />
-                  <span>{resetError}</span>
-                </div>
-              )}
-
-              {resetSuccess && (
-                <div className="p-2.5 bg-green-50 border border-green-200 text-green-700 text-xs rounded-lg flex items-center space-x-2">
-                  <CheckCircle2 className="w-4 h-4 shrink-0" />
-                  <span>{resetSuccess}</span>
-                </div>
-              )}
-
-              <div>
-                <label className="block text-xs font-semibold text-base-900 mb-1">New Password *</label>
-                <input
-                  type="password"
-                  required
-                  minLength={6}
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Min 6 characters"
-                  className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
-                />
-              </div>
-
-              <div className="p-3 bg-red-50/70 border border-red-200 rounded-lg text-[11px] text-red-700">
-                Warning: Updating this key will require the partner to re-authenticate with their new credentials.
-              </div>
-
-              <div className="flex space-x-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setResetUser(null)}
-                  className="flex-1 py-2 text-xs border border-base-200 rounded-lg text-gray-600 hover:bg-gray-100 transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={resetting}
-                  className="flex-1 btn-primary py-2 text-xs font-bold rounded-lg shadow-sm"
-                >
-                  {resetting ? "Updating..." : "Update Password"}
-                </button>
-              </div>
-            </form>
           </div>
-        </div>
+        </ModalPortal>
       )}
     </PortalLayout>
   );

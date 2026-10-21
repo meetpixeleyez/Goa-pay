@@ -24,6 +24,7 @@ import {
   EyeOff,
 } from "lucide-react";
 import { isValidPhone, normalizePhone, validateUsernameOrName } from "@/lib/validation";
+import ModalPortal from "@/components/common/ModalPortal";
 
 export default function AdminOthersPage() {
   const [users, setUsers] = useState<any[]>([]);
@@ -441,248 +442,254 @@ export default function AdminOthersPage() {
 
       {/* ==================== EDIT USER MODAL ==================== */}
       {editingUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-lg w-full overflow-hidden animate-in zoom-in-95 duration-150">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-              <div className="flex items-center gap-2">
-                <div className="size-8 rounded-lg bg-teal-50 text-teal-700 flex items-center justify-center">
-                  <Pencil className="w-4 h-4" />
+        <ModalPortal>
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-150">
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-lg w-full overflow-hidden animate-in zoom-in-95 duration-150">
+              <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <div className="flex items-center gap-2">
+                  <div className="size-8 rounded-lg bg-teal-50 text-teal-700 flex items-center justify-center">
+                    <Pencil className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-sm text-base-900">Edit Other Account</h3>
+                    <p className="text-[11px] text-slate-500">ID: #{editingUser.id}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={handleCloseEdit}
+                  disabled={updating}
+                  className="text-slate-400 hover:text-slate-600 p-1 rounded-lg transition cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <form onSubmit={handleInitiateUpdate} className="p-6 space-y-4">
+                {editError && (
+                  <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
+                    <span>{editError}</span>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Full Name / Username *
+                  </label>
+                  <div className="relative">
+                    <User className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                    <input
+                      type="text"
+                      required
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      placeholder="Enter name or username"
+                      className="w-full pl-9 pr-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl text-base-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-medium"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Contact Phone
+                  </label>
+                  <div className="relative">
+                    <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                    <input
+                      type="tel"
+                      value={editPhone}
+                      onChange={(e) => setEditPhone(e.target.value)}
+                      placeholder="e.g. +91 9876543210 or +1 443 456 7890"
+                      className="w-full pl-9 pr-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl text-base-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Change Password
+                  </label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                    <input
+                      type={showEditPassword ? "text" : "password"}
+                      value={editPassword}
+                      onChange={(e) => setEditPassword(e.target.value)}
+                      placeholder="Leave blank to keep existing password"
+                      minLength={6}
+                      className="w-full pl-9 pr-10 py-2 text-xs bg-white border border-slate-200 rounded-xl text-base-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowEditPassword(!showEditPassword)}
+                      className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600"
+                    >
+                      {showEditPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Account Status</label>
+                  <select
+                    value={editStatus}
+                    onChange={(e) => setEditStatus(e.target.value)}
+                    className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl text-base-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-medium"
+                  >
+                    <option value="ACTIVE">ACTIVE</option>
+                    <option value="INACTIVE">INACTIVE</option>
+                  </select>
+                </div>
+
+                <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={handleCloseEdit}
+                    disabled={updating}
+                    className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={updating}
+                    className="px-4 py-2 text-xs font-bold bg-primary hover:bg-primary-600 text-white rounded-xl shadow-xs transition cursor-pointer"
+                  >
+                    Save Changes
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </ModalPortal>
+      )}
+
+      {/* Confirmation Modal for Edit */}
+      {showConfirmEditModal && editingUser && (
+        <ModalPortal>
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-150">
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full p-6 animate-in zoom-in-95 duration-150 space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="size-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                  <AlertCircle className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm text-base-900">Edit Other Account</h3>
-                  <p className="text-[11px] text-slate-500">ID: #{editingUser.id}</p>
+                  <h3 className="font-bold text-sm text-base-900">Confirm Details Update</h3>
+                  <p className="text-xs text-slate-500">Are you sure you want to save these changes?</p>
                 </div>
               </div>
-              <button
-                onClick={handleCloseEdit}
-                disabled={updating}
-                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg transition cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
 
-            <form onSubmit={handleInitiateUpdate} className="p-6 space-y-4">
-              {editError && (
-                <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
-                  <span>{editError}</span>
+              <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-1.5">
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Name:</span>
+                  <span className="font-bold text-base-900">{editName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Contact:</span>
+                  <span className="font-mono text-base-900">{editPhone || "Not Provided"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Status:</span>
+                  <span className="font-bold text-base-900">{editStatus}</span>
+                </div>
+                {editPassword && (
+                  <div className="flex justify-between text-amber-700 font-semibold">
+                    <span>Password:</span>
+                    <span>Will be reset</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmEditModal(false)}
+                  disabled={updating}
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer"
+                >
+                  Go Back
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmUpdate}
+                  disabled={updating}
+                  className="px-4 py-2 text-xs font-bold bg-primary hover:bg-primary-600 text-white rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer"
+                >
+                  {updating ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : null}
+                  <span>{updating ? "Saving..." : "Yes, Save Changes"}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </ModalPortal>
+      )}
+
+      {/* Delete User Modal */}
+      {deletingUser && (
+        <ModalPortal>
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-150">
+            <div className="bg-white rounded-2xl border border-rose-200 shadow-2xl max-w-md w-full p-6 animate-in zoom-in-95 duration-150 space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="size-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+                  <Trash2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-base-900">Delete Account</h3>
+                  <p className="text-xs text-slate-500">This action is permanent and cannot be undone.</p>
+                </div>
+              </div>
+
+              {deleteError && (
+                <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl">
+                  {deleteError}
                 </div>
               )}
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Full Name / Username *
-                </label>
-                <div className="relative">
-                  <User className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                  <input
-                    type="text"
-                    required
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    placeholder="Enter name or username"
-                    className="w-full pl-9 pr-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl text-base-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-medium"
-                  />
-                </div>
+              <div className="p-3 bg-rose-50/60 rounded-xl border border-rose-100 text-xs text-rose-800 space-y-1">
+                <p>
+                  You are about to permanently delete <strong>{deletingUser.name}</strong> (ID: #{deletingUser.id}).
+                </p>
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Contact Phone
+                  Type <span className="font-mono font-bold text-rose-600">delete</span> to confirm:
                 </label>
-                <div className="relative">
-                  <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                  <input
-                    type="tel"
-                    value={editPhone}
-                    onChange={(e) => setEditPhone(e.target.value)}
-                    placeholder="e.g. +91 9876543210 or +1 443 456 7890"
-                    className="w-full pl-9 pr-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl text-base-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-mono"
-                  />
-                </div>
+                <input
+                  type="text"
+                  value={deleteConfirmationText}
+                  onChange={(e) => setDeleteConfirmationText(e.target.value)}
+                  placeholder="delete"
+                  className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl text-base-900 focus:outline-none focus:ring-2 focus:ring-rose-400 font-mono"
+                />
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Change Password
-                </label>
-                <div className="relative">
-                  <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                  <input
-                    type={showEditPassword ? "text" : "password"}
-                    value={editPassword}
-                    onChange={(e) => setEditPassword(e.target.value)}
-                    placeholder="Leave blank to keep existing password"
-                    minLength={6}
-                    className="w-full pl-9 pr-10 py-2 text-xs bg-white border border-slate-200 rounded-xl text-base-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowEditPassword(!showEditPassword)}
-                    className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600"
-                  >
-                    {showEditPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Account Status</label>
-                <select
-                  value={editStatus}
-                  onChange={(e) => setEditStatus(e.target.value)}
-                  className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl text-base-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-medium"
-                >
-                  <option value="ACTIVE">ACTIVE</option>
-                  <option value="INACTIVE">INACTIVE</option>
-                </select>
-              </div>
-
-              <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-100">
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
                 <button
                   type="button"
-                  onClick={handleCloseEdit}
-                  disabled={updating}
+                  onClick={() => {
+                    setDeletingUser(null);
+                    setDeleteConfirmationText("");
+                    setDeleteError("");
+                  }}
+                  disabled={deleting}
                   className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
-                  type="submit"
-                  disabled={updating}
-                  className="px-4 py-2 text-xs font-bold bg-primary hover:bg-primary-600 text-white rounded-xl shadow-xs transition cursor-pointer"
+                  type="button"
+                  onClick={handleConfirmDelete}
+                  disabled={deleting || deleteConfirmationText.trim().toLowerCase() !== "delete"}
+                  className="px-4 py-2 text-xs font-bold bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer"
                 >
-                  Save Changes
+                  {deleting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : null}
+                  <span>{deleting ? "Deleting..." : "Permanently Delete"}</span>
                 </button>
               </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Confirmation Modal for Edit */}
-      {showConfirmEditModal && editingUser && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full p-6 animate-in zoom-in-95 duration-150 space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="size-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
-                <AlertCircle className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="font-bold text-sm text-base-900">Confirm Details Update</h3>
-                <p className="text-xs text-slate-500">Are you sure you want to save these changes?</p>
-              </div>
-            </div>
-
-            <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-1.5">
-              <div className="flex justify-between">
-                <span className="text-slate-500">Name:</span>
-                <span className="font-bold text-base-900">{editName}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Contact:</span>
-                <span className="font-mono text-base-900">{editPhone || "Not Provided"}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Status:</span>
-                <span className="font-bold text-base-900">{editStatus}</span>
-              </div>
-              {editPassword && (
-                <div className="flex justify-between text-amber-700 font-semibold">
-                  <span>Password:</span>
-                  <span>Will be reset</span>
-                </div>
-              )}
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setShowConfirmEditModal(false)}
-                disabled={updating}
-                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer"
-              >
-                Go Back
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmUpdate}
-                disabled={updating}
-                className="px-4 py-2 text-xs font-bold bg-primary hover:bg-primary-600 text-white rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer"
-              >
-                {updating ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : null}
-                <span>{updating ? "Saving..." : "Yes, Save Changes"}</span>
-              </button>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Delete User Modal */}
-      {deletingUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl border border-rose-200 shadow-2xl max-w-md w-full p-6 animate-in zoom-in-95 duration-150 space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="size-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
-                <Trash2 className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="font-bold text-sm text-base-900">Delete Account</h3>
-                <p className="text-xs text-slate-500">This action is permanent and cannot be undone.</p>
-              </div>
-            </div>
-
-            {deleteError && (
-              <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl">
-                {deleteError}
-              </div>
-            )}
-
-            <div className="p-3 bg-rose-50/60 rounded-xl border border-rose-100 text-xs text-rose-800 space-y-1">
-              <p>
-                You are about to permanently delete <strong>{deletingUser.name}</strong> (ID: #{deletingUser.id}).
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Type <span className="font-mono font-bold text-rose-600">delete</span> to confirm:
-              </label>
-              <input
-                type="text"
-                value={deleteConfirmationText}
-                onChange={(e) => setDeleteConfirmationText(e.target.value)}
-                placeholder="delete"
-                className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl text-base-900 focus:outline-none focus:ring-2 focus:ring-rose-400 font-mono"
-              />
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => {
-                  setDeletingUser(null);
-                  setDeleteConfirmationText("");
-                  setDeleteError("");
-                }}
-                disabled={deleting}
-                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmDelete}
-                disabled={deleting || deleteConfirmationText.trim().toLowerCase() !== "delete"}
-                className="px-4 py-2 text-xs font-bold bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer"
-              >
-                {deleting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : null}
-                <span>{deleting ? "Deleting..." : "Permanently Delete"}</span>
-              </button>
-            </div>
-          </div>
-        </div>
+        </ModalPortal>
       )}
     </PortalLayout>
   );

@@ -5,45 +5,50 @@
 @tailwind utilities;
 
 :root {
-  --font-sans: "Inter", sans-serif; 
-  /* Central Theme Color System - Facebook Application Palette */
-  /* Base Palette (Facebook App Gray Canvas & Crisp Surfaces) */
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  
+  /* Central Theme Color System - Modern Clean FinTech SaaS Palette */
+  /* Base Palette (Clean Slate Surface & Crisp Contours) */
   --base-50: #ffffff;
-  --base-100: #f0f2f5; /* Facebook App Canvas Wash */
-  --base-200: #e4e6eb; /* Facebook Divider / Input Gray */
-  --base-300: #ced0d4; /* Facebook Subtle Border */
-  --base-400: #b0b3b8;
-  --base-default: #f0f2f5;
-  --base-600: #8a8d91;
-  --base-700: #65676b; /* Facebook Subtitle / Secondary Text */
-  --base-800: #3a3b3c;
-  --base-900: #050505; /* Facebook High-Contrast Primary Text */
+  --base-100: #f8fafc; /* Crisp Slate Canvas Wash */
+  --base-200: #e2e8f0; /* Subtle Divider / Border */
+  --base-300: #cbd5e1; /* Input Border */
+  --base-400: #94a3b8;
+  --base-default: #f8fafc;
+  --base-600: #64748b;
+  --base-700: #475569; /* Balanced Secondary / Subtitle Text */
+  --base-800: #334155;
+  --base-900: #0f172a; /* High-Contrast Crisp Primary Text */
 
-  /* --primary-50: #f0f7ff;
-  --primary-100: #e7f3ff;
-  --primary-200: #cbe5ff;
-  --primary-300: #93c5fd;
-  --primary-400: #3b82f6;
-  --primary-default: #0866ff; 
-  --primary-600: #0053d6;
-  --primary-700: #0045b5;
-  --primary-800: #00368f;
-  --primary-900: #002566; */
+  /* Ocean Blue Brand Palette */
+  --primary-50: #f0f9ff;
+  --primary-100: #e0f2fe;
+  --primary-200: #bae6fd;
+  --primary-300: #7dd3fc;
+  --primary-400: #38bdf8;
+  --primary-default: #0284c7; /* Ocean Blue Brand */
+  --primary-600: #0369a1;
+  --primary-700: #075985;
+  --primary-800: #0c4a6e;
+  --primary-900: #082f49;
+  --primary-950: #041f31;
 
-  --primary-50: oklch(97.7% 0.013 236.62);
-  --primary-100: oklch(95.1% 0.026 236.824);
-  --primary-200: oklch(90.1% 0.058 230.902);
-  --primary-300: oklch(82.8% 0.111 230.318);
-  --primary-400: oklch(74.6% 0.16 232.661);
-  --primary-default: oklch(68.5% 0.169 237.323);
-  --primary-600: oklch(58.8% 0.158 241.966);
-  --primary-700: oklch(50% 0.134 242.749);
-  --primary-800: oklch(44.3% 0.11 240.79);
-  --primary-900: oklch(39.1% 0.09 240.876);
-  --primary-950: oklch(29.3% 0.066 243.157);
+  --background: #f8fafc; /* Clean SaaS Surface */
+  --foreground: #0f172a; /* Deep Slate Text */
+}
 
-  --background: #f0f2f5; /* Facebook Canvas */
-  --foreground: #050505; /* Facebook Primary Text */
+/* Base Body & Typography Optimization */
+html {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
 }
 
 /* Custom utility classes */
@@ -52,7 +57,7 @@
 }
 
 .border-base {
-  border-color: var(--base-300);
+  border-color: var(--base-200);
 }
 
 .text-base {
@@ -60,48 +65,274 @@
   line-height: 1.5rem;
 }
 
+/* Card Container Theme */
 .card-theme {
   background-color: #ffffff;
   border: 1px solid var(--base-200);
   border-radius: 0.75rem;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.03), 0 1px 2px -1px rgba(15, 23, 42, 0.03);
+  transition: box-shadow 0.2s ease-in-out, border-color 0.2s ease-in-out;
 }
 
+.card-theme:hover {
+  border-color: #cbd5e1;
+}
+
+/* Standardized Button Hierarchy */
 .btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1rem;
+  padding: 0.5rem 0.875rem;
+  border-radius: 0.5rem;
   background-color: var(--primary-default);
   color: #ffffff;
-  font-weight: 600;
-  padding: 0.625rem 1.25rem;
-  border-radius: 0.5rem;
-  transition: all 0.15s ease-in-out;
+  border: 1px solid transparent;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
 }
 
 .btn-primary:hover {
   background-color: var(--primary-600);
+  box-shadow: 0 2px 6px -1px rgba(2, 132, 199, 0.25);
 }
 
+.btn-primary:active {
+  transform: scale(0.98);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1rem;
+  padding: 0.5rem 0.875rem;
+  border-radius: 0.5rem;
+  background-color: #ffffff;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.btn-secondary:hover {
+  background-color: #f8fafc;
+  color: #0f172a;
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 4px 0 rgba(15, 23, 42, 0.05);
+}
+
+.btn-secondary:active {
+  transform: scale(0.98);
+}
+
+.btn-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Dedicated Navigation & Redirect Action Button */
+.btn-redirect {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1rem;
+  padding: 0.375rem 0.625rem;
+  border-radius: 0.5rem;
+  background-color: #ffffff;
+  color: #0284c7;
+  border: 1px solid #bae6fd;
+  box-shadow: 0 1px 2px 0 rgba(2, 132, 199, 0.06);
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.btn-redirect:hover {
+  background-color: #f0f9ff;
+  color: #0369a1;
+  border-color: #7dd3fc;
+  box-shadow: 0 2px 6px 0 rgba(2, 132, 199, 0.15);
+}
+
+.btn-redirect:hover svg {
+  transform: translateX(1.5px);
+}
+
+.btn-redirect:active {
+  transform: scale(0.98);
+}
+
+/* Neutral Redirect Button */
+.btn-redirect-neutral {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1rem;
+  padding: 0.375rem 0.625rem;
+  border-radius: 0.5rem;
+  background-color: #ffffff;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.btn-redirect-neutral:hover {
+  background-color: #f8fafc;
+  color: #0284c7;
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 4px 0 rgba(15, 23, 42, 0.06);
+}
+
+.btn-redirect-neutral:hover svg {
+  transform: translateX(1.5px);
+  color: #0284c7;
+}
+
+.btn-redirect-neutral:active {
+  transform: scale(0.98);
+}
+
+/* Dedicated Back Navigation Button */
+.btn-back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 0.5rem;
+  background-color: #ffffff;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.btn-back:hover {
+  background-color: #f8fafc;
+  color: #0f172a;
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 4px 0 rgba(15, 23, 42, 0.05);
+}
+
+.btn-back:hover svg {
+  transform: translateX(-1.5px);
+}
+
+.btn-back:active {
+  transform: scale(0.98);
+}
+
+/* Destructive / Delete Button */
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1rem;
+  padding: 0.375rem 0.625rem;
+  border-radius: 0.5rem;
+  background-color: #fff1f2;
+  color: #e11d48;
+  border: 1px solid #fecdd3;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.btn-danger:hover {
+  background-color: #ffe4e6;
+  color: #be123c;
+  border-color: #fda4af;
+  box-shadow: 0 2px 4px 0 rgba(225, 29, 72, 0.1);
+}
+
+.btn-danger:active {
+  transform: scale(0.98);
+}
+
+/* Input Fields */
+.input-theme {
+  width: 100%;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  padding: 0.5rem 0.75rem;
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.5rem;
+  color: #0f172a;
+  transition: all 0.15s ease-in-out;
+}
+
+.input-theme:focus {
+  outline: none;
+  border-color: var(--primary-default);
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+}
+
+/* Standardized Status Badges */
 .badge-pending {
-  background-color: #e7f3ff;
-  color: #0866ff;
-  border: 1px solid #cbe5ff;
+  background-color: #f0f9ff;
+  color: #0284c7;
+  border: 1px solid #bae6fd;
 }
 
 .badge-processing {
-  background-color: #e7f3ff;
-  color: #0866ff;
-  border: 1px solid #cbe5ff;
+  background-color: #f0f9ff;
+  color: #0284c7;
+  border: 1px solid #bae6fd;
 }
 
 .badge-completed {
-  background-color: #e7f8ed;
-  color: #1f883d;
-  border: 1px solid #c3edd2;
+  background-color: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
 }
 
 .badge-rejected {
-  background-color: #ffebe8;
-  color: #e41e3f;
-  border: 1px solid #ffd0c9;
+  background-color: #fff1f2;
+  color: #e11d48;
+  border: 1px solid #fecdd3;
 }
 
 @keyframes slideInFromRight {

@@ -30,7 +30,9 @@ import {
   BookOpen,
   CircleEllipsis,
   ArrowLeftRight,
+  RefreshCw,
 } from "lucide-react";
+import ModalPortal from "@/components/common/ModalPortal";
 import { useSocket } from "@/lib/socket-client";
 import RealtimeNotificationBanner from "@/components/notifications/RealtimeNotificationBanner";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -68,6 +70,8 @@ export default function PortalLayout({
   const pathname = usePathname();
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const dispatch = useAppDispatch();
   const { user, loading: authLoading, initialized, availablePayoutCount } = useAppSelector(
     (state) => state.auth
@@ -142,9 +146,15 @@ export default function PortalLayout({
     setMobileMenuOpen(false);
   }, [pathname]);
 
-  const handleLogout = async () => {
-    await dispatch(logoutUser());
-    router.push("/login");
+  const handleConfirmLogout = async () => {
+    try {
+      setIsLoggingOut(true);
+      await dispatch(logoutUser());
+      setShowLogoutConfirm(false);
+      router.push("/login");
+    } finally {
+      setIsLoggingOut(false);
+    }
   };
 
   const navItemsMap: Record<string, { brand: string; items: NavItem[] }> = {
@@ -320,8 +330,8 @@ export default function PortalLayout({
                 </div>
               </div>
               <button
-                onClick={handleLogout}
-                className="w-full py-2 px-3 text-xs font-semibold text-[#e41e3f] bg-[#ffebe8] hover:bg-[#ffd0c9] border border-[#ffd0c9] rounded-xl flex items-center justify-center space-x-2 transition"
+                onClick={() => setShowLogoutConfirm(true)}
+                className="w-full py-2 px-3 text-xs font-semibold text-[#e41e3f] bg-[#ffebe8] hover:bg-[#ffd0c9] border border-[#ffd0c9] rounded-xl flex items-center justify-center space-x-2 transition cursor-pointer"
               >
                 <LogOut className="w-3.5 h-3.5" />
                 <span>Sign Out</span>
@@ -331,17 +341,17 @@ export default function PortalLayout({
         </div>
       )}
 
-      {/* Desktop Persistent Sidebar - Facebook Light & Clean */}
-      <aside className="hidden md:flex w-64 shrink-0 bg-slate-900 text-slate-200 flex-col justify-between sticky top-0 h-screen p-4">
+      {/* Desktop Persistent Sidebar - Refined Slate & Ocean Blue */}
+      <aside className="hidden md:flex w-64 shrink-0 bg-slate-900 text-slate-200 flex-col justify-between sticky top-0 h-screen p-4 border-r border-slate-800/80">
         <div>
-          {/* Logo & Portal Identity - Non-actionable static branding */}
-          <div className="flex items-center space-x-3 pb-4 border-b border-slate-700 mb-4 cursor-default select-none">
-            <div className="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center font-bold text-base shadow-sm">
+          {/* Logo & Portal Identity */}
+          <div className="flex items-center space-x-3 pb-4 border-b border-slate-800 mb-4 cursor-default select-none">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-sky-600 to-sky-400 text-white flex items-center justify-center font-bold text-sm shadow-sm ring-1 ring-white/10">
               MP
             </div>
             <div>
-              <span className="font-semibold text-base text-slate-200 tracking-tight">Mahadev Portal</span>
-              <span className="text-[11px] block text-slate-300/75 font-medium">{portalConfig.brand}</span>
+              <span className="font-bold text-sm text-white tracking-tight">Mahadev Portal</span>
+              <span className="text-[10px] block text-sky-400 font-semibold tracking-wider uppercase mt-0.5">{portalConfig.brand}</span>
             </div>
           </div>
 
@@ -355,22 +365,23 @@ export default function PortalLayout({
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`group flex items-center justify-between px-3 py-2.5 rounded-xl text-[13px] font-semibold transition ${isActive
-                      ? "bg-slate-800 text-slate-50"
-                      : "text-slate-300/75 hover:text-slate-200"
-                    }`}
+                  className={`group flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                    isActive
+                      ? "bg-sky-500/15 text-sky-300 border border-sky-500/25 shadow-xs"
+                      : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
+                  }`}
                 >
                   <div className="flex items-center space-x-2.5">
-                    <Icon className={`w-4 h-4 ${isActive ? "text-slate-50" : "text-slate-300/75 group-hover:text-current"}`} />
+                    <Icon className={`w-4 h-4 transition-colors ${isActive ? "text-sky-400" : "text-slate-400 group-hover:text-slate-200"}`} />
                     <span>{item.label}</span>
                   </div>
                   <div className="flex items-center space-x-1.5">
                     {isAvailableOrdersItem && qrAvailableCount > 0 && (
-                      <span className="px-1.5 py-0.2 rounded-full bg-[#e41e3f] text-white text-[9px] font-extrabold animate-pulse">
+                      <span className="px-1.5 py-0.5 rounded-full bg-rose-500 text-white text-[9px] font-extrabold animate-pulse">
                         {qrAvailableCount}
                       </span>
                     )}
-                    {isActive && <ChevronRight className="w-3.5 h-3.5 text-slate-50" />}
+                    {isActive && <ChevronRight className="w-3.5 h-3.5 text-sky-400" />}
                   </div>
                 </Link>
               );
@@ -379,25 +390,25 @@ export default function PortalLayout({
         </div>
 
         {/* User Session Footer */}
-        <div className="pt-4 border-t border-slate-700 space-y-3">
-          <div className="text-xs">
-            <div>
-              <div className="font-semibold text-slate-200 truncate flex items-center gap-2 mb-1">
-                {user?.name}
-                <span className="inline-block text-[10px] px-1.5 py-[2px] rounded-full bg-primary text-primary-50 font-semibold uppercase">
-                  {user?.role}
-                </span>
-                {user?.portalAccess === false && (
-                  <span className="inline-block text-[10px] px-1.5 py-[2px] rounded-full bg-amber-500/20 text-amber-300 font-semibold uppercase border border-amber-500/30">
-                    Read-Only
-                  </span>
-                )}
-              </div>
+        <div className="pt-4 border-t border-slate-800 space-y-3">
+          <div className="p-2.5 rounded-xl bg-slate-800/50 border border-slate-800/80">
+            <div className="font-semibold text-xs text-white truncate flex items-center justify-between gap-1.5">
+              <span className="truncate">{user?.name}</span>
+              <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded-full bg-sky-500/20 text-sky-300 font-bold uppercase border border-sky-500/30">
+                {user?.role}
+              </span>
             </div>
+            {user?.portalAccess === false && (
+              <div className="mt-1.5">
+                <span className="inline-block text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-semibold uppercase border border-amber-500/30">
+                  Read-Only Mode
+                </span>
+              </div>
+            )}
           </div>
           <button
-            onClick={handleLogout}
-            className="w-full py-2 px-3 text-xs font-semibold text-red-50 bg-red-500 hover:bg-red-600 rounded-xl flex items-center justify-center space-x-2 transition border border-red-500"
+            onClick={() => setShowLogoutConfirm(true)}
+            className="w-full py-2 px-3 text-xs font-semibold text-rose-300 bg-rose-950/40 hover:bg-rose-900/60 rounded-xl flex items-center justify-center space-x-2 transition border border-rose-800/50 hover:text-white cursor-pointer active:scale-[0.98]"
           >
             <LogOut className="w-3.5 h-3.5" />
             <span>Sign Out</span>
@@ -409,7 +420,7 @@ export default function PortalLayout({
       <main className="flex-1 flex flex-col min-w-0 overflow-y-auto">
         {/* Read-Only Mode Banner */}
         {user && user.role !== "ADMIN" && user.portalAccess === false && (
-          <div className="bg-amber-50 border-b border-amber-200 px-4 sm:px-8 py-2.5 flex items-center justify-between text-amber-900 text-xs font-medium sticky top-0 z-30 backdrop-blur-md shadow-sm">
+          <div className="bg-amber-50 border-b border-amber-200 px-4 sm:px-8 py-2.5 flex items-center justify-between text-amber-900 text-xs font-medium sticky top-0 z-30 backdrop-blur-md shadow-xs">
             <div className="flex items-center space-x-2">
               <span className="flex h-2 w-2 relative">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
@@ -425,19 +436,88 @@ export default function PortalLayout({
         )}
 
         {/* Top Header Bar */}
-        <div className="bg-white/80 border-b border-[#e4e6eb] px-4 sm:px-8 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sticky top-0 z-20 backdrop-blur-md">
+        <div className="bg-white/90 border-b border-slate-200/90 px-4 sm:px-8 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sticky top-0 z-10 backdrop-blur-md shadow-2xs">
           <div>
-            <h1 className="text-lg sm:text-xl font-bold text-[#050505] tracking-tight">{title}</h1>
-            {subtitle && <p className="text-xs text-[#65676b] mt-0.5">{subtitle}</p>}
+            <h1 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">{title}</h1>
+            {subtitle && <p className="text-xs text-slate-500 mt-0.5 font-normal">{subtitle}</p>}
           </div>
           {(actions || action) && <div className="flex items-center gap-2">{actions || action}</div>}
         </div>
 
         {/* Child Page Content */}
-        <div className="p-4 sm:p-8 w-full mx-auto space-y-6">
+        <div className="p-4 sm:p-8 w-full mx-auto space-y-6 relative z-20">
           {children}
         </div>
       </main>
+
+      {/* Sign Out Confirmation Modal */}
+      {showLogoutConfirm && (
+        <ModalPortal>
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-150">
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-sm w-full p-6 space-y-4 animate-in zoom-in-95 duration-150">
+              {/* Header */}
+              <div className="flex items-start gap-3">
+                <div className="size-11 rounded-2xl bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+                  <LogOut className="size-5" />
+                </div>
+                <div className="space-y-0.5">
+                  <h3 className="font-bold text-base text-slate-900 leading-snug">Sign Out</h3>
+                  <p className="text-xs text-slate-500 font-medium">
+                    Are you sure you want to sign out of your account?
+                  </p>
+                </div>
+              </div>
+
+              {/* User Account Context */}
+              <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl space-y-1 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Signed in as</span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-50 text-sky-700 border border-sky-200 uppercase">
+                    {user?.role}
+                  </span>
+                </div>
+                <div className="font-bold text-slate-900 text-sm truncate">
+                  {user?.name}
+                </div>
+              </div>
+
+              <p className="text-[11px] text-slate-500">
+                You will need to enter your credentials to access the portal again.
+              </p>
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowLogoutConfirm(false)}
+                  disabled={isLoggingOut}
+                  className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-semibold transition cursor-pointer text-center"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmLogout}
+                  disabled={isLoggingOut}
+                  className="flex-1 py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-xs transition cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
+                >
+                  {isLoggingOut ? (
+                    <>
+                      <RefreshCw className="size-3.5 animate-spin" />
+                      <span>Signing Out...</span>
+                    </>
+                  ) : (
+                    <>
+                      <LogOut className="size-3.5" />
+                      <span>Yes, Sign Out</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </ModalPortal>
+      )}
 
       {/* Real-time Toast Notifications */}
       <RealtimeNotificationBanner portal={portal} userId={user?.id} />

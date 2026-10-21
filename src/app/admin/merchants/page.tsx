@@ -33,6 +33,7 @@ import {
 
 import { useMerchants } from "@/hooks/useMerchants";
 import { apiClient } from "@/lib/api/client";
+import ModalPortal from "@/components/common/ModalPortal";
 
 export default function AdminMerchantsPage() {
   const [brokers, setBrokers] = useState<any[]>([]);
@@ -476,10 +477,7 @@ export default function AdminMerchantsPage() {
                           {/* 2. Contact & Telegram */}
                           <td className="py-4 px-5">
                             <div className="flex flex-col">
-                              <span className="text-base-900 text-xs font-medium truncate max-w-[200px]" title={m.email}>
-                                {m.email}
-                              </span>
-                              <span className="text-slate-500 text-[11px] mt-0.5">
+                              <span className="text-base-900 text-xs font-semibold">
                                 {m.phone || "--"}
                               </span>
                               {m.telegramId ? (
@@ -708,7 +706,8 @@ export default function AdminMerchantsPage() {
 
         {/* CREATE MERCHANT MODAL */}
         {showCreateModal && (
-          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <ModalPortal>
+            <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
             <div className="bg-white rounded-xl shadow-xl max-w-lg w-full border border-base-200 overflow-hidden max-h-[90vh] flex flex-col">
               <div className="p-4 bg-primary text-white flex items-center justify-between">
                 <h3 className="font-bold text-sm">Provision New Merchant</h3>
@@ -841,7 +840,7 @@ export default function AdminMerchantsPage() {
                     <option value="">Direct (No Broker)</option>
                     {(brokers.length > 0 ? brokers : availableBrokers).map((b: any) => (
                       <option key={b.id} value={b.id}>
-                        {b.name} {b.email ? `(${b.email})` : ""} {b.commissionPercent !== undefined ? `— ${b.commissionPercent}% commission` : ""}
+                        {b.name} {b.phone ? `(${b.phone})` : ""} {b.commissionPercent !== undefined ? `— ${b.commissionPercent}% commission` : ""}
                       </option>
                     ))}
                   </select>
@@ -891,69 +890,72 @@ export default function AdminMerchantsPage() {
                   </button>
                 </div>
               </form>
+              </div>
             </div>
-          </div>
+          </ModalPortal>
         )}
       </PortalLayout>
       {/* PASSWORD RESET MODAL */}
       {resetUser && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full overflow-hidden">
-            <div className="p-4 bg-[#0f172a] text-white flex items-center justify-between">
-              <h3 className="font-semibold text-sm">Reset Password</h3>
-              <button
-                onClick={() => setResetUser(null)}
-                className="text-white hover:text-gray-200 text-sm font-bold"
-              >
-                <X className="size-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleResetPassword} className="p-5 space-y-4">
-              <p className="text-xs text-base-700">
-                Resetting password for: <b>{resetUser.email}</b>
-              </p>
-
-              {resetError && (
-                <div className="p-2 bg-red-50 text-red-700 text-xs rounded">{resetError}</div>
-              )}
-              {resetSuccess && (
-                <div className="p-2 bg-green-50 text-green-700 text-xs rounded">{resetSuccess}</div>
-              )}
-
-              <div>
-                <label className="block text-xs font-semibold text-base-900 mb-1">
-                  New Password <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="password"
-                  required
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Min 6 characters"
-                  className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg"
-                />
-              </div>
-
-              <div className="flex space-x-3 pt-2">
+        <ModalPortal>
+          <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
+            <div className="bg-white rounded-xl shadow-xl max-w-sm w-full overflow-hidden">
+              <div className="p-4 bg-[#0f172a] text-white flex items-center justify-between">
+                <h3 className="font-semibold text-sm">Reset Password</h3>
                 <button
-                  type="button"
                   onClick={() => setResetUser(null)}
-                  className="flex-1 py-2 text-xs border border-base-200 rounded-lg text-gray-600"
+                  className="text-white hover:text-gray-200 text-sm font-bold"
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={resetting}
-                  className="flex-1 bg-primary text-white py-2 rounded-lg text-xs font-semibold"
-                >
-                  {resetting ? "Updating..." : "Update Password"}
+                  <X className="size-5" />
                 </button>
               </div>
-            </form>
+
+              <form onSubmit={handleResetPassword} className="p-5 space-y-4">
+                <p className="text-xs text-base-700">
+                  Resetting password for: <b>{resetUser.name || `Merchant #${resetUser.id}`}</b>
+                </p>
+
+                {resetError && (
+                  <div className="p-2 bg-red-50 text-red-700 text-xs rounded">{resetError}</div>
+                )}
+                {resetSuccess && (
+                  <div className="p-2 bg-green-50 text-green-700 text-xs rounded">{resetSuccess}</div>
+                )}
+
+                <div>
+                  <label className="block text-xs font-semibold text-base-900 mb-1">
+                    New Password <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Min 6 characters"
+                    className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg"
+                  />
+                </div>
+
+                <div className="flex space-x-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setResetUser(null)}
+                    className="flex-1 py-2 text-xs border border-base-200 rounded-lg text-gray-600"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={resetting || !newPassword || newPassword.trim().length < 6}
+                    className="flex-1 bg-primary text-white py-2 rounded-lg text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition"
+                  >
+                    {resetting ? "Updating..." : "Update Password"}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
     </>
   );

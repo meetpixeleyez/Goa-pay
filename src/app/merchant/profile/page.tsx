@@ -84,7 +84,7 @@ export default function MerchantProfilePage() {
           </div>
           <div>
             <h2 className="text-lg font-bold text-base-900">{profile?.name}</h2>
-            <p className="text-xs text-slate-500">{profile?.email}</p>
+            <p className="text-xs text-slate-500">{profile?.phone || profile?.name}</p>
           </div>
         </div>
 

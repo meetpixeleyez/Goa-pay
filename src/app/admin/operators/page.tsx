@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import PortalLayout from "@/components/layout/PortalLayout";
+import ModalPortal from "@/components/common/ModalPortal";
 import {
   Users,
   User,
@@ -551,7 +552,7 @@ export default function AdminOperatorsPage() {
                             <Link
                               href={`/admin/qr-providers/${op.qrProvider.id}`}
                               className="group block max-w-[180px]"
-                              title={`${op.qrProvider.name} (${op.qrProvider.email})`}
+                              title={op.qrProvider.name}
                             >
                               <div className="flex items-center space-x-1.5 font-bold text-xs text-base-900 group-hover:text-primary group-hover:underline">
                                 <Building2 className="w-3.5 h-3.5 text-primary shrink-0" />
@@ -664,10 +665,10 @@ export default function AdminOperatorsPage() {
                       <td className="py-3.5 px-4 text-right">
                         <Link
                           href={`/admin/operators/${op.id}`}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold text-primary hover:bg-primary-50 border border-primary/20 transition cursor-pointer"
+                          className="btn-redirect"
                           title="View Operator Profile"
                         >
-                          <Eye className="w-3.5 h-3.5" />
+                          <ExternalLink className="w-3 h-3" />
                           <span>Profile</span>
                         </Link>
                       </td>
@@ -762,7 +763,8 @@ export default function AdminOperatorsPage() {
 
       {/* UPI ID & QR DETAILS MODAL */}
       {selectedQrDetails && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+        <ModalPortal>
+          <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-base-200 animate-in zoom-in-95 duration-200">
             {/* Header */}
             <div className="flex items-center justify-between pb-3.5 border-b border-base-200 mb-4">
@@ -916,6 +918,7 @@ export default function AdminOperatorsPage() {
             </div>
           </div>
         </div>
+        </ModalPortal>
       )}
 
       {/* Quick Create Operator Modal */}
