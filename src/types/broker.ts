@@ -27,7 +27,7 @@ export interface BrokerItem {
 
 export interface CreateBrokerInput {
   name: string;
-  email: string;
+  email?: string;
   password: string;
   phone?: string;
   telegramId?: string;

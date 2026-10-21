@@ -301,28 +301,46 @@ export async function POST(request: Request) {
       .replace(/\s+/g, "_")
       .replace(/[^a-z0-9_-]/g, "") || "user";
 
-    const rawEmailOrUser = (data.email || data.username || data.userId || "").trim().toLowerCase();
-    let effectiveEmail = rawEmailOrUser.includes("@")
-      ? rawEmailOrUser
-      : (rawEmailOrUser ? `${rawEmailOrUser}@goapay.internal` : "");
+    const roleLabel =
+      role === "MERCHANT"
+        ? "Merchant"
+        : role === "QR_PROVIDER"
+        ? "QR Provider"
+        : role === "BROKER"
+        ? "Broker"
+        : role === "AGENT"
+        ? "Agent"
+        : role === "OPERATOR"
+        ? "Operator"
+        : role === "OTHER"
+        ? "Other"
+        : role;
 
-    if (!effectiveEmail && cleanName) {
-      const preferredEmail = `${baseSlug}@goapay.internal`;
-      const existingUser = await prisma.user.findUnique({ where: { email: preferredEmail } });
-      if (existingUser) {
-        return NextResponse.json(
-          { error: `The username "${baseSlug}" is already taken. Please choose a different name or username.` },
-          { status: 400 }
-        );
-      }
-      effectiveEmail = preferredEmail;
+    // Strict check: ONLY throw error if SAME ROLE + SAME USERNAME
+    const existingSameRoleUser = await prisma.user.findFirst({
+      where: {
+        role,
+        OR: [
+          { name: { equals: cleanName } },
+          { name: { equals: baseSlug } },
+        ],
+      },
+    });
+
+    if (existingSameRoleUser) {
+      return NextResponse.json(
+        { error: `A ${roleLabel} with username "${cleanName}" already exists. Please choose a different username.` },
+        { status: 400 }
+      );
     }
 
-    data.email = effectiveEmail;
-    data.username = baseSlug;
-    email = effectiveEmail;
+    // Silent internal handle to satisfy database schema without requiring email
+    const internalHandle = `${baseSlug}_${role.toLowerCase()}_${Date.now()}_${Math.floor(100 + Math.random() * 900)}@internal.local`;
+    data.email = internalHandle;
+    data.username = cleanName;
+    email = internalHandle;
 
-    if (!role || !name || !email || !password) {
+    if (!role || !name || !password) {
       return NextResponse.json(
         { error: "Role, Name, and Password are required" },
         { status: 400 }
@@ -408,16 +426,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Check unique email
-    const existing = await prisma.user.findUnique({
-      where: { email: email.trim().toLowerCase() },
-    });
-    if (existing) {
-      return NextResponse.json(
-        { error: "A user with this email already exists" },
-        { status: 400 }
-      );
-    }
 
     const passwordHash = await hashPassword(password);
     const initialBal = parseFloat(balance) || 0.0;

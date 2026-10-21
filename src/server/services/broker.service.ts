@@ -135,8 +135,8 @@ export class BrokerService {
   static async createBroker(input: CreateBrokerInput, adminUserId: number | string) {
     const { name, email, password, phone, telegramId, address, commissionPercent, status, portalAccess } = input;
 
-    if (!name?.trim() || !email?.trim() || !password?.trim()) {
-      throw new ApiError("Name, Email, and Password are required", 400);
+    if (!name?.trim() || !password?.trim()) {
+      throw new ApiError("Name and Password are required", 400);
     }
 
     const validation = validateUserData(input, { isCreate: true, role: "BROKER" });
@@ -144,11 +144,20 @@ export class BrokerService {
       throw new ApiError(validation.errors[0] || "Invalid broker data", 400);
     }
 
-    const cleanEmail = email.trim().toLowerCase();
-    const existing = await prisma.user.findUnique({ where: { email: cleanEmail } });
-    if (existing) {
-      throw new ApiError("A user with this email already exists", 400);
+    const existingBroker = await prisma.user.findFirst({
+      where: {
+        role: "BROKER",
+        name: name.trim(),
+      },
+    });
+    if (existingBroker) {
+      throw new ApiError(`A Broker with username "${name.trim()}" already exists.`, 400);
     }
+
+    const cleanSlug = name.trim().toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_-]/g, "") || "broker";
+    const finalEmail = (email && email.trim())
+      ? email.trim().toLowerCase()
+      : `broker_${cleanSlug}_${Date.now()}_${Math.floor(100 + Math.random() * 900)}@internal.local`;
 
     const passwordHash = await hashPassword(password);
     const cleanPhone = phone ? normalizeIndianPhone(phone) : null;
@@ -161,7 +170,7 @@ export class BrokerService {
         data: {
           role: "BROKER",
           name: name.trim(),
-          email: cleanEmail,
+          email: finalEmail,
           passwordHash,
           phone: cleanPhone,
           telegramId: cleanTelegram,

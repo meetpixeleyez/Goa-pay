@@ -61,7 +61,7 @@ export interface MerchantQueryParams {
 
 export interface CreateMerchantInput {
   name: string;
-  email: string;
+  email?: string;
   password?: string;
   phone?: string | null;
   address?: string | null;

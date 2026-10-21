@@ -431,8 +431,17 @@ export async function POST(
 
         const currentBalance = currentUser?.balance ?? currentWallet?.balance ?? 0;
         const currentExposure = currentUser?.exposure ?? 0;
+        const availableCap = user.role === "QR_PROVIDER" ? (currentBalance - currentExposure) : currentBalance;
 
-        // Admin can withdraw any amount, even exceeding balance. Negative balances allowed!
+        // Negative balance is strictly forbidden for all roles EXCEPT MERCHANT
+        if (user.role !== "MERCHANT") {
+          if (numAmount > availableCap || (currentBalance - numAmount) < 0) {
+            throw new Error(
+              `Insufficient balance. Maximum available for withdrawal is ₹${Math.max(0, availableCap).toLocaleString("en-IN")}. Negative balances are only permitted for Merchants.`
+            );
+          }
+        }
+
         const newBalance = Number((currentBalance - numAmount).toFixed(2));
         const newAvailableBalance = Number((newBalance - currentExposure).toFixed(2));
 

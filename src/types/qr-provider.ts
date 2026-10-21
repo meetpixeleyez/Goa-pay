@@ -96,7 +96,7 @@ export interface QRProviderQueryParams {
 
 export interface CreateQRProviderInput {
   name: string;
-  email: string;
+  email?: string;
   password: string;
   phone?: string | null;
   address?: string | null;

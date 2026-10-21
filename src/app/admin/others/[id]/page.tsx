@@ -126,6 +126,12 @@ export default function AdminOtherUserDetailPage() {
       setClearError("Please enter a valid amount greater than ₹0");
       return;
     }
+
+    const available = Number(otherUser?.wallet?.balance ?? otherUser?.balance ?? 0);
+    if (num > available || available - num < 0) {
+      setClearError(`Cannot withdraw more than current balance (₹${Math.max(0, available).toFixed(2)}). Negative balance is only permitted for Merchants.`);
+      return;
+    }
     setClearingBalance(true);
     setClearError("");
     setClearSuccess("");
@@ -951,6 +957,7 @@ export default function AdminOtherUserDetailPage() {
                     step="any"
                     required
                     min="0.01"
+                    max={Math.max(0, Number(otherUser?.wallet?.balance ?? otherUser?.balance ?? 0)).toString()}
                     disabled={clearingBalance || !!clearSuccess}
                     value={clearAmount}
                     onChange={(e) => setClearAmount(e.target.value)}

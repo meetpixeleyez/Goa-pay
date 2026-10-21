@@ -522,6 +522,12 @@ export default function QRProviderDetailPage() {
       return;
     }
 
+    const available = (provider?.balance || 0) - (provider?.exposure || 0);
+    if (num > available || (provider?.balance || 0) - num < 0) {
+      setClearError(`Cannot withdraw more than available balance (₹${Math.max(0, available).toFixed(2)}). Negative balance is only permitted for Merchants.`);
+      return;
+    }
+
     setClearingBalance(true);
     setClearError("");
     setClearSuccess("");
@@ -1776,6 +1782,7 @@ export default function QRProviderDetailPage() {
                       step="any"
                       required
                       min="0.01"
+                      max={Math.max(0, (provider?.balance || 0) - (provider?.exposure || 0)).toString()}
                       disabled={clearingBalance || !!clearSuccess}
                       value={clearAmount}
                       onChange={(e) => setClearAmount(e.target.value)}
@@ -1784,7 +1791,7 @@ export default function QRProviderDetailPage() {
                     />
                   </div>
                   <p className="text-[10px] text-slate-500 mt-1">
-                    * Note: Admin can withdraw any amount. Wallet balance is allowed to become negative if withdrawal exceeds available funds.
+                    * Note: Withdrawal amount cannot exceed available balance. Negative balance is only permitted for Merchants.
                   </p>
                 </div>
 

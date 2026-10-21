@@ -251,13 +251,11 @@ export default function CreateUserPage() {
       }
 
       const createdUser = data.user;
-      const createdEmail = createdUser.email || "";
-      const generatedUsername = createdEmail.replace("@goapay.internal", "");
+      const generatedUsername = createdUser.name || fullName.trim();
 
       setSuccessData({
         user: createdUser,
         username: generatedUsername,
-        email: createdEmail,
         password,
         role,
         fullName: fullName.trim(),

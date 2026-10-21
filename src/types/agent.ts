@@ -18,7 +18,7 @@ export interface AgentItem {
 
 export interface CreateAgentInput {
   name: string;
-  email: string;
+  email?: string;
   password: string;
   phone?: string;
   telegramId?: string;

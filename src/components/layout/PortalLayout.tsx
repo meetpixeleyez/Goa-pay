@@ -29,6 +29,7 @@ import {
   KeyRound,
   BookOpen,
   CircleEllipsis,
+  ArrowLeftRight,
 } from "lucide-react";
 import { useSocket } from "@/lib/socket-client";
 import RealtimeNotificationBanner from "@/components/notifications/RealtimeNotificationBanner";
@@ -151,6 +152,7 @@ export default function PortalLayout({
       brand: "Admin Portal",
       items: [
         { label: "Users", href: "/admin/users", icon: Users },
+        { label: "Hawala", href: "/admin/hawala", icon: ArrowLeftRight },
       ],
     },
     merchant: {
@@ -332,8 +334,8 @@ export default function PortalLayout({
       {/* Desktop Persistent Sidebar - Facebook Light & Clean */}
       <aside className="hidden md:flex w-64 shrink-0 bg-slate-900 text-slate-200 flex-col justify-between sticky top-0 h-screen p-4">
         <div>
-          {/* Logo & Portal Identity */}
-          <Link href="/" className="flex items-center space-x-3 pb-4 border-b border-slate-700 mb-4">
+          {/* Logo & Portal Identity - Non-actionable static branding */}
+          <div className="flex items-center space-x-3 pb-4 border-b border-slate-700 mb-4 cursor-default select-none">
             <div className="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center font-bold text-base shadow-sm">
               MP
             </div>
@@ -341,7 +343,7 @@ export default function PortalLayout({
               <span className="font-semibold text-base text-slate-200 tracking-tight">Mahadev Portal</span>
               <span className="text-[11px] block text-slate-300/75 font-medium">{portalConfig.brand}</span>
             </div>
-          </Link>
+          </div>
 
           {/* Navigation Links */}
           <nav className="space-y-1">

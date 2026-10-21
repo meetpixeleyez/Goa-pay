@@ -275,13 +275,21 @@ export class MerchantService {
     } = input;
 
     if (!name || !name.trim()) throw new ApiError("Merchant name is required", 400);
-    if (!email || !email.trim()) throw new ApiError("Email address is required", 400);
 
-    const normalizedEmail = email.trim().toLowerCase();
-    const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
-    if (existing) {
-      throw new ApiError(`User with email "${normalizedEmail}" already exists.`, 400);
+    const existingSameMerchant = await prisma.user.findFirst({
+      where: {
+        role: "MERCHANT",
+        name: name.trim(),
+      },
+    });
+    if (existingSameMerchant) {
+      throw new ApiError(`A Merchant with username "${name.trim()}" already exists.`, 400);
     }
+
+    const cleanSlug = name.trim().toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_-]/g, "") || "merchant";
+    const finalEmail = (email && email.trim())
+      ? email.trim().toLowerCase()
+      : `merchant_${cleanSlug}_${Date.now()}_${Math.floor(100 + Math.random() * 900)}@internal.local`;
 
     const numBrokerId = brokerId ? (typeof brokerId === "number" ? brokerId : parseInt(brokerId, 10)) : null;
     if (numBrokerId) {
@@ -302,7 +310,7 @@ export class MerchantService {
       const user = await tx.user.create({
         data: {
           name: name.trim(),
-          email: normalizedEmail,
+          email: finalEmail,
           passwordHash,
           role: "MERCHANT",
           phone: cleanPhone,

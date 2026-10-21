@@ -21,12 +21,13 @@ export async function POST(request: Request) {
     const cleanSlug = cleanInput.replace(/\s+/g, "_").replace(/[^a-z0-9_-]/g, "");
     const cleanPhone = normalizeIndianPhone(cleanInput);
 
-    const user = await prisma.user.findFirst({
+    const candidateUsers = await prisma.user.findMany({
       where: {
         OR: [
           { email: cleanInput },
           { email: cleanInput.includes("@") ? cleanInput : `${cleanInput}@goapay.internal` },
           { email: cleanSlug ? `${cleanSlug}@goapay.internal` : cleanInput },
+          { email: cleanSlug ? { contains: cleanSlug } : cleanInput },
           { email: cleanInput.includes("@") ? cleanInput : `${cleanInput}@goapay.com` },
           { name: { equals: emailOrUsername } },
           { name: { equals: cleanSlug } },
@@ -35,15 +36,23 @@ export async function POST(request: Request) {
       },
     });
 
-    if (!user) {
+    if (!candidateUsers || candidateUsers.length === 0) {
       return NextResponse.json(
         { error: "Invalid username/email or password" },
         { status: 401 }
       );
     }
 
-    const isMatch = await verifyPassword(password, user.passwordHash);
-    if (!isMatch) {
+    let user: any = null;
+    for (const candidate of candidateUsers) {
+      const isMatch = await verifyPassword(password, candidate.passwordHash);
+      if (isMatch) {
+        user = candidate;
+        break;
+      }
+    }
+
+    if (!user) {
       return NextResponse.json(
         { error: "Invalid username/email or password" },
         { status: 401 }

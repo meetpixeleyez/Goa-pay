@@ -228,22 +228,28 @@ export class OperatorService {
 
     const cleanSlug = rawUsername.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_-]/g, "");
     const generatedEmail = `${cleanSlug}@goapay.internal`;
-    const finalEmail = input.email && isValidEmail(input.email)
+    let finalEmail = input.email && isValidEmail(input.email)
       ? input.email.trim().toLowerCase()
       : generatedEmail;
 
-    // Check if user with same name or email already exists
+    // Check if operator with same username already exists
     const existing = await prisma.user.findFirst({
       where: {
+        role: "OPERATOR",
         OR: [
+          { name: rawUsername },
           { email: finalEmail },
           { email: generatedEmail },
-          { name: rawUsername },
         ],
       },
     });
     if (existing) {
       throw new ApiError("An operator with this username already exists. Please choose a different username.", 400);
+    }
+
+    const emailTaken = await prisma.user.findUnique({ where: { email: finalEmail } });
+    if (emailTaken) {
+      finalEmail = `${cleanSlug}.operator@goapay.internal`;
     }
 
     const passwordHash = await hashPassword(input.password);

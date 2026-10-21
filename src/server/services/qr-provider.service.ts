@@ -232,16 +232,22 @@ export class QRProviderService {
       bankName,
     } = input;
 
-    if (!name?.trim()) throw new ApiError("Provider name is required", 400);
-    if (!email?.trim() || !isValidEmail(email)) throw new ApiError("Valid email is required", 400);
     if (!password || password.length < 6) throw new ApiError("Password must be at least 6 characters", 400);
 
-    const existing = await prisma.user.findUnique({
-      where: { email: email.trim().toLowerCase() },
+    const existingProvider = await prisma.user.findFirst({
+      where: {
+        role: "QR_PROVIDER",
+        name: name.trim(),
+      },
     });
-    if (existing) {
-      throw new ApiError("A user with this email already exists", 400);
+    if (existingProvider) {
+      throw new ApiError(`A QR Provider with username "${name.trim()}" already exists.`, 400);
     }
+
+    const cleanSlug = name.trim().toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_-]/g, "") || "provider";
+    const finalEmail = (email && email.trim())
+      ? email.trim().toLowerCase()
+      : `provider_${cleanSlug}_${Date.now()}_${Math.floor(100 + Math.random() * 900)}@internal.local`;
 
     const numAgentId = agentId ? (typeof agentId === "number" ? agentId : parseInt(agentId, 10)) : null;
     if (numAgentId) {
@@ -266,7 +272,7 @@ export class QRProviderService {
         data: {
           role: "QR_PROVIDER",
           name: name.trim(),
-          email: email.trim().toLowerCase(),
+          email: finalEmail,
           passwordHash,
           phone: cleanPhone,
           address: address?.trim() || null,

@@ -226,23 +226,30 @@ export async function POST(request: Request) {
     // OTHER ROLE CREATION FLOW
     if (role === "OTHER") {
       const cleanSlug = finalUsername.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_-]/g, "");
-      const finalEmail = `${cleanSlug}@goapay.internal`;
 
-      // Check if user exists
+      // Check if user with same role and username exists
       const existing = await prisma.user.findFirst({
         where: {
+          role: "OTHER",
           OR: [
-            { email: finalEmail },
             { name: finalUsername },
+            { email: `${cleanSlug}@goapay.internal` },
+            { email: `${cleanSlug}.other@goapay.internal` },
           ],
         },
       });
 
       if (existing) {
         return NextResponse.json(
-          { error: `User with username "${finalUsername}" already exists.` },
+          { error: `An account with role "Other" and username "${finalUsername}" already exists.` },
           { status: 400 }
         );
+      }
+
+      let finalEmail = `${cleanSlug}@goapay.internal`;
+      const emailTaken = await prisma.user.findUnique({ where: { email: finalEmail } });
+      if (emailTaken) {
+        finalEmail = `${cleanSlug}.other@goapay.internal`;
       }
 
       const passwordHash = await hashPassword(finalPassword);

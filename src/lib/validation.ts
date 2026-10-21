@@ -245,11 +245,9 @@ export function validateUserData(
     if (!nameCheck.valid && nameCheck.error) errors.push(nameCheck.error);
   }
 
-  // Email validation
-  if (data.email !== undefined || options.isCreate) {
-    if (!data.email || !data.email.trim()) {
-      errors.push("Email address is required");
-    } else if (!isValidEmail(data.email)) {
+  // Email validation (optional)
+  if (data.email && typeof data.email === "string" && data.email.trim() && !data.email.endsWith(".local") && !data.email.endsWith(".internal")) {
+    if (!isValidEmail(data.email)) {
       errors.push("Please enter a valid email address (e.g. user@example.com)");
     }
   }

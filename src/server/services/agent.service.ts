@@ -135,8 +135,8 @@ export class AgentService {
   static async createAgent(input: CreateAgentInput, adminUserId: number | string) {
     const { name, email, password, phone, telegramId, address, commissionPercent, status, portalAccess } = input;
 
-    if (!name?.trim() || !email?.trim() || !password?.trim()) {
-      throw new ApiError("Name, Email, and Password are required", 400);
+    if (!name?.trim() || !password?.trim()) {
+      throw new ApiError("Name and Password are required", 400);
     }
 
     const validation = validateUserData(input, { isCreate: true, role: "AGENT" });
@@ -144,11 +144,20 @@ export class AgentService {
       throw new ApiError(validation.errors[0] || "Invalid agent data", 400);
     }
 
-    const cleanEmail = email.trim().toLowerCase();
-    const existing = await prisma.user.findUnique({ where: { email: cleanEmail } });
-    if (existing) {
-      throw new ApiError("A user with this email already exists", 400);
+    const existingAgent = await prisma.user.findFirst({
+      where: {
+        role: "AGENT",
+        name: name.trim(),
+      },
+    });
+    if (existingAgent) {
+      throw new ApiError(`An Agent with username "${name.trim()}" already exists.`, 400);
     }
+
+    const cleanSlug = name.trim().toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_-]/g, "") || "agent";
+    const finalEmail = (email && email.trim())
+      ? email.trim().toLowerCase()
+      : `agent_${cleanSlug}_${Date.now()}_${Math.floor(100 + Math.random() * 900)}@internal.local`;
 
     const passwordHash = await hashPassword(password);
     const cleanPhone = phone ? normalizeIndianPhone(phone) : null;
@@ -161,7 +170,7 @@ export class AgentService {
         data: {
           role: "AGENT",
           name: name.trim(),
-          email: cleanEmail,
+          email: finalEmail,
           passwordHash,
           phone: cleanPhone,
           telegramId: cleanTelegram,
