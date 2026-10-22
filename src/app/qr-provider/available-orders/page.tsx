@@ -204,7 +204,7 @@ export default function QRAvailableOrdersPage() {
 
       {/* Orders Table Format */}
       <div className="card-theme overflow-hidden shadow-sm flex flex-col">
-        <div className="overflow-auto max-h-[calc(100vh-280px)] min-h-[400px]">
+        <div className="overflow-auto max-h-[calc(100vh-280px)]">
           <table className="w-full text-left text-xs border-collapse min-w-[950px]">
             <thead>
               <tr>

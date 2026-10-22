@@ -60,8 +60,8 @@ export interface OrderItem {
 export interface CreateOrderInput {
   merchantId?: number | string;
   amount: number;
-  customerName: string;
-  customerMobile: string;
+  customerName?: string;
+  customerMobile?: string;
   customerEmail?: string | null;
   clientOrderId?: string | null;
   successUrl?: string | null;

@@ -388,15 +388,6 @@ export default function AgentDetailPage() {
             </div>
             <div className="text-xs text-slate-500 mt-0.5 flex items-center gap-2 font-mono">
               <span>ID: {agent.id}</span>
-              {agent.phone && (
-                <>
-                  <span className="text-slate-300">•</span>
-                  <span className="flex items-center gap-1">
-                    <Phone className="size-3 text-slate-400" />
-                    <span>{agent.phone}</span>
-                  </span>
-                </>
-              )}
             </div>
           </div>
         </div>

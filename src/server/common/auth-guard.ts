@@ -74,6 +74,14 @@ export function handleApiError(error: any): NextResponse {
     );
   }
 
+  // Handle Prisma unique constraint violation (P2002)
+  if (error?.code === "P2002" || error?.message?.includes("Unique constraint failed")) {
+    return NextResponse.json(
+      { success: false, error: "A record with this username or unique field already exists. Please choose a different value." },
+      { status: 400 }
+    );
+  }
+
   const message = error?.message || "An unexpected internal server error occurred.";
   return NextResponse.json({ success: false, error: message }, { status: 500 });
 }

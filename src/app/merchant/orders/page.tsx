@@ -14,6 +14,9 @@ import {
   ArrowDownLeft,
   ArrowUpRight,
   Edit,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
 } from "lucide-react";
 import UpdateCustomerQrModal from "@/components/orders/UpdateCustomerQrModal";
 import { getSocketClient } from "@/lib/socket-client";
@@ -29,6 +32,10 @@ export default function MerchantOrdersPage() {
   // In-Dashboard Order Modal
   const [selectedOrderId, setSelectedOrderId] = useState<number | string | null>(null);
   const [updatingQrOrder, setUpdatingQrOrder] = useState<any | null>(null);
+
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const fetchOrders = async () => {
     try {
@@ -69,6 +76,18 @@ export default function MerchantOrdersPage() {
       (o.customerUtr && o.customerUtr.toLowerCase().includes(search.toLowerCase()));
     return matchesType && matchesStatus && matchesSearch;
   });
+
+  // Reset to page 1 on filter or page size changes
+  useEffect(() => {
+    setPage(1);
+  }, [search, typeFilter, statusFilter, pageSize]);
+
+  const totalItems = filteredOrders.length;
+  const totalPages = Math.ceil(totalItems / pageSize) || 1;
+  const safePage = Math.min(page, totalPages);
+  const startIndex = (safePage - 1) * pageSize;
+  const endIndex = Math.min(startIndex + pageSize, totalItems);
+  const paginatedOrders = filteredOrders.slice(startIndex, endIndex);
 
   return (
     <PortalLayout
@@ -133,15 +152,15 @@ export default function MerchantOrdersPage() {
           onClick={() => setTypeFilter("PAYOUT")}
           className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 ${
             typeFilter === "PAYOUT"
-              ? "bg-[#8a5d3b] text-white shadow-xs"
-              : "bg-[#ffffff] text-sky-800 hover:bg-sky-50 border border-sky-200/60"
+              ? "bg-red-600 text-white shadow-xs"
+              : "bg-[#ffffff] text-red-700 hover:bg-red-50 border border-red-200/60"
           }`}
         >
           <ArrowUpRight className="w-3.5 h-3.5" />
           <span>Withdrawals (Payout)</span>
           <span
             className={`px-1.5 py-0.2 rounded-full text-[10px] ${
-              typeFilter === "PAYOUT" ? "bg-white/20" : "bg-sky-100 text-sky-900"
+              typeFilter === "PAYOUT" ? "bg-white/20" : "bg-red-100 text-red-800"
             }`}
           >
             {withdrawalCount}
@@ -181,7 +200,7 @@ export default function MerchantOrdersPage() {
 
       {/* Orders Table */}
       <div className="card-theme overflow-hidden shadow-sm flex flex-col">
-        <div className="overflow-auto max-h-[calc(100vh-280px)] min-h-[400px]">
+        <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse min-w-[950px]">
             <thead>
               <tr>
@@ -196,14 +215,14 @@ export default function MerchantOrdersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#e0f2fe]">
-              {filteredOrders.length === 0 ? (
+              {paginatedOrders.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="p-6 text-center text-slate-500">
                     No orders match your filter criteria.
                   </td>
                 </tr>
               ) : (
-                filteredOrders.map((ord) => {
+                paginatedOrders.map((ord) => {
                   const isDeposit = (ord.type || "PAYIN") === "PAYIN";
                   return (
                     <tr key={ord.id} className="hover:bg-[#ffffff] transition">
@@ -215,7 +234,7 @@ export default function MerchantOrdersPage() {
                           className={`inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                             isDeposit
                               ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
-                              : "bg-sky-100 text-sky-800 border border-sky-200"
+                              : "bg-red-100 text-red-800 border border-red-200"
                           }`}
                         >
                           {isDeposit ? <ArrowDownLeft className="w-3 h-3" /> : <ArrowUpRight className="w-3 h-3" />}
@@ -284,6 +303,86 @@ export default function MerchantOrdersPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Dynamic Pagination Bar */}
+        {totalItems > 0 && (
+          <div className="p-3.5 border-t border-base-200 bg-base-50/50 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-base-700">
+            <div className="flex items-center space-x-2">
+              <span>
+                Showing <span className="font-bold text-base-900">{startIndex + 1}</span> to{" "}
+                <span className="font-bold text-base-900">{endIndex}</span> of{" "}
+                <span className="font-bold text-base-900">{totalItems}</span> orders
+              </span>
+              <div className="relative">
+                <select
+                  value={pageSize}
+                  onChange={(e) => {
+                    setPageSize(Number(e.target.value));
+                    setPage(1);
+                  }}
+                  className="appearance-none bg-white border border-base-200 text-base-700 text-xs py-1 pl-2.5 pr-7 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer font-medium"
+                >
+                  <option value={5}>5 per page</option>
+                  <option value={10}>10 per page</option>
+                  <option value={25}>25 per page</option>
+                  <option value={50}>50 per page</option>
+                </select>
+                <div className="absolute inset-y-0 right-0 flex items-center px-1.5 pointer-events-none text-base-700">
+                  <ChevronDown className="w-3.5 h-3.5" />
+                </div>
+              </div>
+            </div>
+
+            {/* Pagination Navigation Buttons */}
+            {totalPages >= 1 && (
+              <div className="flex flex-wrap items-center justify-center gap-1 font-mono text-[11px]">
+                <button
+                  type="button"
+                  onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                  disabled={safePage <= 1}
+                  className="px-2.5 py-1 rounded border border-base-200 bg-white text-base-900 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 transition-colors hover:bg-base-100"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                  <span>Previous</span>
+                </button>
+
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNumber = i + 1;
+                  if (totalPages > 5 && safePage > 3) {
+                    pageNumber = safePage - 3 + i;
+                    if (pageNumber > totalPages) {
+                      pageNumber = totalPages - (4 - i);
+                    }
+                  }
+                  return (
+                    <button
+                      key={pageNumber}
+                      type="button"
+                      onClick={() => setPage(pageNumber)}
+                      className={`min-w-[28px] h-7 px-2 rounded font-bold transition ${
+                        safePage === pageNumber
+                          ? "bg-primary text-white shadow-xs"
+                          : "border border-base-200 bg-white text-base-700 hover:bg-base-100"
+                      }`}
+                    >
+                      {pageNumber}
+                    </button>
+                  );
+                })}
+
+                <button
+                  type="button"
+                  onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+                  disabled={safePage >= totalPages}
+                  className="px-2.5 py-1 rounded border border-base-200 bg-white text-base-900 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 transition-colors hover:bg-base-100"
+                >
+                  <span>Next</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* In-Dashboard Order Details & Checkout Modal */}

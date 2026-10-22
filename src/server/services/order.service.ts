@@ -29,9 +29,8 @@ export class OrderService {
       throw new ApiError("Invalid order amount. Must be greater than 0", 400);
     }
 
-    if (!input.customerName?.trim() || !input.customerMobile?.trim()) {
-      throw new ApiError("Customer name and mobile are required", 400);
-    }
+    const customerName = input.customerName?.trim() || (input.type === "PAYOUT" ? (input.accountHolderName?.trim() || "Beneficiary") : "Customer");
+    const customerMobile = input.customerMobile?.trim() || "";
 
     const orderType: OrderFeeType = input.type;
     if (orderType !== "PAYIN" && orderType !== "PAYOUT") {
@@ -62,7 +61,7 @@ export class OrderService {
     if (orderType === "PAYOUT") {
       const accNo = input.accountNumber;
       const ifsc = input.ifscCode;
-      const holderName = input.accountHolderName || input.customerName;
+      const holderName = input.accountHolderName?.trim() || input.customerName?.trim() || "Beneficiary";
       const bankName = input.bankName;
       const accountType = input.accountType || "SAVINGS";
 
@@ -161,8 +160,8 @@ export class OrderService {
         qrProviderId: assignment.qrProviderId,
         qrCodeId: assignment.qrCodeId,
         amount: orderAmount,
-        customerName: input.customerName.trim(),
-        customerMobile: input.customerMobile.trim(),
+        customerName,
+        customerMobile,
         customerEmail: input.customerEmail?.trim() || null,
         remark: input.remark?.trim() || null,
         type: orderType,
@@ -548,7 +547,10 @@ export class OrderService {
    */
   static async submitCustomerPayment(orderId: number, customerUtr: string, customerScreenshot?: string) {
     const cleanUtr = customerUtr?.trim();
-    if (!cleanUtr) throw new ApiError("UTR number is required", 400);
+    if (!cleanUtr) throw new ApiError("12-digit UPI UTR reference number is required", 400);
+    if (!/^\d{12}$/.test(cleanUtr)) {
+      throw new ApiError("Please enter a valid 12-digit numeric UPI UTR / Ref number.", 400);
+    }
 
     const order = await prisma.order.findUnique({
       where: { id: orderId },

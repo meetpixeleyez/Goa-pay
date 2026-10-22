@@ -205,14 +205,13 @@ export default function OperatorDetailPage() {
                 <tr>
                   <th className="p-3.5">QR Preview</th>
                   <th className="p-3.5">UPI ID (VPA)</th>
-                  <th className="p-3.5">Bank Details</th>
                   <th className="p-3.5 text-right">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#e0f2fe]">
                 {activeQRs.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="p-8 text-center text-slate-500">
+                    <td colSpan={3} className="p-8 text-center text-slate-500">
                       <div className="max-w-xs mx-auto space-y-2">
                         <QrCode className="w-8 h-8 text-gray-300 mx-auto" />
                         <p className="font-semibold text-gray-600">No Active QR Code</p>
@@ -239,9 +238,6 @@ export default function OperatorDetailPage() {
                       <td className="p-3.5 font-mono font-bold text-base-900">
                         {qr.upiId}
                       </td>
-                      <td className="p-3.5 text-gray-600 font-medium">
-                        {qr.bankName || "UPI Bank"} {qr.accountHolderName ? `• ${qr.accountHolderName}` : ""}
-                      </td>
                       <td className="p-3.5 text-right">
                         <span className="px-2.5 py-1 rounded text-[10px] font-extrabold uppercase tracking-wider bg-emerald-100 text-emerald-800">
                           Active
@@ -252,18 +248,6 @@ export default function OperatorDetailPage() {
                 )}
               </tbody>
             </table>
-          </div>
-        </div>
-
-        {/* Section: Account Rules & Isolation Notice */}
-        <div className="p-4 rounded-xl bg-purple-50/70 border border-purple-200 text-xs text-purple-900 flex items-start space-x-3">
-          <ShieldCheck className="w-5 h-5 text-purple-600 shrink-0 mt-0.5" />
-          <div className="space-y-1">
-            <span className="font-bold block">Operator Ledger & Security Rules</span>
-            <p className="text-[11px] text-purple-800">
-              This operator only has visibility over orders assigned to their designated collection QR codes above.
-              Financial balances, payout disbursements, and ledger entries settle strictly against your parent QR Provider wallet.
-            </p>
           </div>
         </div>
 

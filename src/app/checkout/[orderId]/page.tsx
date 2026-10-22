@@ -226,8 +226,8 @@ export default function OrderCheckoutPage() {
       return;
     }
 
-    if (cleanUtr.length < 6) {
-      setSubmitError("UTR reference number is too short. Please enter the valid 12-digit reference ID.");
+    if (cleanUtr.length !== 12 || !/^\d{12}$/.test(cleanUtr)) {
+      setSubmitError("Please enter a valid 12-digit numeric UPI UTR reference number (e.g. 427812984561)");
       return;
     }
 
@@ -630,7 +630,7 @@ export default function OrderCheckoutPage() {
                       </label>
                       {customerUtr.length > 0 && (
                         <span className="text-[10px] font-mono font-bold text-primary bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                          {customerUtr.length} digits
+                          {customerUtr.length}/12 digits
                         </span>
                       )}
                     </div>
@@ -639,9 +639,9 @@ export default function OrderCheckoutPage() {
                         type="text"
                         required
                         value={customerUtr}
-                        onChange={(e) => setCustomerUtr(e.target.value.trim())}
+                        onChange={(e) => setCustomerUtr(e.target.value.replace(/\D/g, "").slice(0, 12))}
                         placeholder="Enter 12-digit UTR number (e.g. 427812984561)"
-                        maxLength={24}
+                        maxLength={12}
                         className="w-full px-3.5 py-3 text-sm font-mono font-bold border-2 border-base-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary bg-white placeholder:font-normal placeholder:text-gray-400 shadow-inner"
                       />
                     </div>

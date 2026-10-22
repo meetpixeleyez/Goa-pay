@@ -307,16 +307,6 @@ export default function AdminOperatorDetailPage() {
                         <div className="font-mono text-xs font-bold text-base-900 truncate" title={qr.upiId}>
                           {qr.upiId}
                         </div>
-                        {qr.bankName && (
-                          <div className="text-[11px] text-slate-500 truncate">
-                            {qr.bankName}
-                          </div>
-                        )}
-                        {qr.accountHolderName && (
-                          <div className="text-[10px] text-slate-400 truncate">
-                            {qr.accountHolderName}
-                          </div>
-                        )}
                       </div>
                     </div>
 

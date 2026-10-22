@@ -218,8 +218,9 @@ export default function AdminCreateOrderPage() {
 
   const handleSubmitUtr = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!customerUtr.trim()) {
-      setUtrError("Please enter the 12-digit UTR ID");
+    const cleanUtr = customerUtr.trim();
+    if (!cleanUtr || cleanUtr.length !== 12 || !/^\d{12}$/.test(cleanUtr)) {
+      setUtrError("Please enter a valid 12-digit numeric UPI UTR / Reference number");
       return;
     }
 
@@ -514,16 +515,23 @@ export default function AdminCreateOrderPage() {
                     <form onSubmit={handleSubmitUtr} className="space-y-4">
                       {/* Step 1: 12-Digit UTR */}
                       <div>
-                        <label className="block text-xs font-bold text-base-900 mb-1">
-                          12-Digit UPI UTR Reference Number *
-                        </label>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="block text-xs font-bold text-base-900">
+                            12-Digit UPI UTR Reference Number *
+                          </label>
+                          {customerUtr.length > 0 && (
+                            <span className="text-[10px] font-mono font-bold text-primary bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                              {customerUtr.length}/12 digits
+                            </span>
+                          )}
+                        </div>
                         <input
                           type="text"
                           required
                           value={customerUtr}
-                          onChange={(e) => setCustomerUtr(e.target.value.trim())}
-                          placeholder="e.g. 427812984561"
-                          maxLength={24}
+                          onChange={(e) => setCustomerUtr(e.target.value.replace(/\D/g, "").slice(0, 12))}
+                          placeholder="Enter 12-digit UTR number (e.g. 427812984561)"
+                          maxLength={12}
                           className="w-full px-3.5 py-2.5 text-xs sm:text-sm font-mono font-bold border-2 border-base-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary shadow-inner"
                         />
                         <p className="text-[10px] text-slate-500 mt-1">
@@ -899,13 +907,13 @@ export default function AdminCreateOrderPage() {
                   type="button"
                   onClick={() => setOrderType("PAYOUT")}
                   className={`p-3.5 rounded-xl border text-left transition relative flex flex-col space-y-1 ${orderType === "PAYOUT"
-                    ? "border-[#8a5d3b] bg-sky-50/60 ring-2 ring-[#8a5d3b]/20"
+                    ? "border-red-200 bg-red-50 text-red-900 ring-2 ring-red-200"
                     : "border-base-200 bg-white hover:bg-gray-50"
                     }`}
                 >
                   <div className="flex items-center space-x-2">
                     <span
-                      className={`p-1.5 rounded-lg ${orderType === "PAYOUT" ? "bg-[#8a5d3b] text-white" : "bg-gray-100 text-gray-600"
+                      className={`p-1.5 rounded-lg ${orderType === "PAYOUT" ? "bg-red-100 text-red-700 border border-red-200" : "bg-gray-100 text-gray-600"
                         }`}
                     >
                       <ArrowUpRight className="w-4 h-4" />
@@ -1193,7 +1201,7 @@ export default function AdminCreateOrderPage() {
                   disabled={loading}
                   className={`w-full py-2.5 text-xs flex items-center justify-center space-x-2 shadow rounded-lg font-bold transition ${orderType === "PAYIN"
                     ? "btn-primary"
-                    : "bg-[#8a5d3b] hover:bg-[#724c30] text-white"
+                    : "bg-red-50 hover:bg-red-100 text-red-700 hover:text-red-800 border border-red-200 hover:border-red-300 shadow-xs"
                     }`}
                 >
                   <span>

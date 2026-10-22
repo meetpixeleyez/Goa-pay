@@ -386,15 +386,6 @@ export default function BrokerDetailPage() {
             </div>
             <div className="text-xs text-slate-500 mt-0.5 flex items-center gap-2 font-mono">
               <span>ID: {broker.id}</span>
-              {broker.phone && (
-                <>
-                  <span className="text-slate-300">•</span>
-                  <span className="flex items-center gap-1">
-                    <Phone className="size-3 text-slate-400" />
-                    <span>{broker.phone}</span>
-                  </span>
-                </>
-              )}
             </div>
           </div>
         </div>

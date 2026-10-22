@@ -96,7 +96,7 @@ export default function MerchantProfilePage() {
           </div>
           <div>
             <span className="text-slate-500 block">Payout Gateway Fee</span>
-            <span className="font-bold text-sm text-[#8a5d3b]">{profile?.payoutMerchantFee ?? 0}%</span>
+            <span className="font-bold text-sm text-red-600">{profile?.payoutMerchantFee ?? 0}%</span>
           </div>
           <div>
             <span className="text-slate-500 block">Assigned Broker</span>

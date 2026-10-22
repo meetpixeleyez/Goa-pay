@@ -61,10 +61,10 @@ export default function MerchantDashboard() {
       actions={
         <Link
           href="/merchant/create-order"
-          className="btn-primary text-xs py-2 px-3 flex items-center space-x-1.5 shadow"
+          className="btn-primary text-xs py-2 px-3.5 flex items-center space-x-1.5 shadow"
         >
           <PlusCircle className="w-3.5 h-3.5" />
-          <span>New Customer Deposit</span>
+          <span>+ Create Order</span>
         </Link>
       }
     >
@@ -129,23 +129,6 @@ export default function MerchantDashboard() {
             Pending, processing & settled
           </span>
         </div>
-      </div>
-
-      {/* Quick Action Banner */}
-      <div className="card-theme p-6 bg-gradient-to-r from-[#f0f7fc] to-[#ffffff] flex flex-col sm:flex-row items-center justify-between gap-4 border border-base-200">
-        <div>
-          <h3 className="font-bold text-base text-base-900">Generate a Payment Link</h3>
-          <p className="text-xs text-base-700 mt-1">
-            Create an instant deposit order for your customer with a 5-minute dynamic UPI QR code.
-          </p>
-        </div>
-        <Link
-          href="/merchant/create-order"
-          className="btn-primary text-xs py-2.5 px-4 shrink-0 flex items-center space-x-2 shadow"
-        >
-          <span>Create Payment Link</span>
-          <ArrowRight className="w-3.5 h-3.5" />
-        </Link>
       </div>
 
       {/* Recent Orders Table */}

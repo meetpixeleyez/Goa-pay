@@ -141,14 +141,14 @@ export class BrokerService {
       throw new ApiError(validation.errors[0] || "Invalid broker data", 400);
     }
 
-    const existingBroker = await prisma.user.findFirst({
-      where: {
-        role: "BROKER",
-        name: name.trim(),
-      },
-    });
-    if (existingBroker) {
-      throw new ApiError(`A Broker with username "${name.trim()}" already exists.`, 400);
+    const existingUsers = await prisma.user.findMany({ select: { id: true, name: true, role: true } });
+    const duplicate = existingUsers.find((u) => u.name.trim().toLowerCase() === name.trim().toLowerCase());
+    if (duplicate) {
+      if (duplicate.role === "BROKER") {
+        throw new ApiError(`A Broker with username "${name.trim()}" already exists. Please choose a different username.`, 400);
+      } else {
+        throw new ApiError(`A user with username "${name.trim()}" already exists as a ${duplicate.role}. Please choose a different username.`, 400);
+      }
     }
 
     const passwordHash = await hashPassword(password);
@@ -157,46 +157,53 @@ export class BrokerService {
     const commRate = parseFloat(String(commissionPercent ?? 0.0)) || 0.0;
     const numericAdminId = typeof adminUserId === "number" ? adminUserId : parseInt(adminUserId as any, 10);
 
-    const user = await prisma.$transaction(async (tx) => {
-      const newUser = await tx.user.create({
-        data: {
-          role: "BROKER",
-          name: name.trim(),
-          passwordHash,
-          phone: cleanPhone,
-          telegramId: cleanTelegram,
-          address: address ? address.trim() : null,
-          commissionPercent: commRate,
-          status: status || "ACTIVE",
-          portalAccess: portalAccess !== undefined ? Boolean(portalAccess) : true,
-          transactionAllowed: true,
-        },
-      });
-
-      await tx.wallet.create({
-        data: {
-          userId: newUser.id,
-          balance: 0.0,
-        },
-      });
-
-      await tx.auditLog.create({
-        data: {
-          userId: numericAdminId,
-          action: "BROKER_CREATED",
-          entity: "User",
-          entityId: String(newUser.id),
-          metadata: JSON.stringify({
-            name: newUser.name,
+    try {
+      const user = await prisma.$transaction(async (tx) => {
+        const newUser = await tx.user.create({
+          data: {
+            role: "BROKER",
+            name: name.trim(),
+            passwordHash,
+            phone: cleanPhone,
+            telegramId: cleanTelegram,
+            address: address ? address.trim() : null,
             commissionPercent: commRate,
-          }),
-        },
+            status: status || "ACTIVE",
+            portalAccess: portalAccess !== undefined ? Boolean(portalAccess) : true,
+            transactionAllowed: true,
+          },
+        });
+
+        await tx.wallet.create({
+          data: {
+            userId: newUser.id,
+            balance: 0.0,
+          },
+        });
+
+        await tx.auditLog.create({
+          data: {
+            userId: numericAdminId,
+            action: "BROKER_CREATED",
+            entity: "User",
+            entityId: String(newUser.id),
+            metadata: JSON.stringify({
+              name: newUser.name,
+              commissionPercent: commRate,
+            }),
+          },
+        });
+
+        return newUser;
       });
 
-      return newUser;
-    });
-
-    return user;
+      return user;
+    } catch (error: any) {
+      if (error?.code === "P2002" || error?.message?.includes("Unique constraint failed")) {
+        throw new ApiError(`A Broker with username "${name.trim()}" already exists. Please choose a different username.`, 400);
+      }
+      throw error;
+    }
   }
 
   /**

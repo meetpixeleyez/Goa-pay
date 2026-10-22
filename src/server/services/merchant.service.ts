@@ -273,14 +273,14 @@ export class MerchantService {
 
     if (!name || !name.trim()) throw new ApiError("Store Name is required", 400);
 
-    const existingSameMerchant = await prisma.user.findFirst({
-      where: {
-        role: "MERCHANT",
-        name: name.trim(),
-      },
-    });
-    if (existingSameMerchant) {
-      throw new ApiError(`A Merchant with username "${name.trim()}" already exists.`, 400);
+    const existingUsers = await prisma.user.findMany({ select: { id: true, name: true, role: true } });
+    const duplicate = existingUsers.find((u) => u.name.trim().toLowerCase() === name.trim().toLowerCase());
+    if (duplicate) {
+      if (duplicate.role === "MERCHANT") {
+        throw new ApiError(`A Merchant with username "${name.trim()}" already exists. Please choose a different username.`, 400);
+      } else {
+        throw new ApiError(`A user with username "${name.trim()}" already exists as a ${duplicate.role}. Please choose a different username.`, 400);
+      }
     }
 
     const numBrokerId = brokerId ? (typeof brokerId === "number" ? brokerId : parseInt(brokerId, 10)) : null;
@@ -298,57 +298,64 @@ export class MerchantService {
     const cleanTelegram = telegramId ? normalizeTelegramId(telegramId) : null;
     const numericAdminId = typeof adminUserId === "number" ? adminUserId : parseInt(adminUserId as any, 10);
 
-    return await prisma.$transaction(async (tx) => {
-      const user = await tx.user.create({
-        data: {
-          name: name.trim(),
-          passwordHash,
-          role: "MERCHANT",
-          phone: cleanPhone,
-          address: address?.trim() || null,
-          telegramId: cleanTelegram,
-          upiId: upiId?.trim() || null,
-          qrCodeUrl: qrCodeUrl?.trim() || null,
-          status: status.toUpperCase(),
-          portalAccess: Boolean(portalAccess),
-          transactionAllowed: Boolean(transactionAllowed),
-          payinMerchantFee: parseFloat(String(payinMerchantFee)) || 0.0,
-          payoutMerchantFee: parseFloat(String(payoutMerchantFee)) || 0.0,
-          payinBrokerFee: numBrokerId ? (parseFloat(String(payinBrokerFee)) || 0.0) : 0.0,
-          payoutBrokerFee: numBrokerId ? (parseFloat(String(payoutBrokerFee)) || 0.0) : 0.0,
-          brokerId: numBrokerId || null,
-        },
-      });
+    try {
+      return await prisma.$transaction(async (tx) => {
+        const user = await tx.user.create({
+          data: {
+            name: name.trim(),
+            passwordHash,
+            role: "MERCHANT",
+            phone: cleanPhone,
+            address: address?.trim() || null,
+            telegramId: cleanTelegram,
+            upiId: upiId?.trim() || null,
+            qrCodeUrl: qrCodeUrl?.trim() || null,
+            status: status.toUpperCase(),
+            portalAccess: Boolean(portalAccess),
+            transactionAllowed: Boolean(transactionAllowed),
+            payinMerchantFee: parseFloat(String(payinMerchantFee)) || 0.0,
+            payoutMerchantFee: parseFloat(String(payoutMerchantFee)) || 0.0,
+            payinBrokerFee: numBrokerId ? (parseFloat(String(payinBrokerFee)) || 0.0) : 0.0,
+            payoutBrokerFee: numBrokerId ? (parseFloat(String(payoutBrokerFee)) || 0.0) : 0.0,
+            brokerId: numBrokerId || null,
+          },
+        });
 
-      // Initialize Merchant Wallet with 0 balance
-      const wallet = await tx.wallet.create({
-        data: {
-          userId: user.id,
-          balance: 0.0,
-        },
-      });
+        // Initialize Merchant Wallet with 0 balance
+        const wallet = await tx.wallet.create({
+          data: {
+            userId: user.id,
+            balance: 0.0,
+          },
+        });
 
-      // Audit Log
-      await tx.auditLog.create({
-        data: {
-          userId: numericAdminId,
-          action: "CREATE_MERCHANT",
-          entity: "User",
-          entityId: String(user.id),
-          metadata: JSON.stringify({
-            merchantName: user.name,
-            walletId: wallet.id,
-            brokerId: user.brokerId,
-            fees: {
-              payin: user.payinMerchantFee,
-              payout: user.payoutMerchantFee,
-            },
-          }),
-        },
-      });
+        // Audit Log
+        await tx.auditLog.create({
+          data: {
+            userId: numericAdminId,
+            action: "CREATE_MERCHANT",
+            entity: "User",
+            entityId: String(user.id),
+            metadata: JSON.stringify({
+              merchantName: user.name,
+              walletId: wallet.id,
+              brokerId: user.brokerId,
+              fees: {
+                payin: user.payinMerchantFee,
+                payout: user.payoutMerchantFee,
+              },
+            }),
+          },
+        });
 
-      return user;
-    });
+        return user;
+      });
+    } catch (error: any) {
+      if (error?.code === "P2002" || error?.message?.includes("Unique constraint failed")) {
+        throw new ApiError(`A Merchant with username "${name.trim()}" already exists. Please choose a different username.`, 400);
+      }
+      throw error;
+    }
   }
 
   /**

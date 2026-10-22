@@ -502,15 +502,15 @@ export default function AdminOrdersPage() {
             onClick={() => setTypeFilter("PAYOUT")}
             className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 ${
               typeFilter === "PAYOUT"
-                ? "bg-[#8a5d3b] text-white shadow-xs"
-                : "bg-[#ffffff] text-sky-800 hover:bg-sky-50 border border-sky-200/60"
+                ? "bg-red-600 text-white shadow-xs"
+                : "bg-[#ffffff] text-red-700 hover:bg-red-50 border border-red-200/60"
             }`}
           >
             <ArrowUpRight className="w-3.5 h-3.5" />
             <span>Withdrawal Orders (Payout)</span>
             <span
               className={`px-1.5 py-0.2 rounded-full text-[10px] ${
-                typeFilter === "PAYOUT" ? "bg-white/20" : "bg-sky-100 text-sky-900"
+                typeFilter === "PAYOUT" ? "bg-white/20" : "bg-red-100 text-red-800"
               }`}
             >
               {withdrawalOrders.length}
@@ -651,7 +651,7 @@ export default function AdminOrdersPage() {
 
       {/* Orders Table */}
       <div className="card-theme overflow-hidden shadow-sm flex flex-col">
-        <div className="overflow-auto max-h-[calc(100vh-280px)] min-h-[400px]">
+        <div className="overflow-auto max-h-[calc(100vh-280px)]">
           <table className="w-full text-left text-xs border-collapse min-w-[1100px]">
             <thead>
               <tr>
@@ -687,7 +687,7 @@ export default function AdminOrdersPage() {
                           className={`inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                             isDeposit
                               ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
-                              : "bg-sky-100 text-sky-800 border border-sky-200"
+                              : "bg-red-100 text-red-800 border border-red-200"
                           }`}
                         >
                           {isDeposit ? <ArrowDownLeft className="w-3 h-3" /> : <ArrowUpRight className="w-3 h-3" />}

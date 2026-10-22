@@ -169,12 +169,8 @@ export default function PortalLayout({
       brand: "Merchant Portal",
       items: [
         { label: "Dashboard", href: "/merchant", icon: LayoutDashboard },
-        // { label: "Orders", href: "/merchant/orders", icon: ShoppingBag },
-        // { label: "Create Deposit Link", href: "/merchant/create-order", icon: PlusCircle },
-        // { label: "Wallet & Ledger", href: "/merchant/wallet", icon: Wallet },
+        { label: "Orders", href: "/merchant/orders", icon: ShoppingBag },
         { label: "Transactions", href: "/merchant/transactions", icon: Receipt },
-        // { label: "API Settings", href: "/merchant/api-settings", icon: KeyRound },
-        // { label: "Integration Docs", href: "/merchant/docs", icon: BookOpen },
         { label: "Profile & Settings", href: "/merchant/profile", icon: User },
       ],
     },

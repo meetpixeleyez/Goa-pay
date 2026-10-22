@@ -224,20 +224,21 @@ export class OperatorService {
     }
 
     // Check if operator with same username already exists
-    const existing = await prisma.user.findFirst({
-      where: {
-        role: "OPERATOR",
-        name: rawUsername,
-      },
-    });
-    if (existing) {
-      throw new ApiError("An operator with this username already exists. Please choose a different username.", 400);
+    const existingUsers = await prisma.user.findMany({ select: { id: true, name: true, role: true } });
+    const duplicate = existingUsers.find((u) => u.name.trim().toLowerCase() === rawUsername.toLowerCase());
+    if (duplicate) {
+      if (duplicate.role === "OPERATOR") {
+        throw new ApiError(`An Operator with username "${rawUsername}" already exists. Please choose a different username.`, 400);
+      } else {
+        throw new ApiError(`A user with username "${rawUsername}" already exists as a ${duplicate.role}. Please choose a different username.`, 400);
+      }
     }
 
     const passwordHash = await hashPassword(input.password);
     const cleanPhone = input.phone ? normalizeIndianPhone(input.phone) : null;
 
-    return await prisma.$transaction(async (tx) => {
+    try {
+      return await prisma.$transaction(async (tx) => {
       const newOperator = await tx.user.create({
         data: {
           role: "OPERATOR",
@@ -303,8 +304,14 @@ export class OperatorService {
         },
       });
 
-      return newOperator;
-    });
+        return newOperator;
+      });
+    } catch (error: any) {
+      if (error?.code === "P2002" || error?.message?.includes("Unique constraint failed")) {
+        throw new ApiError(`An Operator with username "${rawUsername}" already exists. Please choose a different username.`, 400);
+      }
+      throw error;
+    }
   }
 
   /**

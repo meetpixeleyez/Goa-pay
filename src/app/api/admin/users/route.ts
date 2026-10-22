@@ -8,6 +8,7 @@ import { OperatorService } from "@/server/services/operator.service";
 import { AgentService } from "@/server/services/agent.service";
 import { BrokerService } from "@/server/services/broker.service";
 import { handleApiError } from "@/server/common/auth-guard";
+import { ApiError } from "@/types/api";
 
 export async function GET(request: Request) {
   try {
@@ -239,6 +240,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  let cleanName = "";
   try {
     const session = await getSession();
     if (!session || session.role !== "ADMIN") {
@@ -286,7 +288,7 @@ export async function POST(request: Request) {
 
     const qrProviderId = rawQrProviderId || data.targetProviderId || data.providerId;
 
-    const cleanName = (name || "").trim();
+    cleanName = (name || "").trim();
     if (cleanName.includes("@")) {
       return NextResponse.json(
         { error: "Full Name / Username cannot be an email address. Please enter a person's name or username." },
@@ -314,22 +316,43 @@ export async function POST(request: Request) {
         ? "Other"
         : role;
 
-    // Strict check: ONLY throw error if SAME ROLE + SAME USERNAME
-    const existingSameRoleUser = await prisma.user.findFirst({
-      where: {
-        role,
-        OR: [
-          { name: { equals: cleanName } },
-          { name: { equals: baseSlug } },
-        ],
-      },
+    // Comprehensive case-insensitive duplicate username check across database
+    const existingUsers = await prisma.user.findMany({
+      select: { id: true, name: true, role: true },
     });
+    const duplicate = existingUsers.find(
+      (u) =>
+        u.name.trim().toLowerCase() === cleanName.toLowerCase() ||
+        (baseSlug && u.name.trim().toLowerCase() === baseSlug.toLowerCase())
+    );
 
-    if (existingSameRoleUser) {
-      return NextResponse.json(
-        { error: `A ${roleLabel} with username "${cleanName}" already exists. Please choose a different username.` },
-        { status: 400 }
-      );
+    if (duplicate) {
+      const duplicateRoleLabel =
+        duplicate.role === "MERCHANT"
+          ? "Merchant"
+          : duplicate.role === "QR_PROVIDER"
+          ? "QR Provider"
+          : duplicate.role === "BROKER"
+          ? "Broker"
+          : duplicate.role === "AGENT"
+          ? "Agent"
+          : duplicate.role === "OPERATOR"
+          ? "Operator"
+          : duplicate.role === "OTHER"
+          ? "Other"
+          : duplicate.role;
+
+      if (duplicate.role === role) {
+        return NextResponse.json(
+          { error: `A ${roleLabel} with username "${cleanName}" already exists. Please choose a different username.` },
+          { status: 400 }
+        );
+      } else {
+        return NextResponse.json(
+          { error: `A user with username "${cleanName}" already exists as a ${duplicateRoleLabel}. Please choose a different username.` },
+          { status: 400 }
+        );
+      }
     }
 
     data.username = cleanName;
@@ -525,6 +548,22 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true, user });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("[POST /api/admin/users Error]:", error);
+
+    if (error instanceof ApiError) {
+      return NextResponse.json(
+        { error: error.message, details: error.details },
+        { status: error.statusCode }
+      );
+    }
+
+    if (error?.code === "P2002" || error?.message?.includes("Unique constraint failed")) {
+      return NextResponse.json(
+        { error: `A user with username "${cleanName || "entered"}" already exists. Please choose a different username.` },
+        { status: 400 }
+      );
+    }
+
+    return NextResponse.json({ error: error.message || "Failed to create user account." }, { status: 500 });
   }
 }

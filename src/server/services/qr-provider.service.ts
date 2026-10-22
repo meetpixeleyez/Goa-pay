@@ -232,14 +232,14 @@ export class QRProviderService {
 
     if (!password || password.length < 6) throw new ApiError("Password must be at least 6 characters", 400);
 
-    const existingProvider = await prisma.user.findFirst({
-      where: {
-        role: "QR_PROVIDER",
-        name: name.trim(),
-      },
-    });
-    if (existingProvider) {
-      throw new ApiError(`A QR Provider with username "${name.trim()}" already exists.`, 400);
+    const existingUsers = await prisma.user.findMany({ select: { id: true, name: true, role: true } });
+    const duplicate = existingUsers.find((u) => u.name.trim().toLowerCase() === name.trim().toLowerCase());
+    if (duplicate) {
+      if (duplicate.role === "QR_PROVIDER") {
+        throw new ApiError(`A QR Provider with username "${name.trim()}" already exists. Please choose a different username.`, 400);
+      } else {
+        throw new ApiError(`A user with username "${name.trim()}" already exists as a ${duplicate.role}. Please choose a different username.`, 400);
+      }
     }
 
     const numAgentId = agentId ? (typeof agentId === "number" ? agentId : parseInt(agentId, 10)) : null;
@@ -260,73 +260,80 @@ export class QRProviderService {
     const parsedBalance = Math.max(0, Number(initialBalance) || 0);
     const numericAdminId = typeof adminUserId === "number" ? adminUserId : parseInt(adminUserId as any, 10);
 
-    return await prisma.$transaction(async (tx) => {
-      const provider = await tx.user.create({
-        data: {
-          role: "QR_PROVIDER",
-          name: name.trim(),
-          passwordHash,
-          phone: cleanPhone,
-          address: address?.trim() || null,
-          telegramId: cleanTelegram,
-          balance: parsedBalance,
-          exposure: 0.0,
-          availableBalance: parsedBalance,
-          agentId: numAgentId || null,
-          payinQrProviderFee: payinQrProviderFee !== undefined ? parseFloat(String(payinQrProviderFee)) : 2.0,
-          payoutQrProviderFee: payoutQrProviderFee !== undefined ? parseFloat(String(payoutQrProviderFee)) : 1.0,
-          payinAgentFee: numAgentId ? (payinAgentFee !== undefined ? parseFloat(String(payinAgentFee)) : 0.0) : 0.0,
-          payoutAgentFee: numAgentId ? (payoutAgentFee !== undefined ? parseFloat(String(payoutAgentFee)) : 0.0) : 0.0,
-          qrProviderFee: payinQrProviderFee !== undefined ? parseFloat(String(payinQrProviderFee)) : 2.0,
-          status: "ACTIVE",
-          portalAccess: true,
-          transactionAllowed: true,
-          wallet: {
-            create: {
-              balance: parsedBalance,
+    try {
+      return await prisma.$transaction(async (tx) => {
+        const provider = await tx.user.create({
+          data: {
+            role: "QR_PROVIDER",
+            name: name.trim(),
+            passwordHash,
+            phone: cleanPhone,
+            address: address?.trim() || null,
+            telegramId: cleanTelegram,
+            balance: parsedBalance,
+            exposure: 0.0,
+            availableBalance: parsedBalance,
+            agentId: numAgentId || null,
+            payinQrProviderFee: payinQrProviderFee !== undefined ? parseFloat(String(payinQrProviderFee)) : 2.0,
+            payoutQrProviderFee: payoutQrProviderFee !== undefined ? parseFloat(String(payoutQrProviderFee)) : 1.0,
+            payinAgentFee: numAgentId ? (payinAgentFee !== undefined ? parseFloat(String(payinAgentFee)) : 0.0) : 0.0,
+            payoutAgentFee: numAgentId ? (payoutAgentFee !== undefined ? parseFloat(String(payoutAgentFee)) : 0.0) : 0.0,
+            qrProviderFee: payinQrProviderFee !== undefined ? parseFloat(String(payinQrProviderFee)) : 2.0,
+            status: "ACTIVE",
+            portalAccess: true,
+            transactionAllowed: true,
+            wallet: {
+              create: {
+                balance: parsedBalance,
+              },
             },
           },
-        },
-      });
+        });
 
-      // Optional initial QR Code
-      if (initialUpiId && initialUpiId.trim()) {
-        const upi = initialUpiId.trim();
-        const qrImage =
-          initialQrImageUrl && initialQrImageUrl.trim()
-            ? initialQrImageUrl.trim()
-            : `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi://pay?pa=${encodeURIComponent(upi)}`;
+        // Optional initial QR Code
+        if (initialUpiId && initialUpiId.trim()) {
+          const upi = initialUpiId.trim();
+          const qrImage =
+            initialQrImageUrl && initialQrImageUrl.trim()
+              ? initialQrImageUrl.trim()
+              : `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi://pay?pa=${encodeURIComponent(upi)}`;
 
-        await tx.qRCode.create({
+          await tx.qRCode.create({
+            data: {
+              providerId: provider.id,
+              upiId: upi,
+              imageUrl: qrImage,
+              name: `${provider.name} Primary QR`,
+              accountHolderName: accountHolderName?.trim() || null,
+              bankName: bankName?.trim() || null,
+              status: "ACTIVE",
+              isActive: true,
+            },
+          });
+        }
+
+        await tx.auditLog.create({
           data: {
-            providerId: provider.id,
-            upiId: upi,
-            imageUrl: qrImage,
-            name: `${provider.name} Primary QR`,
-            accountHolderName: accountHolderName?.trim() || null,
-            bankName: bankName?.trim() || null,
-            status: "ACTIVE",
-            isActive: true,
+            userId: numericAdminId,
+            action: "CREATE_QR_PROVIDER",
+            entity: "User",
+            entityId: String(provider.id),
+            metadata: JSON.stringify({
+              name: provider.name,
+              initialBalance: parsedBalance,
+              agentId: provider.agentId,
+            }),
           },
         });
-      }
 
-      await tx.auditLog.create({
-        data: {
-          userId: numericAdminId,
-          action: "CREATE_QR_PROVIDER",
-          entity: "User",
-          entityId: String(provider.id),
-          metadata: JSON.stringify({
-            name: provider.name,
-            initialBalance: parsedBalance,
-            agentId: provider.agentId,
-          }),
-        },
+        return provider;
       });
-
-      return provider;
-    });
+    } catch (error: any) {
+      if (error?.code === "P2002" || error?.message?.includes("Unique constraint failed")) {
+        throw new ApiError(`A QR Provider with username "${name.trim()}" already exists. Please choose a different username.`, 400);
+      }
+      throw error;
+    }
   }
 
   /**

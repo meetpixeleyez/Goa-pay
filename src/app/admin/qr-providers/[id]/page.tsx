@@ -763,15 +763,6 @@ export default function QRProviderDetailPage() {
             </div>
             <div className="text-xs text-slate-500 mt-0.5 flex items-center gap-2 font-mono">
               <span>ID: {provider.id}</span>
-              {provider.phone && (
-                <>
-                  <span className="text-slate-300">•</span>
-                  <span className="flex items-center gap-1">
-                    <Phone className="size-3 text-slate-400" />
-                    <span>{provider.phone}</span>
-                  </span>
-                </>
-              )}
             </div>
           </div>
         </div>
@@ -1511,10 +1502,11 @@ export default function QRProviderDetailPage() {
                         <td className="p-3 text-right">
                           <Link
                             href={`/admin/operators/${op.id}`}
-                            className="px-2.5 py-1 text-xs bg-primary/15 text-[#0c4a6e] hover:bg-primary/25 rounded-md font-semibold inline-flex items-center space-x-1 border border-primary/30 transition"
+                            className="btn-redirect"
+                            title="View Operator Profile"
                           >
-                            <Eye className="w-3 h-3" />
-                            <span>View Info</span>
+                            <ExternalLink className="w-3.5 h-3.5" />
+                            <span>View Profile</span>
                           </Link>
                         </td>
                       </tr>

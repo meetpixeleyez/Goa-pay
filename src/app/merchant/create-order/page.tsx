@@ -156,16 +156,14 @@ export default function MerchantCreateOrderPage() {
           merchantId: profile?.id,
           amount: orderAmount,
           type: orderType,
-          customerName: customerName.trim(),
-          customerMobile: customerMobile.trim(),
-          customerEmail: customerEmail.trim() || undefined,
+          customerName: orderType === "PAYOUT" ? (accountHolderName.trim() || "Beneficiary") : "Customer",
+          customerMobile: "",
           accountNumber: orderType === "PAYOUT" ? accountNumber.trim() : undefined,
           confirmAccountNumber: orderType === "PAYOUT" ? confirmAccountNumber.trim() : undefined,
           ifscCode: orderType === "PAYOUT" ? ifscCode.trim().toUpperCase() : undefined,
-          accountHolderName: orderType === "PAYOUT" ? (accountHolderName.trim() || customerName.trim()) : undefined,
+          accountHolderName: orderType === "PAYOUT" ? accountHolderName.trim() : undefined,
           bankName: orderType === "PAYOUT" ? bankName.trim() : undefined,
           accountType: orderType === "PAYOUT" ? accountType : undefined,
-          remark: remark.trim() || undefined,
         }),
       });
 
@@ -199,8 +197,9 @@ export default function MerchantCreateOrderPage() {
 
   const handleSubmitUtr = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!customerUtr.trim()) {
-      setUtrError("Please enter the 12-digit UTR ID");
+    const cleanUtr = customerUtr.trim();
+    if (!cleanUtr || cleanUtr.length !== 12 || !/^\d{12}$/.test(cleanUtr)) {
+      setUtrError("Please enter a valid 12-digit numeric UPI UTR / Reference number");
       return;
     }
 
@@ -426,23 +425,6 @@ export default function MerchantCreateOrderPage() {
               </div>
             </div>
 
-            {/* Customer Details */}
-            <div className="p-3.5 bg-white border border-base-200 rounded-xl text-xs space-y-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
-                Customer Information
-              </span>
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-gray-700">
-                <span>Name: <b className="text-base-900">{createdOrder.customerName}</b></span>
-                <span>Mobile: <b className="font-mono text-base-900">{createdOrder.customerMobile}</b></span>
-                {createdOrder.customerEmail && <span>Email: <b>{createdOrder.customerEmail}</b></span>}
-              </div>
-              {createdOrder.remark && (
-                <div className="text-slate-500 text-[11px] pt-1 border-t border-gray-100">
-                  Note: <i>{createdOrder.remark}</i>
-                </div>
-              )}
-            </div>
-
             {/* Deposit QR & In-Dashboard Payment Confirmation */}
             {createdOrder.type === "PAYIN" && createdOrder.qrCode && (
               <div className="p-4 rounded-xl border border-base-200 bg-white space-y-3">
@@ -525,16 +507,23 @@ export default function MerchantCreateOrderPage() {
                     <form onSubmit={handleSubmitUtr} className="space-y-4">
                       {/* Step 1: 12-Digit UTR */}
                       <div>
-                        <label className="block text-xs font-bold text-base-900 mb-1">
-                          12-Digit UPI UTR Reference Number *
-                        </label>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="block text-xs font-bold text-base-900">
+                            12-Digit UPI UTR Reference Number *
+                          </label>
+                          {customerUtr.length > 0 && (
+                            <span className="text-[10px] font-mono font-bold text-primary bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                              {customerUtr.length}/12 digits
+                            </span>
+                          )}
+                        </div>
                         <input
                           type="text"
                           required
                           value={customerUtr}
-                          onChange={(e) => setCustomerUtr(e.target.value.trim())}
-                          placeholder="e.g. 427812984561"
-                          maxLength={24}
+                          onChange={(e) => setCustomerUtr(e.target.value.replace(/\D/g, "").slice(0, 12))}
+                          placeholder="Enter 12-digit UTR number (e.g. 427812984561)"
+                          maxLength={12}
                           className="w-full px-3.5 py-2.5 text-xs sm:text-sm font-mono font-bold border-2 border-base-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary shadow-inner"
                         />
                         <p className="text-[10px] text-slate-500 mt-1">
@@ -913,14 +902,16 @@ export default function MerchantCreateOrderPage() {
                   onClick={() => setOrderType("PAYOUT")}
                   className={`p-3.5 rounded-xl border text-left transition relative flex flex-col space-y-1 ${
                     orderType === "PAYOUT"
-                      ? "border-[#8a5d3b] bg-sky-50/60 ring-2 ring-[#8a5d3b]/20"
+                      ? "border-red-200 bg-red-50 text-red-900 ring-2 ring-red-200"
                       : "border-base-200 bg-white hover:bg-gray-50"
                   }`}
                 >
                   <div className="flex items-center space-x-2">
                     <span
                       className={`p-1.5 rounded-lg ${
-                        orderType === "PAYOUT" ? "bg-[#8a5d3b] text-white" : "bg-gray-100 text-gray-600"
+                        orderType === "PAYOUT"
+                          ? "bg-red-100 text-red-700 border border-red-200"
+                          : "bg-gray-100 text-gray-600"
                       }`}
                     >
                       <ArrowUpRight className="w-4 h-4" />
@@ -930,7 +921,7 @@ export default function MerchantCreateOrderPage() {
                   <p className="text-[11px] text-slate-500">
                     Disburse funds to customer bank or UPI
                   </p>
-                  <span className="text-[10px] font-bold text-[#8a5d3b] mt-1">
+                  <span className="text-[10px] font-bold text-red-700 mt-1">
                     Store Fee: {profile?.payoutMerchantFee ?? 0}%
                   </span>
                 </button>
@@ -987,51 +978,6 @@ export default function MerchantCreateOrderPage() {
                     </span>
                   </div>
                 )}
-              </div>
-
-              {/* Customer Name & Mobile */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-base-900 mb-1">
-                    Customer / Beneficiary Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={customerName}
-                    onChange={(e) => setCustomerName(e.target.value)}
-                    placeholder="e.g. Rahul Sharma"
-                    className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-base-900 mb-1">
-                    Customer Mobile Number *
-                  </label>
-                  <input
-                    type="tel"
-                    required
-                    maxLength={10}
-                    value={customerMobile}
-                    onChange={(e) => setCustomerMobile(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                    placeholder="9876543210"
-                    className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg font-mono bg-white focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
-                </div>
-              </div>
-
-              {/* Customer Email */}
-              <div>
-                <label className="block text-xs font-semibold text-base-900 mb-1">
-                  Customer Email Address (Optional)
-                </label>
-                <input
-                  type="email"
-                  value={customerEmail}
-                  onChange={(e) => setCustomerEmail(e.target.value)}
-                  placeholder="customer@example.com"
-                  className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
-                />
               </div>
 
               {/* If Withdrawal: Customer Bank Details (IMPS / NEFT / RTGS) */}
@@ -1179,19 +1125,6 @@ export default function MerchantCreateOrderPage() {
                 </div>
               )}
 
-              {/* Order Reference / Note */}
-              <div>
-                <label className="block text-xs font-semibold text-base-900 mb-1">
-                  Order Note / Reference ID (Optional)
-                </label>
-                <input
-                  type="text"
-                  value={remark}
-                  onChange={(e) => setRemark(e.target.value)}
-                  placeholder="e.g. Invoice #2041 or Store Order ref"
-                  className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
 
               <div className="pt-2">
                 <button
@@ -1202,7 +1135,7 @@ export default function MerchantCreateOrderPage() {
                       ? "bg-gray-300 text-slate-500 cursor-not-allowed"
                       : orderType === "PAYIN"
                       ? "btn-primary"
-                      : "bg-[#8a5d3b] hover:bg-[#724c30] text-white"
+                      : "bg-red-50 hover:bg-red-100 text-red-700 hover:text-red-800 border border-red-200 hover:border-red-300 shadow-xs"
                   }`}
                 >
                   <span>
