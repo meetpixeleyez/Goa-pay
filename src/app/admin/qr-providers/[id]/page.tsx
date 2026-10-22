@@ -547,7 +547,7 @@ export default function QRProviderDetailPage() {
 
     const available = (provider?.balance || 0) - (provider?.exposure || 0);
     if (num > available || (provider?.balance || 0) - num < 0) {
-      setClearError(`Cannot withdraw more than available balance (₹${Math.max(0, available).toFixed(2)}). Negative balance is only permitted for Merchants.`);
+      setClearError(`Cannot withdraw more than available balance (₹${Math.max(0, available).toFixed(2)}). `);
       return;
     }
 

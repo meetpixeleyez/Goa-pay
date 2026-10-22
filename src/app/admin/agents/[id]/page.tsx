@@ -142,7 +142,7 @@ export default function AgentDetailPage() {
 
     const available = Number(agent?.wallet?.balance ?? agent?.balance ?? 0);
     if (num > available || available - num < 0) {
-      setClearError(`Cannot withdraw more than current balance (₹${Math.max(0, available).toFixed(2)}). Negative balance is only permitted for Merchants.`);
+      setClearError(`Cannot withdraw more than current balance (₹${Math.max(0, available).toFixed(2)}). `);
       return;
     }
     setClearingBalance(true);

@@ -195,7 +195,7 @@ export async function POST(request: Request) {
               fromAvailable
             ).toLocaleString("en-IN", {
               minimumFractionDigits: 2,
-            })}. Negative balance is only permitted for Merchants.`,
+            })}. `,
           },
           { status: 400 }
         );
@@ -321,8 +321,21 @@ export async function POST(request: Request) {
 
       return {
         hawalaRef,
+        reference: hawalaRef,
         fromUserName: fromUser.name,
         toUserName: toUser.name,
+        from: {
+          id: fromUser.id,
+          name: fromUser.name,
+          role: fromUser.role,
+          newBalance: newFromBalance,
+        },
+        to: {
+          id: toUser.id,
+          name: toUser.name,
+          role: toUser.role,
+          newBalance: newToBalance,
+        },
         amount,
         newFromBalance,
         newToBalance,

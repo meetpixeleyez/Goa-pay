@@ -530,44 +530,89 @@ export default function HawalaPage() {
         </div>
 
         {/* Success Banner */}
-        {successData && (
-          <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-start justify-between gap-3 shadow-xs animate-in fade-in-50">
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 mt-0.5">
-                <CheckCircle2 className="w-5 h-5" />
-              </div>
-              <div>
-                <h4 className="text-sm font-bold text-emerald-900">
-                  Hawala Transfer Successful!
-                </h4>
-                <p className="text-xs text-emerald-700 mt-0.5">
-                  Reference: <span className="font-mono font-bold">{successData.transfer?.reference}</span> | Transferred:{" "}
-                  <span className="font-bold text-emerald-800">
-                    ₹{successData.transfer?.amount?.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                  </span>{" "}
-                  from <span className="font-semibold">{successData.transfer?.from?.name}</span> to{" "}
-                  <span className="font-semibold">{successData.transfer?.to?.name}</span>.
-                </p>
-                <div className="flex flex-wrap items-center gap-3 mt-2 text-[11px] text-emerald-800">
-                  <span className="bg-white/80 px-2 py-0.5 rounded border border-emerald-200">
-                    {successData.transfer?.from?.name} New Balance:{" "}
-                    <strong>₹{Number(successData.transfer?.from?.newBalance).toFixed(2)}</strong>
-                  </span>
-                  <span className="bg-white/80 px-2 py-0.5 rounded border border-emerald-200">
-                    {successData.transfer?.to?.name} New Balance:{" "}
-                    <strong>₹{Number(successData.transfer?.to?.newBalance).toFixed(2)}</strong>
-                  </span>
+        {successData && (() => {
+          const transfer = successData.transfer;
+          const reference = transfer?.reference || transfer?.hawalaRef || "";
+          const fromName = transfer?.from?.name || transfer?.fromUserName || "Source Account";
+          const toName = transfer?.to?.name || transfer?.toUserName || "Destination Account";
+          const amountNum = typeof transfer?.amount === "number"
+            ? transfer.amount
+            : parseFloat(transfer?.amount || "0") || 0;
+
+          const rawFromBal = transfer?.from?.newBalance ?? transfer?.newFromBalance;
+          const fromNewBalance = typeof rawFromBal === "number"
+            ? rawFromBal
+            : rawFromBal !== undefined && rawFromBal !== null && !isNaN(Number(rawFromBal))
+            ? Number(rawFromBal)
+            : null;
+
+          const rawToBal = transfer?.to?.newBalance ?? transfer?.newToBalance;
+          const toNewBalance = typeof rawToBal === "number"
+            ? rawToBal
+            : rawToBal !== undefined && rawToBal !== null && !isNaN(Number(rawToBal))
+            ? Number(rawToBal)
+            : null;
+
+          return (
+            <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-start justify-between gap-3 shadow-xs animate-in fade-in-50">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 mt-0.5">
+                  <CheckCircle2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-emerald-900">
+                    Hawala Transfer Successful!
+                  </h4>
+                  <p className="text-xs text-emerald-700 mt-0.5">
+                    {reference && (
+                      <>
+                        Reference: <span className="font-mono font-bold">{reference}</span> |{" "}
+                      </>
+                    )}
+                    Transferred:{" "}
+                    <span className="font-bold text-emerald-800">
+                      ₹{amountNum.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                    </span>{" "}
+                    from <span className="font-semibold text-emerald-900">{fromName}</span> to{" "}
+                    <span className="font-semibold text-emerald-900">{toName}</span>.
+                  </p>
+                  {(fromNewBalance !== null || toNewBalance !== null) && (
+                    <div className="flex flex-wrap items-center gap-3 mt-2 text-[11px] text-emerald-800">
+                      {fromNewBalance !== null && (
+                        <span className="bg-white/80 px-2 py-0.5 rounded border border-emerald-200">
+                          {fromName} New Balance:{" "}
+                          <strong>
+                            ₹{fromNewBalance.toLocaleString("en-IN", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
+                          </strong>
+                        </span>
+                      )}
+                      {toNewBalance !== null && (
+                        <span className="bg-white/80 px-2 py-0.5 rounded border border-emerald-200">
+                          {toName} New Balance:{" "}
+                          <strong>
+                            ₹{toNewBalance.toLocaleString("en-IN", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
+                          </strong>
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
+              <button
+                onClick={() => setSuccessData(null)}
+                className="text-emerald-700 hover:text-emerald-900 text-xs font-semibold px-2 py-1 rounded hover:bg-emerald-100 transition cursor-pointer"
+              >
+                Dismiss
+              </button>
             </div>
-            <button
-              onClick={() => setSuccessData(null)}
-              className="text-emerald-700 hover:text-emerald-900 text-xs font-semibold px-2 py-1 rounded hover:bg-emerald-100 transition cursor-pointer"
-            >
-              Dismiss
-            </button>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Transfer History Table */}
         <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">

@@ -141,7 +141,6 @@ export class MerchantService {
         select: {
           id: true,
           name: true,
-          email: true,
           phone: true,
           address: true,
           telegramId: true,
@@ -160,7 +159,7 @@ export class MerchantService {
           payoutBrokerFee: true,
           brokerId: true,
           broker: {
-            select: { id: true, name: true, email: true, commissionPercent: true },
+            select: { id: true, name: true, commissionPercent: true },
           },
           createdAt: true,
           updatedAt: true,
@@ -436,7 +435,6 @@ export class MerchantService {
       select: {
         id: true,
         name: true,
-        email: true,
         phone: true,
         payinMerchantFee: true,
         payoutMerchantFee: true,

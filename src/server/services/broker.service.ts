@@ -109,7 +109,6 @@ export class BrokerService {
           select: {
             id: true,
             name: true,
-            email: true,
             phone: true,
             status: true,
             payinMerchantFee: true,
@@ -219,7 +218,6 @@ export class BrokerService {
       select: {
         id: true,
         name: true,
-        email: true,
         phone: true,
         status: true,
         payinMerchantFee: true,

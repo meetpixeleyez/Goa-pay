@@ -109,7 +109,6 @@ export class AgentService {
           select: {
             id: true,
             name: true,
-            email: true,
             phone: true,
             status: true,
             balance: true,
