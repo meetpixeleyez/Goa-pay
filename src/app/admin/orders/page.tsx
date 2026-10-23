@@ -42,6 +42,7 @@ import {
 } from "lucide-react";
 import BankTransferCard from "@/components/orders/BankTransferCard";
 import { useSocket } from "@/lib/socket-client";
+import { parseBankDetails } from "@/lib/validation";
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
@@ -343,7 +344,7 @@ export default function AdminOrdersPage() {
     const matchesStatus = statusFilter === "ALL" || o.status === statusFilter;
     const matchesSearch =
       o.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      o.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (o.beneficiaryDetails && o.beneficiaryDetails.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (o.customerUtr && o.customerUtr.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (o.merchant?.name && o.merchant.name.toLowerCase().includes(searchQuery.toLowerCase()));
     return matchesType && matchesStatus && matchesSearch;
@@ -586,7 +587,7 @@ export default function AdminOrdersPage() {
                 <div>
                   <span className="font-mono font-bold text-base-900 block">{uo.orderNumber}</span>
                   <span className="text-[11px] text-gray-600">
-                    ₹{uo.amount.toFixed(2)} • {uo.customerName}
+                    ₹{uo.amount.toFixed(2)} • {uo.merchant?.name || "Withdrawal"}
                   </span>
                 </div>
                 <button
@@ -677,6 +678,7 @@ export default function AdminOrdersPage() {
               ) : (
                 filteredOrders.map((ord) => {
                   const isDeposit = (ord.type || "PAYIN") === "PAYIN";
+                  const isPayout = !isDeposit;
                   return (
                     <tr key={ord.id} className="hover:bg-[#ffffff] transition">
                       <td className="p-3 whitespace-nowrap font-mono font-bold text-base-900">
@@ -698,8 +700,24 @@ export default function AdminOrdersPage() {
                         {ord.merchant?.name || "--"}
                       </td>
                       <td className="p-3 whitespace-nowrap">
-                        <div className="font-medium text-base-900">{ord.customerName}</div>
-                        <div className="text-[10px] text-slate-500">{ord.customerMobile}</div>
+                        {isPayout && ord.beneficiaryDetails ? (
+                          (() => {
+                            const b = parseBankDetails(ord.beneficiaryDetails);
+                            return (
+                              <div>
+                                <div className="font-semibold text-base-900">{b?.accountHolderName || "Beneficiary"}</div>
+                                <div className="text-[10px] text-slate-500 font-mono">
+                                  {b?.accountNumber ? `••••${b.accountNumber.slice(-4)}` : ord.orderNumber} {b?.bankName ? `(${b.bankName})` : ""}
+                                </div>
+                              </div>
+                            );
+                          })()
+                        ) : (
+                          <div>
+                            <div className="font-semibold text-base-900">Direct Checkout</div>
+                            <div className="text-[10px] text-slate-500 font-mono">{ord.remark || ord.orderNumber}</div>
+                          </div>
+                        )}
                       </td>
                       <td className="p-3 whitespace-nowrap font-bold text-base-900">
                         ₹{ord.amount.toFixed(2)}
@@ -907,8 +925,7 @@ export default function AdminOrdersPage() {
       {selectedOrder && (() => {
         const isPayout = selectedOrder.type === "PAYOUT";
         const customerUpi = isPayout
-          ? selectedOrder.customerUpiId ||
-            (selectedOrder.beneficiaryDetails &&
+          ? (selectedOrder.beneficiaryDetails &&
             selectedOrder.beneficiaryDetails.includes("@") &&
             !selectedOrder.beneficiaryDetails.includes(" ")
               ? selectedOrder.beneficiaryDetails.trim()
@@ -916,12 +933,9 @@ export default function AdminOrdersPage() {
           : null;
 
         const customerQrUrl = isPayout
-          ? selectedOrder.customerQrImage ||
-            (customerUpi
+          ? (customerUpi
               ? `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(
-                  `upi://pay?pa=${customerUpi}&pn=${encodeURIComponent(
-                    selectedOrder.customerName || "Customer"
-                  )}&am=${selectedOrder.amount}&cu=INR`
+                  `upi://pay?pa=${customerUpi}&pn=Beneficiary&am=${selectedOrder.amount}&cu=INR`
                 )}`
               : null)
           : null;
@@ -1006,26 +1020,12 @@ export default function AdminOrdersPage() {
                     </div>
                   </div>
 
-                  {/* Customer info row */}
-                  <div className="px-4 py-2.5 flex flex-wrap gap-x-6 gap-y-1.5 text-xs">
-                    <div className="flex items-center space-x-1.5">
-                      <User className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                      <span className="text-slate-500">Customer:</span>
-                      <span className="font-semibold text-gray-800">{selectedOrder.customerName || "—"}</span>
+                  {/* Order info row */}
+                  {selectedOrder.remark && (
+                    <div className="px-4 py-2 text-xs text-slate-500 italic border-t border-gray-100">
+                      Note: {selectedOrder.remark}
                     </div>
-                    {selectedOrder.customerEmail && (
-                      <div className="flex items-center space-x-1.5">
-                        <span className="text-gray-400 text-[10px]">✉</span>
-                        <span className="text-gray-600">{selectedOrder.customerEmail}</span>
-                      </div>
-                    )}
-                    {selectedOrder.customerMobile && (
-                      <div className="flex items-center space-x-1.5">
-                        <Phone className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                        <span className="font-mono text-gray-700">{selectedOrder.customerMobile}</span>
-                      </div>
-                    )}
-                  </div>
+                  )}
                 </div>
 
                 {/* ═══ PAYOUT: Customer Bank Account Details ═══ */}
@@ -1034,8 +1034,6 @@ export default function AdminOrdersPage() {
                     <BankTransferCard
                       beneficiaryDetails={selectedOrder.beneficiaryDetails}
                       amount={selectedOrder.amount}
-                      customerName={selectedOrder.customerName}
-                      customerMobile={selectedOrder.customerMobile}
                       title="Customer Bank Account (Send Transfer Here)"
                     />
 

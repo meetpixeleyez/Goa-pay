@@ -20,6 +20,7 @@ import {
   Users,
 } from "lucide-react";
 import { useSocket } from "@/lib/socket-client";
+import { parseBankDetails } from "@/lib/validation";
 
 export default function QRProviderDashboard() {
   const [stats, setStats] = useState<any>(null);
@@ -327,7 +328,7 @@ export default function QRProviderDashboard() {
               <tr>
                 <th className="p-3">Order Number</th>
                 <th className="p-3">Type</th>
-                <th className="p-3">Customer</th>
+                <th className="p-3">Beneficiary / Source</th>
                 <th className="p-3">Amount</th>
                 <th className="p-3">Verification</th>
                 <th className="p-3">Status</th>
@@ -345,6 +346,7 @@ export default function QRProviderDashboard() {
               ) : (
                 orders.slice(0, 5).map((ord) => {
                   const isDeposit = (ord.type || "PAYIN") === "PAYIN";
+                  const bank = !isDeposit ? parseBankDetails(ord.beneficiaryDetails) : null;
                   return (
                     <tr key={ord.id} className="hover:bg-[#ffffff] transition">
                       <td className="p-3 font-mono font-bold text-base-900">
@@ -362,8 +364,17 @@ export default function QRProviderDashboard() {
                         </span>
                       </td>
                       <td className="p-3">
-                        <div className="font-semibold text-base-900">{ord.customerName}</div>
-                        <div className="text-[10px] text-slate-500">{ord.customerMobile}</div>
+                        {isDeposit ? (
+                          <>
+                            <div className="font-semibold text-base-900">Direct Deposit</div>
+                            <div className="text-[10px] text-slate-500 font-mono">{ord.clientOrderId || "Deposit Checkout"}</div>
+                          </>
+                        ) : (
+                          <>
+                            <div className="font-semibold text-base-900">{bank?.accountHolderName || "Beneficiary"}</div>
+                            <div className="text-[10px] text-slate-500">{bank?.bankName ? `${bank.bankName} • ${bank.accountNumber?.slice(-4)}` : "Bank Account"}</div>
+                          </>
+                        )}
                       </td>
                       <td className="p-3 font-bold text-base-900">
                         ₹{ord.amount.toFixed(2)}

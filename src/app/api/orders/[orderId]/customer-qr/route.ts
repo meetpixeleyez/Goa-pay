@@ -40,8 +40,6 @@ export async function PATCH(
 
     const body = await request.json();
     const {
-      customerQrImage,
-      customerUpiId,
       beneficiaryDetails,
       accountNumber,
       ifscCode,
@@ -51,18 +49,12 @@ export async function PATCH(
     } = body;
 
     const dataToUpdate: any = {};
-    if (customerQrImage !== undefined) {
-      dataToUpdate.customerQrImage = customerQrImage ? customerQrImage.trim() : null;
-    }
-    if (customerUpiId !== undefined) {
-      dataToUpdate.customerUpiId = customerUpiId ? customerUpiId.trim() : null;
-    }
 
     if (accountNumber && ifscCode) {
       dataToUpdate.beneficiaryDetails = JSON.stringify({
         accountNumber: accountNumber.trim().replace(/[\s\-]/g, ""),
         ifscCode: ifscCode.trim().toUpperCase(),
-        accountHolderName: (accountHolderName || order.customerName).trim(),
+        accountHolderName: (accountHolderName || "Beneficiary").trim(),
         bankName: (bankName || "").trim() || undefined,
         accountType: (accountType || "SAVINGS").trim(),
       });

@@ -152,10 +152,11 @@ export default function OperatorAvailableOrdersPage() {
 
   const filteredOrders = orders.filter((ord) => {
     const query = search.toLowerCase();
+    const bank = parseBankDetails(ord.beneficiaryDetails);
     return (
       ord.orderNumber.toLowerCase().includes(query) ||
-      ord.customerName.toLowerCase().includes(query) ||
-      ord.customerMobile.includes(query) ||
+      (bank?.accountHolderName && bank.accountHolderName.toLowerCase().includes(query)) ||
+      (bank?.accountNumber && bank.accountNumber.includes(query)) ||
       (ord.merchant?.name && ord.merchant.name.toLowerCase().includes(query)) ||
       (ord.beneficiaryDetails && ord.beneficiaryDetails.toLowerCase().includes(query))
     );
@@ -279,16 +280,14 @@ export default function OperatorAvailableOrdersPage() {
                       </span>
                     </div>
 
-                    {/* Customer Info */}
+                    {/* Destination Account Holder & Merchant Info */}
                     <div className="text-xs space-y-1">
-                      <div className="flex justify-between">
-                        <span className="text-slate-500">Customer:</span>
-                        <span className="font-bold text-gray-900">{ord.customerName}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-500">Mobile:</span>
-                        <span className="font-mono text-gray-800">{ord.customerMobile}</span>
-                      </div>
+                      {bankDetails?.accountHolderName && (
+                        <div className="flex justify-between">
+                          <span className="text-slate-500">Beneficiary:</span>
+                          <span className="font-bold text-gray-900">{bankDetails.accountHolderName}</span>
+                        </div>
+                      )}
                       {ord.merchant?.name && (
                         <div className="flex justify-between">
                           <span className="text-slate-500">Store / Merchant:</span>

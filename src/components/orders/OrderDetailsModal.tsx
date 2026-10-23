@@ -558,25 +558,25 @@ export default function OrderDetailsModal({
                 )}
               </div>
 
-              {/* Customer and Order Metadata */}
+              {/* Order Metadata */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                 <div className="p-3 bg-[#ffffff] border border-base-200 rounded-xl space-y-1.5">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 flex items-center space-x-1">
-                    <User className="w-3 h-3 text-primary" />
-                    <span>Customer Details</span>
+                    <FileText className="w-3 h-3 text-primary" />
+                    <span>Order Identification</span>
                   </span>
-                  <div className="font-bold text-base-900">{order.customerName}</div>
-                  <div className="text-gray-600 font-mono text-[11px]">{order.customerMobile}</div>
-                  {order.customerEmail && <div className="text-slate-500 text-[11px]">{order.customerEmail}</div>}
+                  <div className="font-bold text-base-900 font-mono text-sm">{order.orderNumber}</div>
+                  <div className="text-gray-600">Type: <span className="font-semibold text-primary">{order.type}</span></div>
+                  {order.clientOrderId && <div className="text-slate-500 font-mono text-[11px]">Client Ref: {order.clientOrderId}</div>}
                 </div>
 
                 <div className="p-3 bg-[#ffffff] border border-base-200 rounded-xl space-y-1.5">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 flex items-center space-x-1">
-                    <FileText className="w-3 h-3 text-primary" />
-                    <span>Order Details</span>
+                    <User className="w-3 h-3 text-primary" />
+                    <span>Store / Merchant</span>
                   </span>
                   <div className="text-gray-700">
-                    Store / Merchant: <span className="font-bold text-base-900">{order.merchantName}</span>
+                    Store / Merchant: <span className="font-bold text-base-900">{order.merchantName || order.merchant?.name || "Merchant"}</span>
                   </div>
                   {order.remark && (
                     <div className="text-gray-600">
@@ -628,8 +628,6 @@ export default function OrderDetailsModal({
                   <BankTransferCard
                     beneficiaryDetails={order.beneficiaryDetails}
                     amount={order.amount}
-                    customerName={order.customerName}
-                    customerMobile={order.customerMobile}
                     title="Customer Bank Account Details"
                   />
 

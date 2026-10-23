@@ -58,8 +58,6 @@ export async function GET(request: Request) {
           amount: true,
           status: true,
           checkoutState: true,
-          customerName: true,
-          customerMobile: true,
           customerUtr: true,
           verifierUtr: true,
           merchantFee: true,

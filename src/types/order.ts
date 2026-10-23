@@ -26,9 +26,6 @@ export interface OrderItem {
     bankName?: string | null;
   } | null;
   amount: number;
-  customerName: string;
-  customerMobile: string;
-  customerEmail?: string | null;
   remark?: string | null;
   status: "pending" | "processing" | "completed" | "rejected" | "expired" | "cancelled";
   type: "PAYIN" | "PAYOUT";
@@ -60,9 +57,6 @@ export interface OrderItem {
 export interface CreateOrderInput {
   merchantId?: number | string;
   amount: number;
-  customerName?: string;
-  customerMobile?: string;
-  customerEmail?: string | null;
   clientOrderId?: string | null;
   successUrl?: string | null;
   failureUrl?: string | null;

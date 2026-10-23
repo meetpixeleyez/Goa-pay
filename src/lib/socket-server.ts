@@ -61,10 +61,7 @@ export function notifyPayoutAvailable(order: any) {
     orderId: order.id,
     orderNumber: order.orderNumber,
     amount: order.amount,
-    customerName: order.customerName,
     beneficiaryDetails: order.beneficiaryDetails,
-    customerUpiId: order.customerUpiId,
-    customerQrImage: order.customerQrImage,
     message: `New withdrawal order available: ₹${order.amount.toFixed(2)} (#${order.orderNumber})`,
     timestamp: new Date().toISOString(),
   };
@@ -253,8 +250,6 @@ export function notifyOrderUpdated(order: any) {
     orderId: order.id,
     orderNumber: order.orderNumber,
     status: order.status,
-    customerUpiId: order.customerUpiId,
-    customerQrImage: order.customerQrImage,
     beneficiaryDetails: order.beneficiaryDetails,
     timestamp: new Date().toISOString(),
   };

@@ -50,6 +50,7 @@ import {
   normalizeTelegramId,
   isValidPhone,
   normalizePhone,
+  parseBankDetails,
 } from "@/lib/validation";
 
 export default function AdminMerchantDetailPage() {
@@ -1264,7 +1265,7 @@ export default function AdminMerchantDetailPage() {
                     <tr>
                       <th className="p-3">Order Number</th>
                       <th className="p-3">Type</th>
-                      <th className="p-3">Customer</th>
+                      <th className="p-3">Beneficiary / Source</th>
                       <th className="p-3">Amount</th>
                       <th className="p-3">Customer UTR</th>
                       <th className="p-3">Assigned Provider</th>
@@ -1303,8 +1304,20 @@ export default function AdminMerchantDetailPage() {
                             </span>
                           </td>
                           <td className="p-3">
-                            <div>{ord.customerName}</div>
-                            <div className="text-[10px] text-slate-500">{ord.customerMobile}</div>
+                            {(ord.type || "PAYIN") === "PAYIN" ? (
+                              <>
+                                <div>Direct Deposit</div>
+                                <div className="text-[10px] text-slate-500 font-mono">{ord.clientOrderId || "Web Checkout"}</div>
+                              </>
+                            ) : (() => {
+                              const bank = parseBankDetails(ord.beneficiaryDetails);
+                              return (
+                                <>
+                                  <div>{bank?.accountHolderName || "Beneficiary"}</div>
+                                  <div className="text-[10px] text-slate-500">{bank?.bankName ? `${bank.bankName} • ${bank.accountNumber?.slice(-4)}` : "Bank Account"}</div>
+                                </>
+                              );
+                            })()}
                           </td>
                           <td className="p-3 font-bold text-base-900">
                             ₹{ord.amount.toFixed(2)}

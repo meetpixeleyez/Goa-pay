@@ -144,10 +144,11 @@ export default function QRAvailableOrdersPage() {
 
   const filteredOrders = orders.filter((ord) => {
     const query = search.toLowerCase();
+    const bank = parseBankDetails(ord.beneficiaryDetails);
     return (
       ord.orderNumber.toLowerCase().includes(query) ||
-      ord.customerName.toLowerCase().includes(query) ||
-      ord.customerMobile.includes(query) ||
+      (bank?.accountHolderName && bank.accountHolderName.toLowerCase().includes(query)) ||
+      (bank?.accountNumber && bank.accountNumber.includes(query)) ||
       (ord.merchant?.name && ord.merchant.name.toLowerCase().includes(query)) ||
       (ord.beneficiaryDetails && ord.beneficiaryDetails.toLowerCase().includes(query))
     );
@@ -210,7 +211,7 @@ export default function QRAvailableOrdersPage() {
               <tr>
                 <th className="p-3 sticky top-0 z-10 bg-base-100 text-base-900 font-bold border-b border-base-200 whitespace-nowrap shadow-2xs">Order Number</th>
                 <th className="p-3 sticky top-0 z-10 bg-base-100 text-base-900 font-bold border-b border-base-200 whitespace-nowrap shadow-2xs">Merchant</th>
-                <th className="p-3 sticky top-0 z-10 bg-base-100 text-base-900 font-bold border-b border-base-200 whitespace-nowrap shadow-2xs">Customer</th>
+                <th className="p-3 sticky top-0 z-10 bg-base-100 text-base-900 font-bold border-b border-base-200 whitespace-nowrap shadow-2xs">Account Holder</th>
                 <th className="p-3 sticky top-0 z-10 bg-base-100 text-base-900 font-bold border-b border-base-200 whitespace-nowrap shadow-2xs">Payout Amount</th>
                 <th className="p-3 sticky top-0 z-10 bg-base-100 text-base-900 font-bold border-b border-base-200 whitespace-nowrap shadow-2xs">Est. Fee Earning</th>
                 <th className="p-3 sticky top-0 z-10 bg-base-100 text-base-900 font-bold border-b border-base-200 whitespace-nowrap shadow-2xs">Beneficiary Account Details</th>
@@ -283,14 +284,21 @@ export default function QRAvailableOrdersPage() {
                       )}
                     </td>
 
-                    {/* Customer */}
+                    {/* Account Holder */}
                     <td className="p-3 whitespace-nowrap align-top">
-                      <div className="font-semibold text-base-900">
-                        {ord.customerName}
-                      </div>
-                      <div className="text-[10px] text-slate-500 font-mono">
-                        {ord.customerMobile}
-                      </div>
+                      {(() => {
+                        const bank = parseBankDetails(ord.beneficiaryDetails);
+                        return (
+                          <>
+                            <div className="font-semibold text-base-900">
+                              {bank?.accountHolderName || "Beneficiary"}
+                            </div>
+                            <div className="text-[10px] text-slate-500 font-mono">
+                              {bank?.accountType || "SAVINGS"}
+                            </div>
+                          </>
+                        );
+                      })()}
                     </td>
 
                     {/* Amount */}

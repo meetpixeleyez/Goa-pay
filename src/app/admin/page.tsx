@@ -239,8 +239,7 @@ export default function AdminDashboard() {
           ord.customerUtr?.toLowerCase().includes(q) ||
           verifierUtr.toLowerCase().includes(q) ||
           ord.merchant?.name?.toLowerCase().includes(q) ||
-          ord.customerName?.toLowerCase().includes(q) ||
-          ord.customerMobile?.includes(q) ||
+          ord.beneficiaryDetails?.toLowerCase().includes(q) ||
           ord.amount?.toString().includes(q);
         if (!matchesSearch) return false;
       }

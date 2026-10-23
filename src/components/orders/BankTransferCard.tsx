@@ -11,15 +11,12 @@ import { parseBankDetails, BankAccountDetails } from "@/lib/validation";
 interface BankTransferCardProps {
   beneficiaryDetails?: string | null;
   amount?: number;
-  customerName?: string;
-  customerMobile?: string;
   title?: string;
 }
 
 export default function BankTransferCard({
   beneficiaryDetails,
   amount,
-  customerName,
   title = "Beneficiary Bank Details",
 }: BankTransferCardProps) {
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
@@ -35,7 +32,7 @@ export default function BankTransferCard({
     }, 1500);
   };
 
-  const holderName = bank?.accountHolderName || customerName || "Customer";
+  const holderName = bank?.accountHolderName || "Beneficiary";
   const accNo = bank?.accountNumber || "";
   const ifsc = bank?.ifscCode || "";
   const bankName = bank?.bankName || "Bank Transfer";

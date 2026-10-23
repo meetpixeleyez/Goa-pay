@@ -22,6 +22,7 @@ import {
 import UpdateCustomerQrModal from "@/components/orders/UpdateCustomerQrModal";
 import { getSocketClient } from "@/lib/socket-client";
 import { ordersApi } from "@/lib/api/orders.api";
+import { parseBankDetails } from "@/lib/validation";
 
 export default function MerchantOrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
@@ -71,10 +72,14 @@ export default function MerchantOrdersPage() {
     const orderType = o.type || "PAYIN";
     const matchesType = typeFilter === "ALL" || orderType === typeFilter;
     const matchesStatus = statusFilter === "ALL" || o.status === statusFilter;
+    const bank = parseBankDetails(o.beneficiaryDetails);
     const matchesSearch =
       o.orderNumber.toLowerCase().includes(search.toLowerCase()) ||
-      o.customerName.toLowerCase().includes(search.toLowerCase()) ||
-      (o.customerUtr && o.customerUtr.toLowerCase().includes(search.toLowerCase()));
+      (o.clientOrderId && o.clientOrderId.toLowerCase().includes(search.toLowerCase())) ||
+      (bank?.accountHolderName && bank.accountHolderName.toLowerCase().includes(search.toLowerCase())) ||
+      (bank?.accountNumber && bank.accountNumber.includes(search)) ||
+      (o.customerUtr && o.customerUtr.toLowerCase().includes(search.toLowerCase())) ||
+      (o.payoutProofUtr && o.payoutProofUtr.toLowerCase().includes(search.toLowerCase()));
     return matchesType && matchesStatus && matchesSearch;
   });
 
@@ -207,7 +212,7 @@ export default function MerchantOrdersPage() {
               <tr>
                 <th className="p-3 sticky top-0 z-10 bg-base-100 text-base-900 font-bold border-b border-base-200 whitespace-nowrap shadow-2xs">Order Number</th>
                 <th className="p-3 sticky top-0 z-10 bg-base-100 text-base-900 font-bold border-b border-base-200 whitespace-nowrap shadow-2xs">Type</th>
-                <th className="p-3 sticky top-0 z-10 bg-base-100 text-base-900 font-bold border-b border-base-200 whitespace-nowrap shadow-2xs">Customer</th>
+                <th className="p-3 sticky top-0 z-10 bg-base-100 text-base-900 font-bold border-b border-base-200 whitespace-nowrap shadow-2xs">Beneficiary / Source</th>
                 <th className="p-3 sticky top-0 z-10 bg-base-100 text-base-900 font-bold border-b border-base-200 whitespace-nowrap shadow-2xs">Amount</th>
                 <th className="p-3 sticky top-0 z-10 bg-base-100 text-base-900 font-bold border-b border-base-200 whitespace-nowrap shadow-2xs">UTR / Reference</th>
                 <th className="p-3 sticky top-0 z-10 bg-base-100 text-base-900 font-bold border-b border-base-200 whitespace-nowrap shadow-2xs">Status</th>
@@ -225,6 +230,7 @@ export default function MerchantOrdersPage() {
               ) : (
                 paginatedOrders.map((ord) => {
                   const isDeposit = (ord.type || "PAYIN") === "PAYIN";
+                  const bank = !isDeposit ? parseBankDetails(ord.beneficiaryDetails) : null;
                   return (
                     <tr key={ord.id} className="hover:bg-[#ffffff] transition">
                       <td className="p-3 whitespace-nowrap font-mono font-bold text-base-900">
@@ -243,8 +249,17 @@ export default function MerchantOrdersPage() {
                         </span>
                       </td>
                       <td className="p-3 whitespace-nowrap">
-                        <div className="font-semibold text-base-900">{ord.customerName}</div>
-                        <div className="text-[10px] text-slate-500">{ord.customerMobile}</div>
+                        {isDeposit ? (
+                          <>
+                            <div className="font-semibold text-base-900">Direct Deposit</div>
+                            <div className="text-[10px] text-slate-500 font-mono">{ord.clientOrderId || "Web Checkout"}</div>
+                          </>
+                        ) : (
+                          <>
+                            <div className="font-semibold text-base-900">{bank?.accountHolderName || "Beneficiary"}</div>
+                            <div className="text-[10px] text-slate-500">{bank?.bankName ? `${bank.bankName} • ${bank.accountNumber?.slice(-4)}` : "Bank Account"}</div>
+                          </>
+                        )}
                       </td>
                       <td className="p-3 whitespace-nowrap font-bold text-base-900">
                         ₹{ord.amount.toFixed(2)}

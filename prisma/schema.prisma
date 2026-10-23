@@ -121,9 +121,6 @@ model Order {
   qrCode             QRCode?       @relation("AssignedQRCode", fields: [qrCodeId], references: [id])
   
   amount             Float
-  customerName       String
-  customerMobile     String
-  customerEmail      String?
   remark             String?
 
   status             OrderStatus   @default(pending)
@@ -135,8 +132,6 @@ model Order {
 
   // Payout specific fields
   beneficiaryDetails String?
-  customerUpiId      String?
-  customerQrImage    String?
   payoutBroadcast    Boolean       @default(false)
   payoutProofUtr     String?
   payoutProofImage   String?

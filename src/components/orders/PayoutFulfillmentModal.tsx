@@ -100,7 +100,7 @@ export default function PayoutFulfillmentModal({
   if (!isOpen || !order) return null;
 
   const handleCopyUpi = () => {
-    const upi = order.customerUpiId || (order.beneficiaryDetails?.includes("@") ? order.beneficiaryDetails : "");
+    const upi = order.beneficiaryDetails?.includes("@") ? order.beneficiaryDetails : "";
     if (upi) {
       navigator.clipboard.writeText(upi);
       setCopiedUpi(true);
@@ -238,20 +238,17 @@ export default function PayoutFulfillmentModal({
     }
   };
 
-  // Determine UPI ID and QR code to display
-  const customerUpiId =
-    order.customerUpiId ||
-    (order.beneficiaryDetails && order.beneficiaryDetails.includes("@") && !order.beneficiaryDetails.includes(" ")
+  // Determine UPI ID and QR code to display if beneficiary is a UPI address
+  const beneficiaryUpiId =
+    order.beneficiaryDetails && order.beneficiaryDetails.includes("@") && !order.beneficiaryDetails.includes(" ")
       ? order.beneficiaryDetails.trim()
-      : null);
+      : null;
 
-  const qrImageUrl =
-    order.customerQrImage ||
-    (customerUpiId
-      ? `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(
-          `upi://pay?pa=${customerUpiId}&pn=${encodeURIComponent(order.customerName || "Customer")}&am=${order.amount}&cu=INR`
-        )}`
-      : null);
+  const qrImageUrl = beneficiaryUpiId
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(
+        `upi://pay?pa=${beneficiaryUpiId}&pn=Beneficiary&am=${order.amount}&cu=INR`
+      )}`
+    : null;
 
   const timerMins = Math.floor(remainingSeconds / 60);
   const timerSecs = remainingSeconds % 60;
@@ -364,8 +361,6 @@ export default function PayoutFulfillmentModal({
           <BankTransferCard
             beneficiaryDetails={order.beneficiaryDetails}
             amount={order.amount}
-            customerName={order.customerName}
-            customerMobile={order.customerMobile}
             title="Customer Bank Account (Send Transfer Here)"
           />
 

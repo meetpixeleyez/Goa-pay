@@ -26,6 +26,7 @@ import {
   User,
 } from "lucide-react";
 import { useSocket } from "@/lib/socket-client";
+import { parseBankDetails } from "@/lib/validation";
 
 export default function OperatorOrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
@@ -163,10 +164,11 @@ export default function OperatorOrdersPage() {
 
   const filteredOrders = orders.filter((ord) => {
     const query = search.toLowerCase();
+    const bank = parseBankDetails(ord.beneficiaryDetails);
     const matchesSearch =
       ord.orderNumber.toLowerCase().includes(query) ||
-      ord.customerName.toLowerCase().includes(query) ||
-      ord.customerMobile.includes(query) ||
+      (bank?.accountHolderName && bank.accountHolderName.toLowerCase().includes(query)) ||
+      (bank?.accountNumber && bank.accountNumber.includes(query)) ||
       (ord.customerUtr && ord.customerUtr.toLowerCase().includes(query)) ||
       (ord.verifierUtr && ord.verifierUtr.toLowerCase().includes(query)) ||
       (ord.qrCode?.upiId && ord.qrCode.upiId.toLowerCase().includes(query));
@@ -285,7 +287,7 @@ export default function OperatorOrdersPage() {
                   <tr>
                     <th className="p-3">Order Number</th>
                     <th className="p-3">Type</th>
-                    <th className="p-3">Customer Info</th>
+                    <th className="p-3">Beneficiary / Source</th>
                     <th className="p-3">Amount</th>
                     <th className="p-3">Assigned QR Code</th>
                     <th className="p-3">Customer UTR</th>
@@ -321,8 +323,20 @@ export default function OperatorOrdersPage() {
                           </span>
                         </td>
                         <td className="p-3 whitespace-nowrap">
-                          <div className="font-semibold text-gray-900">{ord.customerName}</div>
-                          <div className="text-[10px] text-slate-500">{ord.customerMobile}</div>
+                          {isDeposit ? (
+                            <>
+                              <div className="font-semibold text-gray-900">Direct Deposit</div>
+                              <div className="text-[10px] text-slate-500 font-mono">{ord.clientOrderId || "Deposit Checkout"}</div>
+                            </>
+                          ) : (() => {
+                            const bank = parseBankDetails(ord.beneficiaryDetails);
+                            return (
+                              <>
+                                <div className="font-semibold text-gray-900">{bank?.accountHolderName || "Beneficiary"}</div>
+                                <div className="text-[10px] text-slate-500">{bank?.bankName ? `${bank.bankName} • ${bank.accountNumber?.slice(-4)}` : "Bank Account"}</div>
+                              </>
+                            );
+                          })()}
                           {ord.customerScreenshot && (
                             <button
                               type="button"
@@ -506,9 +520,9 @@ export default function OperatorOrdersPage() {
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Customer:</span>
+                  <span className="text-slate-500">Order Type:</span>
                   <span className="font-bold text-gray-800">
-                    {selectedPayinOrder.customerName} ({selectedPayinOrder.customerMobile})
+                    {selectedPayinOrder.type || "PAYIN"}
                   </span>
                 </div>
                 <div className="flex justify-between">

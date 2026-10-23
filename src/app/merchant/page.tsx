@@ -18,6 +18,7 @@ import {
   Eye,
 } from "lucide-react";
 import OrderDetailsModal from "@/components/orders/OrderDetailsModal";
+import { parseBankDetails } from "@/lib/validation";
 
 export default function MerchantDashboard() {
   const [wallet, setWallet] = useState<any>(null);
@@ -153,7 +154,7 @@ export default function MerchantDashboard() {
               <tr>
                 <th className="p-3">Order Number</th>
                 <th className="p-3">Type</th>
-                <th className="p-3">Customer</th>
+                <th className="p-3">Beneficiary / Source</th>
                 <th className="p-3">Amount</th>
                 <th className="p-3">Customer UTR</th>
                 <th className="p-3">Status</th>
@@ -164,6 +165,7 @@ export default function MerchantDashboard() {
             <tbody className="divide-y divide-[#e0f2fe]">
               {orders.slice(0, 5).map((ord) => {
                 const isDeposit = (ord.type || "PAYIN") === "PAYIN";
+                const bank = !isDeposit ? parseBankDetails(ord.beneficiaryDetails) : null;
                 return (
                   <tr key={ord.id} className="hover:bg-[#ffffff] transition">
                     <td className="p-3 font-mono font-bold text-base-900">
@@ -182,8 +184,17 @@ export default function MerchantDashboard() {
                       </span>
                     </td>
                     <td className="p-3">
-                      <div className="font-semibold text-base-900">{ord.customerName}</div>
-                      <div className="text-[10px] text-slate-500">{ord.customerMobile}</div>
+                      {isDeposit ? (
+                        <>
+                          <div className="font-semibold text-base-900">Direct Deposit</div>
+                          <div className="text-[10px] text-slate-500 font-mono">{ord.clientOrderId || "Web Checkout"}</div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="font-semibold text-base-900">{bank?.accountHolderName || "Beneficiary"}</div>
+                          <div className="text-[10px] text-slate-500">{bank?.bankName ? `${bank.bankName} • ${bank.accountNumber?.slice(-4)}` : "Bank Account"}</div>
+                        </>
+                      )}
                     </td>
                     <td className="p-3 font-bold text-base-900">
                       ₹{ord.amount.toFixed(2)}

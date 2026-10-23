@@ -23,6 +23,7 @@ import {
 import { useSocket } from "@/lib/socket-client";
 
 import { useAppSelector } from "@/store/hooks";
+import { parseBankDetails } from "@/lib/validation";
 
 export default function OperatorDashboardPage() {
   const reduxUser = useAppSelector((state) => state.auth.user);
@@ -271,7 +272,7 @@ export default function OperatorDashboardPage() {
                   <tr>
                     <th className="py-2.5 px-3">Order Number</th>
                     <th className="py-2.5 px-3">Type</th>
-                    <th className="py-2.5 px-3">Customer</th>
+                    <th className="py-2.5 px-3">Beneficiary / Source</th>
                     <th className="py-2.5 px-3">Amount</th>
                     <th className="py-2.5 px-3">QR Code</th>
                     <th className="py-2.5 px-3">Status</th>
@@ -281,6 +282,7 @@ export default function OperatorDashboardPage() {
                 <tbody className="divide-y divide-[#e2e8f0]/60 bg-white">
                   {recentOrders.map((ord) => {
                     const isDeposit = ord.type === "PAYIN";
+                    const bank = !isDeposit ? parseBankDetails(ord.beneficiaryDetails) : null;
                     return (
                       <tr key={ord.id} className="hover:bg-base-100/20 transition">
                         <td className="py-2.5 px-3 font-mono font-bold text-base-900">
@@ -303,8 +305,17 @@ export default function OperatorDashboardPage() {
                           </span>
                         </td>
                         <td className="py-2.5 px-3">
-                          <div className="font-semibold text-gray-800">{ord.customerName}</div>
-                          <div className="text-[10px] text-slate-500">{ord.customerMobile}</div>
+                          {isDeposit ? (
+                            <>
+                              <div className="font-semibold text-gray-800">Direct Deposit</div>
+                              <div className="text-[10px] text-slate-500 font-mono">{ord.clientOrderId || "Deposit Checkout"}</div>
+                            </>
+                          ) : (
+                            <>
+                              <div className="font-semibold text-gray-800">{bank?.accountHolderName || "Beneficiary"}</div>
+                              <div className="text-[10px] text-slate-500">{bank?.bankName ? `${bank.bankName} • ${bank.accountNumber?.slice(-4)}` : "Bank Account"}</div>
+                            </>
+                          )}
                         </td>
                         <td className="py-2.5 px-3 font-bold text-base-900">
                           ₹{Number(ord.amount).toFixed(2)}

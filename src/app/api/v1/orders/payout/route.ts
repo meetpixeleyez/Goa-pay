@@ -17,9 +17,6 @@ export async function POST(request: Request) {
     const {
       clientOrderId,
       amount,
-      customerName,
-      customerMobile,
-      customerEmail,
       remark,
       accountNumber,
       confirmAccountNumber,
@@ -30,9 +27,9 @@ export async function POST(request: Request) {
       webhookUrl,
     } = body;
 
-    if (!amount || !customerName || !customerMobile) {
+    if (!amount) {
       return createSignedResponse(
-        { error: "Missing required fields: 'amount', 'customerName', and 'customerMobile' are required." },
+        { error: "Missing required field: 'amount' is required." },
         decryptedSecret,
         400
       );
@@ -48,9 +45,9 @@ export async function POST(request: Request) {
     }
 
     // Validate Bank Details for Payout
-    const accNo = accountNumber || body.bankAccountNumber;
-    const ifsc = ifscCode;
-    const holder = accountHolderName || body.beneficiaryName || customerName;
+    const accNo = (accountNumber || body.account_number || "").toString().trim();
+    const ifsc = (ifscCode || body.ifsc_code || "").toString().trim().toUpperCase();
+    const holder = (accountHolderName || body.beneficiaryName || "Beneficiary").toString().trim();
 
     if (!accNo || !ifsc) {
       return createSignedResponse(
@@ -162,9 +159,6 @@ export async function POST(request: Request) {
         merchantId: merchant.id,
         amount: orderAmount,
         type: "PAYOUT",
-        customerName: customerName.trim(),
-        customerMobile: customerMobile.trim(),
-        customerEmail: customerEmail ? customerEmail.trim() : null,
         remark: remark ? remark.trim() : null,
         clientOrderId: clientOrderId?.trim() || null,
         webhookUrl: effectiveWebhookUrl,

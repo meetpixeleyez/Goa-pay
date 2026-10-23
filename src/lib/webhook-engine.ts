@@ -280,8 +280,6 @@ export async function triggerOrderWebhook(orderId: number, event: "order.payin.c
       type: order.type,
       amount: order.amount,
       status: order.status,
-      customerName: order.customerName,
-      customerMobile: order.customerMobile,
       customerUtr: order.customerUtr,
       verifierUtr: order.verifierUtr,
       merchantFee: order.merchantFee,

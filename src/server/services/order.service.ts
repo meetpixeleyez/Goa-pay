@@ -29,9 +29,6 @@ export class OrderService {
       throw new ApiError("Invalid order amount. Must be greater than 0", 400);
     }
 
-    const customerName = input.customerName?.trim() || (input.type === "PAYOUT" ? (input.accountHolderName?.trim() || "Beneficiary") : "Customer");
-    const customerMobile = input.customerMobile?.trim() || "";
-
     const orderType: OrderFeeType = input.type;
     if (orderType !== "PAYIN" && orderType !== "PAYOUT") {
       throw new ApiError("Invalid order type. Must be either 'PAYIN' or 'PAYOUT'", 400);
@@ -61,7 +58,7 @@ export class OrderService {
     if (orderType === "PAYOUT") {
       const accNo = input.accountNumber;
       const ifsc = input.ifscCode;
-      const holderName = input.accountHolderName?.trim() || input.customerName?.trim() || "Beneficiary";
+      const holderName = input.accountHolderName?.trim() || "Beneficiary";
       const bankName = input.bankName;
       const accountType = input.accountType || "SAVINGS";
 
@@ -170,9 +167,6 @@ export class OrderService {
         qrProviderId: assignment.qrProviderId,
         qrCodeId: assignment.qrCodeId,
         amount: orderAmount,
-        customerName,
-        customerMobile,
-        customerEmail: input.customerEmail?.trim() || null,
         remark: input.remark?.trim() || null,
         type: orderType,
         status: "pending",
@@ -373,10 +367,9 @@ export class OrderService {
       const s = search.trim();
       where.OR = [
         { orderNumber: { contains: s } },
-        { customerName: { contains: s } },
-        { customerMobile: { contains: s } },
         { customerUtr: { contains: s } },
         { verifierUtr: { contains: s } },
+        { beneficiaryDetails: { contains: s } },
       ];
     }
 

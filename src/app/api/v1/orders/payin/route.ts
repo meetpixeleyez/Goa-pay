@@ -17,9 +17,6 @@ export async function POST(request: Request) {
     const {
       clientOrderId,
       amount,
-      customerName,
-      customerMobile,
-      customerEmail,
       remark,
       successUrl,
       failureUrl,
@@ -27,9 +24,9 @@ export async function POST(request: Request) {
     } = body;
 
     // Validate Required Fields
-    if (!amount || !customerName || !customerMobile) {
+    if (!amount) {
       return createSignedResponse(
-        { error: "Missing required fields: 'amount', 'customerName', and 'customerMobile' are required." },
+        { error: "Missing required field: 'amount' is required." },
         decryptedSecret,
         400
       );
@@ -159,9 +156,6 @@ export async function POST(request: Request) {
         qrCodeId: qrAssign.qrCodeId,
         amount: orderAmount,
         type: "PAYIN",
-        customerName: customerName.trim(),
-        customerMobile: customerMobile.trim(),
-        customerEmail: customerEmail ? customerEmail.trim() : null,
         remark: remark ? remark.trim() : null,
         clientOrderId: clientOrderId?.trim() || null,
         successUrl: effectiveSuccessUrl,

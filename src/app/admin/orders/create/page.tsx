@@ -47,9 +47,6 @@ export default function AdminCreateOrderPage() {
   const [merchantId, setMerchantId] = useState("");
   const [orderType, setOrderType] = useState<"PAYIN" | "PAYOUT">("PAYIN");
   const [amount, setAmount] = useState("");
-  const [customerName, setCustomerName] = useState("");
-  const [customerMobile, setCustomerMobile] = useState("");
-  const [customerEmail, setCustomerEmail] = useState("");
 
   // Customer Bank Details for Withdrawal (PAYOUT)
   const [bankName, setBankName] = useState("");
@@ -156,7 +153,7 @@ export default function AdminCreateOrderPage() {
         accountNumber,
         confirmAccountNumber,
         ifscCode,
-        accountHolderName: accountHolderName.trim() || customerName.trim(),
+        accountHolderName: accountHolderName.trim(),
         bankName,
       });
 
@@ -175,13 +172,10 @@ export default function AdminCreateOrderPage() {
           merchantId,
           amount: orderAmount,
           type: orderType,
-          customerName: customerName.trim(),
-          customerMobile: customerMobile.trim(),
-          customerEmail: customerEmail.trim() || undefined,
           accountNumber: orderType === "PAYOUT" ? accountNumber.trim() : undefined,
           confirmAccountNumber: orderType === "PAYOUT" ? confirmAccountNumber.trim() : undefined,
           ifscCode: orderType === "PAYOUT" ? ifscCode.trim().toUpperCase() : undefined,
-          accountHolderName: orderType === "PAYOUT" ? (accountHolderName.trim() || customerName.trim()) : undefined,
+          accountHolderName: orderType === "PAYOUT" ? (accountHolderName.trim() || "Beneficiary") : undefined,
           bankName: orderType === "PAYOUT" ? bankName.trim() : undefined,
           accountType: orderType === "PAYOUT" ? accountType : undefined,
           remark: remark.trim() || undefined,
@@ -300,9 +294,6 @@ export default function AdminCreateOrderPage() {
 
   const handleResetForm = () => {
     setCreatedOrder(null);
-    setCustomerName("");
-    setCustomerMobile("");
-    setCustomerEmail("");
     setBankName("");
     setAccountNumber("");
     setConfirmAccountNumber("");
@@ -416,22 +407,16 @@ export default function AdminCreateOrderPage() {
               </div>
             </div>
 
-            {/* Customer Details */}
-            <div className="p-3.5 bg-white border border-base-200 rounded-xl text-xs space-y-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
-                Customer Information
-              </span>
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-gray-700">
-                <span>Name: <b className="text-base-900">{createdOrder.customerName}</b></span>
-                <span>Mobile: <b className="font-mono text-base-900">{createdOrder.customerMobile}</b></span>
-                {createdOrder.customerEmail && <span>Email: <b>{createdOrder.customerEmail}</b></span>}
-              </div>
-              {createdOrder.remark && (
-                <div className="text-slate-500 text-[11px] pt-1 border-t border-gray-100">
-                  Note: <i>{createdOrder.remark}</i>
+            {createdOrder.remark && (
+              <div className="p-3.5 bg-white border border-base-200 rounded-xl text-xs space-y-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
+                  Order Note / Remark
+                </span>
+                <div className="text-gray-700 italic">
+                  {createdOrder.remark}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
             {/* Deposit QR & In-Dashboard Payment Confirmation */}
             {createdOrder.type === "PAYIN" && createdOrder.qrCode && (
@@ -744,8 +729,6 @@ export default function AdminCreateOrderPage() {
                 <BankTransferCard
                   beneficiaryDetails={createdOrder.beneficiaryDetails}
                   amount={createdOrder.amount}
-                  customerName={createdOrder.customerName}
-                  customerMobile={createdOrder.customerMobile}
                 />
 
                 <div className="bg-white p-3.5 rounded-xl border border-base-200 space-y-2 text-xs">
@@ -991,50 +974,7 @@ export default function AdminCreateOrderPage() {
                 </div>
               </div>
 
-              {/* Customer Name & Mobile */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-base-900 mb-1">
-                    Customer / Beneficiary Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={customerName}
-                    onChange={(e) => setCustomerName(e.target.value)}
-                    placeholder="e.g. Rahul Sharma"
-                    className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-base-900 mb-1">
-                    Customer Mobile Number *
-                  </label>
-                  <input
-                    type="tel"
-                    required
-                    maxLength={10}
-                    value={customerMobile}
-                    onChange={(e) => setCustomerMobile(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                    placeholder="9876543210"
-                    className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg font-mono bg-white focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
-                </div>
-              </div>
 
-              {/* Customer Email */}
-              <div>
-                <label className="block text-xs font-semibold text-base-900 mb-1">
-                  Customer Email Address (Optional)
-                </label>
-                <input
-                  type="email"
-                  value={customerEmail}
-                  onChange={(e) => setCustomerEmail(e.target.value)}
-                  placeholder="customer@example.com"
-                  className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
 
               {/* If Withdrawal: Customer Bank Details (IMPS / NEFT / RTGS) */}
               {orderType === "PAYOUT" && (
@@ -1143,7 +1083,7 @@ export default function AdminCreateOrderPage() {
                         type="text"
                         value={accountHolderName}
                         onChange={(e) => setAccountHolderName(e.target.value)}
-                        placeholder={customerName ? `e.g. ${customerName}` : "Name as registered in bank"}
+                        placeholder="Name as registered in bank"
                         className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
                         required
                       />

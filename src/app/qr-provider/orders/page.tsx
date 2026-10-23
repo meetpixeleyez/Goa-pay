@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 import { useSocket } from "@/lib/socket-client";
 import { useAppSelector } from "@/store/hooks";
+import { parseBankDetails } from "@/lib/validation";
 
 export default function QRProviderOrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
@@ -246,12 +247,14 @@ export default function QRProviderOrdersPage() {
     const orderType = o.type || "PAYIN";
     const matchesType = typeFilter === "ALL" || orderType === typeFilter;
     const matchesStatus = statusFilter === "ALL" || o.status === statusFilter;
+    const bank = parseBankDetails(o.beneficiaryDetails);
     const matchesSearch =
       !search ||
       o.orderNumber.toLowerCase().includes(search.toLowerCase()) ||
-      o.customerName.toLowerCase().includes(search.toLowerCase()) ||
-      o.customerMobile.includes(search) ||
+      (bank?.accountHolderName && bank.accountHolderName.toLowerCase().includes(search.toLowerCase())) ||
+      (bank?.accountNumber && bank.accountNumber.includes(search)) ||
       (o.verifierUtr && o.verifierUtr.toLowerCase().includes(search.toLowerCase())) ||
+      (o.customerUtr && o.customerUtr.toLowerCase().includes(search.toLowerCase())) ||
       (o.payoutProofUtr && o.payoutProofUtr.toLowerCase().includes(search.toLowerCase()));
     return matchesType && matchesStatus && matchesSearch;
   });
@@ -421,7 +424,7 @@ export default function QRProviderOrdersPage() {
               <tr>
                 <th className="p-3 sticky top-0 z-10 bg-base-100 text-base-900 font-bold border-b border-base-200 whitespace-nowrap shadow-2xs">Order Number</th>
                 <th className="p-3 sticky top-0 z-10 bg-base-100 text-base-900 font-bold border-b border-base-200 whitespace-nowrap shadow-2xs">Type</th>
-                <th className="p-3 sticky top-0 z-10 bg-base-100 text-base-900 font-bold border-b border-base-200 whitespace-nowrap shadow-2xs">Customer</th>
+                <th className="p-3 sticky top-0 z-10 bg-base-100 text-base-900 font-bold border-b border-base-200 whitespace-nowrap shadow-2xs">Beneficiary / Source</th>
                 <th className="p-3 sticky top-0 z-10 bg-base-100 text-base-900 font-bold border-b border-base-200 whitespace-nowrap shadow-2xs">Amount</th>
                 <th className="p-3 sticky top-0 z-10 bg-base-100 text-base-900 font-bold border-b border-base-200 whitespace-nowrap shadow-2xs">Verification / Proof</th>
                 <th className="p-3 sticky top-0 z-10 bg-base-100 text-base-900 font-bold border-b border-base-200 whitespace-nowrap shadow-2xs">Status</th>
@@ -463,8 +466,20 @@ export default function QRProviderOrdersPage() {
                         </span>
                       </td>
                       <td className="p-3 whitespace-nowrap">
-                        <div className="font-semibold text-base-900">{ord.customerName}</div>
-                        <div className="text-[10px] text-slate-500">{ord.customerMobile}</div>
+                        {isDeposit ? (
+                          <>
+                            <div className="font-semibold text-base-900">Direct Deposit</div>
+                            <div className="text-[10px] text-slate-500 font-mono">{ord.clientOrderId || "Deposit Checkout"}</div>
+                          </>
+                        ) : (() => {
+                          const bank = parseBankDetails(ord.beneficiaryDetails);
+                          return (
+                            <>
+                              <div className="font-semibold text-base-900">{bank?.accountHolderName || "Beneficiary"}</div>
+                              <div className="text-[10px] text-slate-500">{bank?.bankName ? `${bank.bankName} • ${bank.accountNumber?.slice(-4)}` : "Bank Account"}</div>
+                            </>
+                          );
+                        })()}
                         {ord.customerScreenshot && (
                           <button
                             type="button"
@@ -680,22 +695,15 @@ export default function QRProviderOrdersPage() {
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Customer Name:</span>
-                  <span className="font-semibold text-base-900">{selectedOrder.customerName}</span>
+                  <span className="text-gray-600">Order Type:</span>
+                  <span className="font-semibold text-base-900">{selectedOrder.type || "PAYIN"}</span>
                 </div>
-                {selectedOrder.customerMobile && (
-                  <div className="flex justify-between items-center text-[11px]">
-                    <span className="text-slate-500">Customer Mobile:</span>
-                    <span className="font-mono text-gray-700">{selectedOrder.customerMobile}</span>
-                  </div>
-                )}
 
                 {selectedOrder.type === "PAYOUT" && (
                   <>
                     <BankTransferCard
                       beneficiaryDetails={selectedOrder.beneficiaryDetails}
                       amount={selectedOrder.amount}
-                      customerName={selectedOrder.customerName}
                     />
                     <div className="text-[11px] text-emerald-800 font-semibold flex items-center space-x-1 pt-1">
                       <TrendingUp className="w-3.5 h-3.5" />

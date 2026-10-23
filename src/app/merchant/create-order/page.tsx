@@ -39,9 +39,6 @@ export default function MerchantCreateOrderPage() {
   const [profile, setProfile] = useState<any>(null);
   const [orderType, setOrderType] = useState<"PAYIN" | "PAYOUT">("PAYIN");
   const [amount, setAmount] = useState("");
-  const [customerName, setCustomerName] = useState("");
-  const [customerMobile, setCustomerMobile] = useState("");
-  const [customerEmail, setCustomerEmail] = useState("");
 
   // Customer Bank Details for Withdrawal (PAYOUT)
   const [bankName, setBankName] = useState("");
@@ -137,7 +134,7 @@ export default function MerchantCreateOrderPage() {
         accountNumber,
         confirmAccountNumber,
         ifscCode,
-        accountHolderName: accountHolderName.trim() || customerName.trim(),
+        accountHolderName: accountHolderName.trim() || "Beneficiary",
         bankName,
       });
 
@@ -156,8 +153,6 @@ export default function MerchantCreateOrderPage() {
           merchantId: profile?.id,
           amount: orderAmount,
           type: orderType,
-          customerName: orderType === "PAYOUT" ? (accountHolderName.trim() || "Beneficiary") : "Customer",
-          customerMobile: "",
           accountNumber: orderType === "PAYOUT" ? accountNumber.trim() : undefined,
           confirmAccountNumber: orderType === "PAYOUT" ? confirmAccountNumber.trim() : undefined,
           ifscCode: orderType === "PAYOUT" ? ifscCode.trim().toUpperCase() : undefined,
@@ -279,9 +274,6 @@ export default function MerchantCreateOrderPage() {
 
   const handleResetForm = () => {
     setCreatedOrder(null);
-    setCustomerName("");
-    setCustomerMobile("");
-    setCustomerEmail("");
     setBankName("");
     setAccountNumber("");
     setConfirmAccountNumber("");
@@ -740,8 +732,6 @@ export default function MerchantCreateOrderPage() {
                 <BankTransferCard
                   beneficiaryDetails={createdOrder.beneficiaryDetails}
                   amount={createdOrder.amount}
-                  customerName={createdOrder.customerName}
-                  customerMobile={createdOrder.customerMobile}
                 />
 
                 <div className="bg-white p-3.5 rounded-xl border border-base-200 space-y-2 text-xs">
@@ -1087,7 +1077,7 @@ export default function MerchantCreateOrderPage() {
                         type="text"
                         value={accountHolderName}
                         onChange={(e) => setAccountHolderName(e.target.value)}
-                        placeholder={customerName ? `e.g. ${customerName}` : "Name as registered in bank"}
+                        placeholder="Name as registered in bank"
                         className="w-full px-3 py-2 text-xs border border-base-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
                         required
                       />

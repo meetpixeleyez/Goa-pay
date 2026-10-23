@@ -81,9 +81,6 @@ export interface OrderItem {
   qrCode?: QRCodeSummary | null;
 
   amount: number;
-  customerName: string;
-  customerMobile: string;
-  customerEmail?: string | null;
   remark?: string | null;
 
   status: OrderStatus | string;
@@ -93,8 +90,6 @@ export interface OrderItem {
   customerScreenshot?: string | null;
 
   beneficiaryDetails?: string | null;
-  customerUpiId?: string | null;
-  customerQrImage?: string | null;
   payoutBankName?: string | null;
   payoutProofUtr?: string | null;
   payoutProofImage?: string | null;

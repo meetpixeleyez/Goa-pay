@@ -42,8 +42,7 @@ export default function UpdateCustomerQrModal({
   const [accountHolderName, setAccountHolderName] = useState("");
   const [accountType, setAccountType] = useState<"SAVINGS" | "CURRENT">("SAVINGS");
 
-  // QR / UPI fields for PAYIN
-  const [customerUpiId, setCustomerUpiId] = useState("");
+  // Details for PAYIN
   const [beneficiaryDetails, setBeneficiaryDetails] = useState("");
   const [qrFile, setQrFile] = useState<File | null>(null);
   const [qrPreview, setQrPreview] = useState<string>("");
@@ -67,20 +66,19 @@ export default function UpdateCustomerQrModal({
         setAccountNumber(parsed.accountNumber || "");
         setConfirmAccountNumber(parsed.accountNumber || "");
         setIfscCode(parsed.ifscCode || "");
-        setAccountHolderName(parsed.accountHolderName || order.customerName || "");
+        setAccountHolderName(parsed.accountHolderName || "");
         setAccountType((parsed.accountType as any) || "SAVINGS");
       } else {
         setBankName("");
         setAccountNumber("");
         setConfirmAccountNumber("");
         setIfscCode("");
-        setAccountHolderName(order.customerName || "");
+        setAccountHolderName("");
         setAccountType("SAVINGS");
       }
     } else {
-      setCustomerUpiId(order.customerUpiId || "");
       setBeneficiaryDetails(order.beneficiaryDetails || "");
-      setQrPreview(order.customerQrImage || "");
+      setQrPreview("");
       setQrFile(null);
     }
   }, [order, isOpen]);
@@ -127,7 +125,7 @@ export default function UpdateCustomerQrModal({
           accountNumber,
           confirmAccountNumber,
           ifscCode,
-          accountHolderName: accountHolderName.trim() || order.customerName,
+          accountHolderName: accountHolderName.trim() || "Beneficiary",
           bankName,
         });
 
@@ -143,7 +141,7 @@ export default function UpdateCustomerQrModal({
           body: JSON.stringify({
             accountNumber: accountNumber.trim(),
             ifscCode: ifscCode.trim().toUpperCase(),
-            accountHolderName: accountHolderName.trim() || order.customerName,
+            accountHolderName: accountHolderName.trim() || "Beneficiary",
             bankName: bankName.trim(),
             accountType,
           }),
@@ -173,8 +171,6 @@ export default function UpdateCustomerQrModal({
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            customerQrImage: uploadedQrUrl || null,
-            customerUpiId: customerUpiId.trim() || null,
             beneficiaryDetails: beneficiaryDetails.trim() || undefined,
           }),
         });
@@ -239,8 +235,8 @@ export default function UpdateCustomerQrModal({
 
           <div className="p-3 bg-base-100/40 rounded-xl space-y-1">
             <div className="flex justify-between font-semibold text-gray-700">
-              <span>Customer Name:</span>
-              <span className="text-base-900 font-bold">{order.customerName}</span>
+              <span>Order Number:</span>
+              <span className="text-base-900 font-bold font-mono">{order.orderNumber}</span>
             </div>
             <div className="flex justify-between font-semibold text-gray-700">
               <span>Transfer Amount:</span>
@@ -365,13 +361,13 @@ export default function UpdateCustomerQrModal({
             <div className="space-y-3.5">
               <div>
                 <label className="block text-xs font-bold text-base-900 mb-1">
-                  Customer UPI ID / VPA
+                  Beneficiary Details / UPI VPA (Optional)
                 </label>
                 <input
                   type="text"
-                  value={customerUpiId}
-                  onChange={(e) => setCustomerUpiId(e.target.value.trim())}
-                  placeholder="e.g. rahul@okaxis"
+                  value={beneficiaryDetails}
+                  onChange={(e) => setBeneficiaryDetails(e.target.value.trim())}
+                  placeholder="e.g. rahul@okaxis or Bank Reference"
                   className="w-full px-3 py-2 border border-base-200 rounded-xl font-mono text-xs font-bold bg-white focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
