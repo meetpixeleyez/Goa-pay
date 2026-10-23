@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { authenticateMerchantRequest, createSignedResponse } from "@/lib/merchant-api-auth";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request: Request) {
   try {
     const authResult = await authenticateMerchantRequest(request);
@@ -10,11 +12,6 @@ export async function GET(request: Request) {
     }
 
     const { merchant, decryptedSecret } = authResult;
-
-    // Fetch merchant's wallet balance
-    const wallet = await prisma.wallet.findUnique({
-      where: { userId: merchant.id },
-    });
 
     // Compute volume statistics
     const [completedPayins, completedPayouts, pendingPayins, pendingPayouts] = await Promise.all([
@@ -45,7 +42,8 @@ export async function GET(request: Request) {
       success: true,
       merchantId: merchant.id,
       merchantName: merchant.name,
-      walletBalance: wallet?.balance || 0,
+      walletBalance: merchant.balance || 0,
+      balance: merchant.balance || 0,
       currency: "INR",
       statistics: {
         totalPayinVolume,

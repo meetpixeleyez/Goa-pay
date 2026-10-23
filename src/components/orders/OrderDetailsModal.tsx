@@ -371,8 +371,13 @@ export default function OrderDetailsModal({
 
   const handleProviderSubmitPayout = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!payoutProofUtr.trim()) {
+    const cleanUtr = payoutProofUtr.trim();
+    if (!cleanUtr) {
       setSubmitError("Please enter the 12-digit transfer UTR reference");
+      return;
+    }
+    if (!/^\d{12}$/.test(cleanUtr)) {
+      setSubmitError("UTR reference must be exactly 12 numeric digits.");
       return;
     }
 
@@ -794,22 +799,25 @@ export default function OrderDetailsModal({
                       <form onSubmit={handleProviderSubmitPayout} className="space-y-3 pt-1">
                         <div>
                           <label className="block text-xs font-bold text-gray-700 mb-1">
-                            12-Digit Bank / UPI UTR Reference Number *
+                            12-Digit Bank / UPI UTR Reference Number <span className="text-red-500">*</span>
                           </label>
                           <input
                             type="text"
                             required
                             value={payoutProofUtr}
-                            onChange={(e) => setPayoutProofUtr(e.target.value.trim())}
-                            placeholder="e.g. 428712984561"
-                            maxLength={24}
+                            onChange={(e) => {
+                              const digits = e.target.value.replace(/\D/g, "").slice(0, 12);
+                              setPayoutProofUtr(digits);
+                            }}
+                            placeholder="e.g. 428712984561 (12 digits)"
+                            maxLength={12}
                             className="w-full px-3 py-2 text-xs font-mono font-bold border border-base-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary"
                           />
                         </div>
 
                         <div>
                           <label className="block text-xs font-bold text-gray-700 mb-1">
-                            Upload Transfer Receipt / Screenshot (Optional)
+                            Upload Transfer Receipt / Screenshot <span className="text-slate-400 font-normal text-[11px]">(Optional)</span>
                           </label>
                           <input
                             type="file"

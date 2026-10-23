@@ -139,11 +139,11 @@ export async function GET(request: Request) {
     }
     if (search && search.trim()) {
       const s = search.trim();
+      const num = Number(s);
       where.OR = [
         { name: { contains: s } },
         { phone: { contains: s } },
-        { telegramId: { contains: s } },
-        { id: { contains: s } },
+        ...(!isNaN(num) ? [{ id: num }] : []),
       ];
     }
 
@@ -152,7 +152,7 @@ export async function GET(request: Request) {
     if (sortBy === "name") {
       orderBy = { name: sortOrder };
     } else if (sortBy === "balance") {
-      orderBy = { wallet: { balance: sortOrder } };
+      orderBy = { balance: sortOrder };
     } else if (sortBy === "createdAt") {
       orderBy = { createdAt: sortOrder };
     }
@@ -166,7 +166,6 @@ export async function GET(request: Request) {
     const users = await prisma.user.findMany({
       where,
       include: {
-        wallet: true,
         qrCodes: true,
         assignedQRCodes: true,
         qrProvider: { select: { id: true, name: true } },
@@ -203,11 +202,11 @@ export async function GET(request: Request) {
 
     let stats = null;
     if (includeStats && role === "MERCHANT") {
-      const [totalMerchants, activeMerchants, inactiveMerchants, walletAgg, feeAgg, totalOrders] = await Promise.all([
+      const [totalMerchants, activeMerchants, inactiveMerchants, userAgg, feeAgg, totalOrders] = await Promise.all([
         prisma.user.count({ where: { role: "MERCHANT" } }),
         prisma.user.count({ where: { role: "MERCHANT", status: "ACTIVE" } }),
         prisma.user.count({ where: { role: "MERCHANT", status: "INACTIVE" } }),
-        prisma.wallet.aggregate({ _sum: { balance: true }, where: { user: { role: "MERCHANT" } } }),
+        prisma.user.aggregate({ _sum: { balance: true }, where: { role: "MERCHANT" } }),
         prisma.user.aggregate({ _avg: { payinMerchantFee: true, payoutMerchantFee: true }, where: { role: "MERCHANT" } }),
         prisma.order.count({ where: { merchant: { role: "MERCHANT" } } }),
       ]);
@@ -216,7 +215,7 @@ export async function GET(request: Request) {
         totalMerchants,
         activeMerchants,
         inactiveMerchants,
-        totalWalletBalance: walletAgg._sum.balance || 0,
+        totalWalletBalance: userAgg._sum.balance || 0,
         avgPayinFee: Number((feeAgg._avg.payinMerchantFee || 0).toFixed(2)),
         avgPayoutFee: Number((feeAgg._avg.payoutMerchantFee || 0).toFixed(2)),
         totalOrders,
@@ -377,8 +376,6 @@ export async function POST(request: Request) {
           name: data.name,
           password: data.password,
           phone: data.phone,
-          address: data.address,
-          telegramId: data.telegramId,
           initialBalance: parseFloat(data.balance) || 0,
           agentId: data.agentId,
           payinQrProviderFee: data.payinQrProviderFee ?? data.qrProviderFee,
@@ -441,11 +438,9 @@ export async function POST(request: Request) {
       );
     }
 
-
     const passwordHash = await hashPassword(password);
     const initialBal = parseFloat(balance) || 0.0;
     const cleanPhone = phone ? normalizeIndianPhone(phone) : null;
-    const cleanTelegram = normalizeTelegramId(telegramId);
 
     const user = await prisma.$transaction(async (tx) => {
       const newUser = await tx.user.create({
@@ -453,8 +448,6 @@ export async function POST(request: Request) {
           role,
           name: name.trim(),
           phone: cleanPhone,
-          address: address ? address.trim() : null,
-          telegramId: cleanTelegram,
           passwordHash,
           status: status || "ACTIVE",
           portalAccess: portalAccess !== undefined ? Boolean(portalAccess) : true,
@@ -480,14 +473,21 @@ export async function POST(request: Request) {
           availableBalance: initialBal,
           qrProviderFee: qrProviderFee !== undefined ? parseFloat(qrProviderFee) || 0.0 : (payinQrProviderFee !== undefined ? parseFloat(payinQrProviderFee) || 0.0 : 3.0),
           qrProviderId: role === "OPERATOR" ? qrProviderId : null,
-          // Create default wallet
-          wallet: {
-            create: {
-              balance: role === "QR_PROVIDER" ? initialBal : 0.0,
-            },
-          },
         },
       });
+
+      if (initialBal > 0) {
+        await tx.transaction.create({
+          data: {
+            userId: newUser.id,
+            type: "DEPOSIT",
+            category: "INITIAL_BALANCE",
+            amount: initialBal,
+            balanceAfter: initialBal,
+            description: "Initial Balance Allocation",
+          },
+        });
+      }
 
       // If QR Provider and initial QR code provided, create initial QR Code record
       if (role === "QR_PROVIDER" && initialUpiId && initialUpiId.trim()) {

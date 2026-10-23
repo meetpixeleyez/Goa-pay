@@ -79,7 +79,7 @@ export async function POST(
       );
     }
 
-    const result = await MerchantService.adjustWalletBalance({
+    const result = await MerchantService.manageMerchantBalance({
       merchantId: params.id,
       action,
       amount,
@@ -100,7 +100,7 @@ export async function POST(
     return NextResponse.json({
       success: true,
       message,
-      balance: result.wallet.balance,
+      balance: result.newBalance,
     });
   } catch (error) {
     return handleApiError(error);

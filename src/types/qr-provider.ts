@@ -9,26 +9,23 @@ export interface QRCodeItem {
   name: string;
   accountHolderName?: string | null;
   bankName?: string | null;
-  status: string; // "ACTIVE" | "INACTIVE"
+  status: string;
   isActive: boolean;
   createdAt: Date | string;
   updatedAt: Date | string;
   operator?: {
     id: number | string;
     name: string;
-    email?: string;
   } | null;
   provider?: {
     id: number | string;
     name: string;
-    email?: string;
   } | null;
 }
 
 export interface OperatorItem {
   id: number | string;
   name: string;
-  email?: string;
   phone?: string | null;
   status: string;
   portalAccess: boolean;
@@ -37,7 +34,6 @@ export interface OperatorItem {
   qrProvider?: {
     id: number | string;
     name: string;
-    email?: string;
   } | null;
   assignedQRCodes?: QRCodeItem[];
   createdAt: Date | string;
@@ -46,7 +42,6 @@ export interface OperatorItem {
 export interface QRProviderListItem {
   id: number | string;
   name: string;
-  email?: string;
   phone?: string | null;
   status: string;
   balance: number;
@@ -61,7 +56,6 @@ export interface QRProviderListItem {
   agent?: {
     id: number | string;
     name: string;
-    email?: string;
   } | null;
   qrCodes?: QRCodeItem[];
   operators?: OperatorItem[];
@@ -96,11 +90,8 @@ export interface QRProviderQueryParams {
 
 export interface CreateQRProviderInput {
   name: string;
-  email?: string;
   password: string;
   phone?: string | null;
-  address?: string | null;
-  telegramId?: string | null;
   initialBalance?: number;
   agentId?: string | null;
   payinQrProviderFee?: number;
@@ -116,8 +107,6 @@ export interface CreateQRProviderInput {
 export interface UpdateQRProviderInput {
   name?: string;
   phone?: string | null;
-  address?: string | null;
-  telegramId?: string | null;
   status?: string;
   portalAccess?: boolean;
   transactionAllowed?: boolean;
@@ -152,7 +141,6 @@ export interface UpdateQRCodeInput {
 export interface CreateOperatorInput {
   name: string;
   username?: string;
-  email?: string;
   password: string;
   confirmPassword?: string;
   phone?: string | null;

@@ -33,6 +33,8 @@ import {
   Trash2,
   PlusCircle,
   MinusCircle,
+  ArrowDownLeft,
+  ArrowUpRight,
   ShieldCheck,
   X,
 } from "lucide-react";
@@ -525,8 +527,16 @@ export default function AdminMerchantDetailPage() {
 
   const getEntryTypeBadge = (entry: any) => {
     const type = (entry.type || "").toUpperCase();
+    const cat = (entry.category || "").toUpperCase();
 
-    if (type === "CR") {
+    const isCredit =   
+      type === "DEPOSIT" ||
+      type === "CREDIT" ||
+      cat === "ORDER_CREDIT" ||
+      cat === "MANUAL_CREDIT" ||
+      cat === "ADD_CREDIT";
+
+    if (isCredit) {
       return {
         label: "+ DEPOSIT",
         className: "bg-green-100 text-green-800",
@@ -1253,6 +1263,7 @@ export default function AdminMerchantDetailPage() {
                   <thead className="bg-base-100/60 text-base-900 font-semibold border-b border-base-200">
                     <tr>
                       <th className="p-3">Order Number</th>
+                      <th className="p-3">Type</th>
                       <th className="p-3">Customer</th>
                       <th className="p-3">Amount</th>
                       <th className="p-3">Customer UTR</th>
@@ -1265,7 +1276,7 @@ export default function AdminMerchantDetailPage() {
                   <tbody className="divide-y divide-[#e0f2fe]">
                     {!ordersData || ordersData.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="p-6 text-center text-slate-500">
+                        <td colSpan={9} className="p-6 text-center text-slate-500">
                           No orders created for this merchant yet.
                         </td>
                       </tr>
@@ -1274,6 +1285,22 @@ export default function AdminMerchantDetailPage() {
                         <tr key={ord.id} className="hover:bg-[#ffffff] transition">
                           <td className="p-3 font-mono font-bold text-base-900">
                             {ord.orderNumber}
+                          </td>
+                          <td className="p-3 whitespace-nowrap">
+                            <span
+                              className={`inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                                (ord.type || "PAYIN") === "PAYIN"
+                                  ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                                  : "bg-rose-100 text-rose-800 border border-rose-300"
+                              }`}
+                            >
+                              {(ord.type || "PAYIN") === "PAYIN" ? (
+                                <ArrowDownLeft className="w-3 h-3 text-emerald-700" />
+                              ) : (
+                                <ArrowUpRight className="w-3 h-3 text-rose-700" />
+                              )}
+                              <span>{(ord.type || "PAYIN") === "PAYIN" ? "Deposit" : "Withdrawal"}</span>
+                            </span>
                           </td>
                           <td className="p-3">
                             <div>{ord.customerName}</div>

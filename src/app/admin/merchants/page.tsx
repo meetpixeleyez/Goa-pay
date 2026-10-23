@@ -138,11 +138,8 @@ export default function AdminMerchantsPage() {
 
       await createMerchant({
         name,
-        email,
         password,
         phone,
-        address,
-        telegramId,
         payinMerchantFee: parseFloat(payinMerchantFee) || 0.0,
         payoutMerchantFee: parseFloat(payoutMerchantFee) || 0.0,
         brokerId: brokerId || null,
@@ -474,24 +471,12 @@ export default function AdminMerchantsPage() {
                             </div>
                           </td>
 
-                          {/* 2. Contact & Telegram */}
+                          {/* 2. Contact */}
                           <td className="py-4 px-5">
                             <div className="flex flex-col">
                               <span className="text-base-900 text-xs font-semibold">
                                 {m.phone || "--"}
                               </span>
-                              {m.telegramId ? (
-                                <div className="flex items-center gap-1 mt-1 text-primary">
-                                  <Send className="w-3 h-3 text-primary" />
-                                  <span className="text-[11px] font-medium">
-                                    @{m.telegramId.replace(/^@/, "")}
-                                  </span>
-                                </div>
-                              ) : (
-                                <span className="text-slate-500 text-[10px] italic mt-0.5">
-                                  No telegram
-                                </span>
-                              )}
                             </div>
                           </td>
 
@@ -525,10 +510,10 @@ export default function AdminMerchantsPage() {
                             </div>
                           </td>
 
-                          {/* 5. Wallet Balance */}
+                          {/* 5. Balance */}
                           <td className="py-4 px-5 text-right">
                             <span className="text-sm font-bold text-base-900 block">
-                              ₹{(m.wallet?.balance || 0).toLocaleString("en-IN", {
+                              ₹{(m.balance || 0).toLocaleString("en-IN", {
                                 minimumFractionDigits: 2,
                                 maximumFractionDigits: 2,
                               })}

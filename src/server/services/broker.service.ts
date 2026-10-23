@@ -1,10 +1,6 @@
 import prisma from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth";
-import {
-  normalizeIndianPhone,
-  normalizeTelegramId,
-  validateUserData,
-} from "@/lib/validation";
+import { normalizeIndianPhone } from "@/lib/validation";
 import { ApiError } from "@/types/api";
 import { SessionUser } from "./qr-code.service";
 import {
@@ -35,7 +31,6 @@ export class BrokerService {
       const orConditions: any[] = [
         { name: { contains: s } },
         { phone: { contains: s } },
-        { telegramId: { contains: s } },
       ];
       const numericId = parseInt(s, 10);
       if (!isNaN(numericId)) {
@@ -55,7 +50,6 @@ export class BrokerService {
       prisma.user.findMany({
         where,
         include: {
-          wallet: { select: { balance: true } },
           _count: { select: { brokeredMerchants: true } },
         },
         orderBy: { [sortBy]: sortOrder },
@@ -68,13 +62,11 @@ export class BrokerService {
       id: b.id,
       name: b.name,
       phone: b.phone,
-      telegramId: b.telegramId,
-      address: b.address,
       status: b.status as "ACTIVE" | "INACTIVE",
       portalAccess: b.portalAccess,
       commissionPercent: b.commissionPercent || 0,
       merchantsCount: b._count?.brokeredMerchants || 0,
-      walletBalance: b.wallet?.balance || 0,
+      balance: b.balance || 0,
       createdAt: b.createdAt,
       updatedAt: b.updatedAt,
     }));
@@ -91,7 +83,7 @@ export class BrokerService {
   }
 
   /**
-   * Retrieves single broker by ID with assigned merchants and wallet.
+   * Retrieves single broker by ID with assigned merchants and balance.
    */
   static async getBrokerById(brokerId: number | string, user: SessionUser) {
     const numericBrokerId = typeof brokerId === "number" ? brokerId : parseInt(brokerId, 10);
@@ -104,7 +96,6 @@ export class BrokerService {
     const broker = await prisma.user.findFirst({
       where: { id: numericBrokerId, role: "BROKER" },
       include: {
-        wallet: { select: { balance: true } },
         brokeredMerchants: {
           select: {
             id: true,
@@ -122,7 +113,7 @@ export class BrokerService {
 
     return {
       ...broker,
-      walletBalance: broker.wallet?.balance || 0,
+      balance: broker.balance || 0,
     };
   }
 
@@ -130,15 +121,10 @@ export class BrokerService {
    * Creates a new Broker.
    */
   static async createBroker(input: CreateBrokerInput, adminUserId: number | string) {
-    const { name, email, password, phone, telegramId, address, commissionPercent, status, portalAccess } = input;
+    const { name, password, phone, commissionPercent, status, portalAccess } = input;
 
     if (!name?.trim() || !password?.trim()) {
       throw new ApiError("Name and Password are required", 400);
-    }
-
-    const validation = validateUserData(input, { isCreate: true, role: "BROKER" });
-    if (!validation.valid) {
-      throw new ApiError(validation.errors[0] || "Invalid broker data", 400);
     }
 
     const existingUsers = await prisma.user.findMany({ select: { id: true, name: true, role: true } });
@@ -153,7 +139,6 @@ export class BrokerService {
 
     const passwordHash = await hashPassword(password);
     const cleanPhone = phone ? normalizeIndianPhone(phone) : null;
-    const cleanTelegram = normalizeTelegramId(telegramId);
     const commRate = parseFloat(String(commissionPercent ?? 0.0)) || 0.0;
     const numericAdminId = typeof adminUserId === "number" ? adminUserId : parseInt(adminUserId as any, 10);
 
@@ -165,19 +150,12 @@ export class BrokerService {
             name: name.trim(),
             passwordHash,
             phone: cleanPhone,
-            telegramId: cleanTelegram,
-            address: address ? address.trim() : null,
             commissionPercent: commRate,
-            status: status || "ACTIVE",
+            status: (status as any) || "ACTIVE",
             portalAccess: portalAccess !== undefined ? Boolean(portalAccess) : true,
             transactionAllowed: true,
-          },
-        });
-
-        await tx.wallet.create({
-          data: {
-            userId: newUser.id,
             balance: 0.0,
+            availableBalance: 0.0,
           },
         });
 

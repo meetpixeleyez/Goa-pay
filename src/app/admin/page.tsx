@@ -198,7 +198,7 @@ export default function AdminDashboard() {
   }, [data.orders, totalDepositAmount]);
 
   const totalVaultBalance = useMemo(() => {
-    const userWallets = data.users.reduce((acc, u) => acc + (u.wallet?.balance || 0), 0);
+    const userWallets = data.users.reduce((acc, u) => acc + (u.balance || 0), 0);
     return userWallets > 0 ? userWallets : totalDepositAmount - totalPayoutAmount;
   }, [data.users, totalDepositAmount, totalPayoutAmount]);
 

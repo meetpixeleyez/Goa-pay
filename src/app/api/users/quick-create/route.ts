@@ -238,14 +238,6 @@ export async function POST(request: Request) {
           },
         });
 
-        // Initialize empty wallet
-        await tx.wallet.create({
-          data: {
-            userId: user.id,
-            balance: 0,
-          },
-        });
-
         return user;
       });
 

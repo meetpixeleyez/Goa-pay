@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const session = await getSession();
   if (!session) {
@@ -11,7 +13,6 @@ export async function GET() {
   const user = await prisma.user.findUnique({
     where: { id: session.userId },
     include: {
-      wallet: true,
       qrCodes: true,
       assignedQRCodes: true,
       qrProvider: {
@@ -44,14 +45,13 @@ export async function GET() {
       name: user.name,
       role: user.role,
       phone: user.phone,
-      telegramId: user.telegramId,
       status: user.status,
       portalAccess: user.portalAccess,
       transactionAllowed: user.transactionAllowed,
       balance: user.balance,
       exposure: user.exposure,
       availableBalance: user.availableBalance,
-      walletBalance: user.wallet?.balance || 0,
+      walletBalance: user.balance,
       qrCodes: user.role === "OPERATOR" ? user.assignedQRCodes || [] : user.qrCodes || [],
       assignedQRCodes: user.assignedQRCodes || [],
       qrProviderId: user.qrProviderId,

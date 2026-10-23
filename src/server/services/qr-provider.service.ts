@@ -1,6 +1,6 @@
 import prisma from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth";
-import { normalizeIndianPhone, normalizeTelegramId, isValidUpiId } from "@/lib/validation";
+import { normalizeIndianPhone, isValidUpiId } from "@/lib/validation";
 import { ApiError } from "@/types/api";
 import {
   QRProviderListItem,
@@ -12,7 +12,7 @@ import {
 
 export class QRProviderService {
   /**
-   * Retrieves paginated QR Providers with filtering, sorting, and aggregate statistics.
+   * Retrieves paginated QR providers with filtering, search, and aggregate stats.
    */
   static async getQRProviders(params: QRProviderQueryParams = {}) {
     const {
@@ -46,7 +46,6 @@ export class QRProviderService {
       const orConditions: any[] = [
         { name: { contains: s } },
         { phone: { contains: s } },
-        { telegramId: { contains: s } },
       ];
       const numericId = parseInt(s, 10);
       if (!isNaN(numericId)) {
@@ -78,7 +77,6 @@ export class QRProviderService {
       prisma.user.findMany({
         where,
         include: {
-          wallet: true,
           agent: { select: { id: true, name: true, commissionPercent: true } },
           qrCodes: {
             include: {
@@ -102,21 +100,26 @@ export class QRProviderService {
 
     let stats: QRProviderStats | null = null;
     if (includeStats) {
-      const [totalProviders, activeProviders, balanceAgg, totalQRCodes, activeQRCodes] =
-        await Promise.all([
-          prisma.user.count({ where: { role: "QR_PROVIDER" } }),
-          prisma.user.count({ where: { role: "QR_PROVIDER", status: "ACTIVE" } }),
-          prisma.user.aggregate({
-            _sum: {
-              balance: true,
-              exposure: true,
-              availableBalance: true,
-            },
-            where: { role: "QR_PROVIDER" },
-          }),
-          prisma.qRCode.count(),
-          prisma.qRCode.count({ where: { isActive: true } }),
-        ]);
+      const [
+        totalProviders,
+        activeProviders,
+        balanceAgg,
+        qrAgg,
+        activeQrCount,
+      ] = await Promise.all([
+        prisma.user.count({ where: { role: "QR_PROVIDER" } }),
+        prisma.user.count({ where: { role: "QR_PROVIDER", status: "ACTIVE" } }),
+        prisma.user.aggregate({
+          where: { role: "QR_PROVIDER" },
+          _sum: {
+            balance: true,
+            exposure: true,
+            availableBalance: true,
+          },
+        }),
+        prisma.qRCode.count(),
+        prisma.qRCode.count({ where: { isActive: true } }),
+      ]);
 
       stats = {
         totalProviders,
@@ -124,8 +127,8 @@ export class QRProviderService {
         totalBalance: balanceAgg._sum.balance || 0,
         totalExposure: balanceAgg._sum.exposure || 0,
         totalAvailable: balanceAgg._sum.availableBalance || 0,
-        totalQRCodes,
-        activeQRCodes,
+        totalQRCodes: qrAgg,
+        activeQRCodes: activeQrCount,
       };
     }
 
@@ -142,19 +145,18 @@ export class QRProviderService {
   }
 
   /**
-   * Retrieves full profile, wallet, QR codes, and operators for a single QR Provider.
+   * Retrieves full profile, transactions, QR codes, and operators for a single QR Provider.
    */
   static async getQRProviderById(id: number | string) {
     const numericId = typeof id === "number" ? id : parseInt(id, 10);
     const provider = await prisma.user.findUnique({
       where: { id: numericId, role: "QR_PROVIDER" },
       include: {
-        wallet: {
+        transactions: {
+          take: 50,
+          orderBy: { createdAt: "desc" },
           include: {
-            entries: {
-              take: 50,
-              orderBy: { createdAt: "desc" },
-            },
+            order: { select: { id: true, orderNumber: true, amount: true, status: true, type: true } },
           },
         },
         agent: { select: { id: true, name: true } },
@@ -173,6 +175,10 @@ export class QRProviderService {
         providerOrders: {
           take: 50,
           orderBy: { createdAt: "desc" },
+          include: {
+            merchant: { select: { id: true, name: true } },
+            qrCode: { select: { id: true, upiId: true } },
+          },
         },
       },
     });
@@ -181,22 +187,18 @@ export class QRProviderService {
       throw new ApiError("QR Provider not found", 404);
     }
 
-    let totalCredit = 0;
-    let totalDebit = 0;
-    if (provider.wallet?.id) {
-      const [creditAgg, debitAgg] = await Promise.all([
-        prisma.ledgerEntry.aggregate({
-          where: { walletId: provider.wallet.id, type: "CR" },
-          _sum: { amount: true },
-        }),
-        prisma.ledgerEntry.aggregate({
-          where: { walletId: provider.wallet.id, type: "DR" },
-          _sum: { amount: true },
-        }),
-      ]);
-      totalCredit = Number((creditAgg._sum.amount || 0).toFixed(2));
-      totalDebit = Number((debitAgg._sum.amount || 0).toFixed(2));
-    }
+    const [creditAgg, debitAgg] = await Promise.all([
+      prisma.transaction.aggregate({
+        where: { userId: provider.id, type: "DEPOSIT" },
+        _sum: { amount: true },
+      }),
+      prisma.transaction.aggregate({
+        where: { userId: provider.id, type: "WITHDRAWAL" },
+        _sum: { amount: true },
+      }),
+    ]);
+    const totalCredit = Number((creditAgg._sum.amount || 0).toFixed(2));
+    const totalDebit = Number((debitAgg._sum.amount || 0).toFixed(2));
 
     const calculatedAvailable = Number(((provider.balance || 0) - (provider.exposure || 0)).toFixed(2));
 
@@ -209,15 +211,13 @@ export class QRProviderService {
   }
 
   /**
-   * Provisions a new QR Provider with wallet, liquidity balances, and optional initial QR code.
+   * Provisions a new QR Provider with liquidity balances, optional opening transaction, and optional initial QR code.
    */
   static async createQRProvider(input: CreateQRProviderInput, adminUserId: number | string) {
     const {
       name,
       password,
       phone,
-      address,
-      telegramId,
       initialBalance = 0,
       agentId,
       payinQrProviderFee,
@@ -256,7 +256,6 @@ export class QRProviderService {
 
     const passwordHash = await hashPassword(password);
     const cleanPhone = phone ? normalizeIndianPhone(phone) : null;
-    const cleanTelegram = telegramId ? normalizeTelegramId(telegramId) : null;
     const parsedBalance = Math.max(0, Number(initialBalance) || 0);
     const numericAdminId = typeof adminUserId === "number" ? adminUserId : parseInt(adminUserId as any, 10);
 
@@ -268,8 +267,6 @@ export class QRProviderService {
             name: name.trim(),
             passwordHash,
             phone: cleanPhone,
-            address: address?.trim() || null,
-            telegramId: cleanTelegram,
             balance: parsedBalance,
             exposure: 0.0,
             availableBalance: parsedBalance,
@@ -282,13 +279,22 @@ export class QRProviderService {
             status: "ACTIVE",
             portalAccess: true,
             transactionAllowed: true,
-            wallet: {
-              create: {
-                balance: parsedBalance,
-              },
-            },
           },
         });
+
+        // Record initial liquidity deposit transaction if opening balance > 0
+        if (parsedBalance > 0) {
+          await tx.transaction.create({
+            data: {
+              userId: provider.id,
+              type: "DEPOSIT",
+              category: "INITIAL_BALANCE",
+              amount: parsedBalance,
+              balanceAfter: parsedBalance,
+              description: `Initial liquidity allocation for QR Provider (${provider.name})`,
+            },
+          });
+        }
 
         // Optional initial QR Code
         if (initialUpiId && initialUpiId.trim()) {
@@ -329,6 +335,7 @@ export class QRProviderService {
         return provider;
       });
     } catch (error: any) {
+      if (error instanceof ApiError) throw error;
       if (error?.code === "P2002" || error?.message?.includes("Unique constraint failed")) {
         throw new ApiError(`A QR Provider with username "${name.trim()}" already exists. Please choose a different username.`, 400);
       }
@@ -337,7 +344,7 @@ export class QRProviderService {
   }
 
   /**
-   * Updates QR Provider profile, credentials, permissions, and fee rates.
+   * Updates provider fee rates, contact, or agent association.
    */
   static async updateQRProvider(id: number | string, input: UpdateQRProviderInput, adminUserId: number | string) {
     const numericId = typeof id === "number" ? id : parseInt(id, 10);
@@ -346,31 +353,18 @@ export class QRProviderService {
     const existing = await prisma.user.findUnique({
       where: { id: numericId, role: "QR_PROVIDER" },
     });
-    if (!existing) {
-      throw new ApiError("QR Provider not found", 404);
-    }
+    if (!existing) throw new ApiError("QR Provider not found", 404);
 
     const data: any = {};
     if (input.name !== undefined) data.name = input.name.trim();
     if (input.phone !== undefined) data.phone = input.phone ? normalizeIndianPhone(input.phone) : null;
-    if (input.address !== undefined) data.address = input.address?.trim() || null;
-    if (input.telegramId !== undefined) data.telegramId = input.telegramId ? normalizeTelegramId(input.telegramId) : null;
     if (input.status !== undefined) data.status = input.status.toUpperCase();
     if (input.portalAccess !== undefined) data.portalAccess = Boolean(input.portalAccess);
     if (input.transactionAllowed !== undefined) data.transactionAllowed = Boolean(input.transactionAllowed);
-    if (input.payinQrProviderFee !== undefined) {
-      data.payinQrProviderFee = parseFloat(String(input.payinQrProviderFee)) || 0.0;
-      data.qrProviderFee = data.payinQrProviderFee;
-    }
-    if (input.payoutQrProviderFee !== undefined) {
-      data.payoutQrProviderFee = parseFloat(String(input.payoutQrProviderFee)) || 0.0;
-    }
-    if (input.payinAgentFee !== undefined) {
-      data.payinAgentFee = parseFloat(String(input.payinAgentFee)) || 0.0;
-    }
-    if (input.payoutAgentFee !== undefined) {
-      data.payoutAgentFee = parseFloat(String(input.payoutAgentFee)) || 0.0;
-    }
+    if (input.payinQrProviderFee !== undefined) data.payinQrProviderFee = parseFloat(String(input.payinQrProviderFee)) || 0.0;
+    if (input.payoutQrProviderFee !== undefined) data.payoutQrProviderFee = parseFloat(String(input.payoutQrProviderFee)) || 0.0;
+    if (input.payinAgentFee !== undefined) data.payinAgentFee = parseFloat(String(input.payinAgentFee)) || 0.0;
+    if (input.payoutAgentFee !== undefined) data.payoutAgentFee = parseFloat(String(input.payoutAgentFee)) || 0.0;
 
     if (input.agentId !== undefined) {
       if (input.agentId === null || input.agentId === "" || input.agentId === "NONE") {
@@ -393,10 +387,6 @@ export class QRProviderService {
       const updated = await tx.user.update({
         where: { id: numericId },
         data,
-        include: {
-          agent: { select: { id: true, name: true } },
-          wallet: true,
-        },
       });
 
       await tx.auditLog.create({
@@ -407,7 +397,7 @@ export class QRProviderService {
           entityId: String(updated.id),
           metadata: JSON.stringify({
             updatedFields: Object.keys(data),
-            name: updated.name,
+            providerName: updated.name,
           }),
         },
       });
@@ -417,56 +407,66 @@ export class QRProviderService {
   }
 
   /**
-   * Fast statistics retrieval for the QR Provider liquidity dashboard.
+   * Fast dropdown listing of active QR providers with active QR codes.
    */
-  static async getQRProviderStats(providerId: number | string) {
-    const numericId = typeof providerId === "number" ? providerId : parseInt(providerId, 10);
+  static async getActiveProvidersWithQRs() {
+    return await prisma.user.findMany({
+      where: {
+        role: "QR_PROVIDER",
+        status: "ACTIVE",
+        qrCodes: { some: { isActive: true } },
+      },
+      select: {
+        id: true,
+        name: true,
+        phone: true,
+        balance: true,
+        availableBalance: true,
+        qrCodes: {
+          where: { isActive: true },
+          select: { id: true, upiId: true, imageUrl: true, name: true },
+        },
+      },
+      orderBy: { availableBalance: "desc" },
+    });
+  }
+
+  /**
+   * QR Provider Dashboard KPI stats.
+   */
+  static async getQRProviderStats(userId: number | string) {
+    const numericId = typeof userId === "number" ? userId : parseInt(userId, 10);
+
     const user = await prisma.user.findUnique({
       where: { id: numericId },
       include: {
-        wallet: {
-          include: {
-            entries: {
-              include: {
-                order: {
-                  select: {
-                    id: true,
-                    orderNumber: true,
-                    amount: true,
-                    status: true,
-                  },
-                },
-              },
-              orderBy: { createdAt: "asc" },
-            },
-          },
-        },
         qrCodes: {
           include: {
             operator: { select: { id: true, name: true } },
           },
+          orderBy: { createdAt: "desc" },
+        },
+        transactions: {
+          take: 50,
+          orderBy: { createdAt: "desc" },
         },
       },
     });
 
     if (!user) throw new ApiError("QR Provider not found", 404);
 
-    let totalCredit = 0;
-    let totalDebit = 0;
-    if (user.wallet?.id) {
-      const [creditAgg, debitAgg] = await Promise.all([
-        prisma.ledgerEntry.aggregate({
-          where: { walletId: user.wallet.id, type: "CR" },
-          _sum: { amount: true },
-        }),
-        prisma.ledgerEntry.aggregate({
-          where: { walletId: user.wallet.id, type: "DR" },
-          _sum: { amount: true },
-        }),
-      ]);
-      totalCredit = Number((creditAgg._sum.amount || 0).toFixed(2));
-      totalDebit = Number((debitAgg._sum.amount || 0).toFixed(2));
-    }
+    const [creditAgg, debitAgg] = await Promise.all([
+      prisma.transaction.aggregate({
+        where: { userId: user.id, type: "DEPOSIT" },
+        _sum: { amount: true },
+      }),
+      prisma.transaction.aggregate({
+        where: { userId: user.id, type: "WITHDRAWAL" },
+        _sum: { amount: true },
+      }),
+    ]);
+    const totalCredit = Number((creditAgg._sum.amount || 0).toFixed(2));
+    const totalDebit = Number((debitAgg._sum.amount || 0).toFixed(2));
 
     const calculatedAvailable = Number(((user.balance || 0) - (user.exposure || 0)).toFixed(2));
 
@@ -482,9 +482,9 @@ export class QRProviderService {
       feePercent: user.payinQrProviderFee ?? user.qrProviderFee ?? 0.0,
       payinFeePercent: user.payinQrProviderFee ?? user.qrProviderFee ?? 0.0,
       payoutFeePercent: user.payoutQrProviderFee ?? user.qrProviderFee ?? 0.0,
-      walletBalance: user.wallet?.balance || 0.0,
+      walletBalance: user.balance,
       qrCodes: user.qrCodes,
-      entries: user.wallet?.entries || [],
+      entries: user.transactions,
     };
   }
 
@@ -511,7 +511,6 @@ export class QRProviderService {
 
     const provider = await prisma.user.findUnique({
       where: { id: numericProviderId, role: "QR_PROVIDER" },
-      include: { wallet: true },
     });
     if (!provider) throw new ApiError("QR Provider not found", 404);
 
@@ -522,13 +521,13 @@ export class QRProviderService {
 
     return await prisma.$transaction(async (tx) => {
       let newBalance: number;
-      let entryType: "CR" | "DR";
-      let category: string;
+      let entryType: "DEPOSIT" | "WITHDRAWAL";
+      let category: any;
 
       if (action === "ADD_BALANCE") {
         newBalance = Number((provider.balance + numAmount).toFixed(2));
-        entryType = "CR";
-        category = "MANUAL_CREDIT";
+        entryType = "DEPOSIT";
+        category = "DEPOSIT";
       } else {
         if (provider.availableBalance < numAmount) {
           throw new ApiError(
@@ -537,8 +536,8 @@ export class QRProviderService {
           );
         }
         newBalance = Number((provider.balance - numAmount).toFixed(2));
-        entryType = "DR";
-        category = "MANUAL_DEBIT";
+        entryType = "WITHDRAWAL";
+        category = "WITHDRAWAL";
       }
 
       const newAvailable = Number((newBalance - provider.exposure).toFixed(2));
@@ -551,23 +550,16 @@ export class QRProviderService {
         },
       });
 
-      if (provider.wallet) {
-        await tx.wallet.update({
-          where: { id: provider.wallet.id },
-          data: { balance: newBalance },
-        });
-
-        await tx.ledgerEntry.create({
-          data: {
-            walletId: provider.wallet.id,
-            type: entryType,
-            category,
-            amount: numAmount,
-            balanceAfter: newBalance,
-            description: description?.trim() || `Manual Liquidity Adjustment by Admin (${adminEmail})`,
-          },
-        });
-      }
+      await tx.transaction.create({
+        data: {
+          userId: provider.id,
+          type: entryType,
+          category,
+          amount: numAmount,
+          balanceAfter: newBalance,
+          description: description?.trim() || `Manual Liquidity Adjustment by Admin (${adminEmail})`,
+        },
+      });
 
       await tx.auditLog.create({
         data: {

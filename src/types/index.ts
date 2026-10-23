@@ -1,6 +1,6 @@
 /**
  * Core Type Definitions for Mahadev Portal (Goa-Pay)
- * Standardized interfaces for users, orders, wallets, ledgers, and dashboard metrics.
+ * Standardized interfaces for users, orders, transactions, and dashboard metrics.
  */
 
 export type UserRole = "ADMIN" | "MERCHANT" | "AGENT" | "QR_PROVIDER" | "OPERATOR" | "BROKER";
@@ -11,35 +11,43 @@ export type OrderStatus = "pending" | "processing" | "completed" | "rejected" | 
 
 export type OrderType = "PAYIN" | "PAYOUT";
 
-export type LedgerEntryType = "CR" | "DR";
+export type TransactionType = "DEPOSIT" | "WITHDRAWAL" | "CR" | "DR";
 
-export type LedgerCategory =
+export type TransactionCategory =
   | "ORDER_CREDIT"
+  | "ORDER_DEBIT"
   | "MERCHANT_FEE"
   | "QR_PROVIDER_FEE"
   | "AGENT_COMMISSION"
   | "BROKER_COMMISSION"
   | "DEPOSIT"
   | "WITHDRAWAL"
+  | "ADD_CREDIT"
+  | "DEDUCT_CREDIT"
+  | "HAWALA_TRANSFER"
+  | "HAWALA_RECEIPT"
+  | "INITIAL_BALANCE"
   | "ADMIN_ADJUSTMENT";
 
+export type LedgerEntryType = TransactionType;
+export type LedgerCategory = TransactionCategory;
+
 export interface UserSummary {
-  id: number | string;
+  id: number;
   name: string;
-  email?: string;
   phone?: string | null;
   role: UserRole;
   status?: AccountStatus | string;
-  wallet?: {
-    id?: number | string;
-    balance: number;
-  } | null;
+  balance: number;
+  exposure?: number;
+  availableBalance?: number;
+  credit?: number;
 }
 
 export interface OperatorSummary {
   id: number | string;
   name: string;
-  email?: string;
+  phone?: string | null;
 }
 
 export interface QRCodeSummary {
@@ -50,6 +58,7 @@ export interface QRCodeSummary {
   accountHolderName?: string | null;
   imageUrl?: string;
   isActive?: boolean;
+  status?: AccountStatus | string;
   operatorId?: number | string | null;
   operator?: OperatorSummary | null;
 }
@@ -61,7 +70,6 @@ export interface OrderItem {
   merchant?: {
     id: number | string;
     name: string;
-    email?: string;
   } | null;
   qrProviderId?: number | string | null;
   qrProvider?: {
@@ -108,9 +116,9 @@ export interface OrderItem {
   updatedAt?: string | Date;
 }
 
-export interface LedgerEntryItem {
+export interface TransactionItem {
   id: number | string;
-  walletId: number | string;
+  userId: number;
   orderId?: number | null;
   order?: {
     id: number;
@@ -118,26 +126,25 @@ export interface LedgerEntryItem {
     amount: number;
     status: string;
   } | null;
-  wallet?: {
-    user?: {
-      id: number | string;
-      name: string;
-      email?: string;
-      role: string;
-    } | null;
+  user?: {
+    id: number | string;
+    name: string;
+    role: string;
   } | null;
-  type: LedgerEntryType | string;
-  category?: LedgerCategory | string | null;
+  type: TransactionType;
+  category?: TransactionCategory | string | null;
   amount: number;
   balanceAfter: number;
   description: string;
   createdAt: string | Date;
 }
 
+export type LedgerEntryItem = TransactionItem;
+
 export interface AdminDashboardData {
   users: UserSummary[];
   orders: OrderItem[];
-  ledger: LedgerEntryItem[];
+  ledger: TransactionItem[];
   unacceptedPayoutCount: number;
   timedOutPayoutCount: number;
   adminAlertCount: number;

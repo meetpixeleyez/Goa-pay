@@ -119,8 +119,8 @@ export function calculateOrderFees(
 }
 
 /**
- * Executes multi-party atomic settlement upon UTR verification match.
- * Uses order fee snapshot if recorded at creation, or evaluates merchant fee configuration.
+ * Executes multi-party atomic settlement upon UTR verification match for PAYIN.
+ * Option A: Single Source of Truth in User table, Transaction records audit trail.
  */
 export async function settleCompletedOrder(
   orderId: number | string,
@@ -140,18 +140,12 @@ export async function settleCompletedOrder(
       include: {
         merchant: {
           include: {
-            wallet: true,
-            broker: {
-              include: { wallet: true },
-            },
+            broker: true,
           },
         },
         qrProvider: {
           include: {
-            wallet: true,
-            agent: {
-              include: { wallet: true },
-            },
+            agent: true,
           },
         },
       },
@@ -223,26 +217,15 @@ export async function settleCompletedOrder(
       };
     }
 
-    // 1. Ensure wallets exist for all parties
-    const getOrCreateWallet = async (userId: number) => {
-      let wallet = await tx.wallet.findUnique({ where: { userId } });
-      if (!wallet) {
-        wallet = await tx.wallet.create({ data: { userId, balance: 0.0 } });
-      }
-      return wallet;
-    };
-
-    const merchantWallet = await getOrCreateWallet(order.merchantId);
-    const providerWallet = await getOrCreateWallet(order.qrProviderId);
-
-    // 2. Merchant Wallet: Credit order amount, Debit total fees
     const now = new Date();
-    const merchantBalanceAfterCredit = merchantWallet.balance + fees.amount;
-    await tx.ledgerEntry.create({
+
+    // 1. Merchant: Credit order amount, Debit total fees
+    const merchantBalanceAfterCredit = Number((order.merchant.balance + fees.amount).toFixed(2));
+    await tx.transaction.create({
       data: {
-        walletId: merchantWallet.id,
+        userId: order.merchantId,
         orderId: order.id,
-        type: "CR",
+        type: "DEPOSIT",
         category: "ORDER_CREDIT",
         amount: fees.amount,
         balanceAfter: merchantBalanceAfterCredit,
@@ -251,23 +234,18 @@ export async function settleCompletedOrder(
       },
     });
 
-    const merchantBalanceAfterDebit = merchantBalanceAfterCredit - fees.totalFees;
-    await tx.ledgerEntry.create({
+    const merchantBalanceAfterDebit = Number((merchantBalanceAfterCredit - fees.totalFees).toFixed(2));
+    await tx.transaction.create({
       data: {
-        walletId: merchantWallet.id,
+        userId: order.merchantId,
         orderId: order.id,
-        type: "DR",
+        type: "WITHDRAWAL",
         category: "MERCHANT_FEE",
         amount: fees.totalFees,
         balanceAfter: merchantBalanceAfterDebit,
         description: `Fee deduction for order #${order.orderNumber} (Merchant Gateway Fee)`,
         createdAt: new Date(now.getTime() + 100),
       },
-    });
-
-    await tx.wallet.update({
-      where: { id: merchantWallet.id },
-      data: { balance: merchantBalanceAfterDebit },
     });
 
     await tx.user.update({
@@ -278,13 +256,37 @@ export async function settleCompletedOrder(
       },
     });
 
-    // 3. QR Provider balance and exposure adjustment
-    // Opening balance decreases by order amount, exposure clears, fee gets credited
-    const newExposure = Math.max(0, order.qrProvider.exposure - order.amount);
-    const balanceAfterOrderDeduction = order.qrProvider.balance - order.amount;
-    const finalProviderBalance = balanceAfterOrderDeduction + fees.qrProviderFee;
-    const finalAvailableBalance = finalProviderBalance - newExposure;
+    // 2. QR Provider: Opening balance decreases by order amount, exposure clears, fee gets credited
+    const newExposure = Math.max(0, Number((order.qrProvider.exposure - order.amount).toFixed(2)));
+    const providerBalanceAfterDebit = Number((order.qrProvider.balance - order.amount).toFixed(2));
+    await tx.transaction.create({
+      data: {
+        userId: order.qrProviderId,
+        orderId: order.id,
+        type: "WITHDRAWAL",
+        category: "ORDER_DEBIT",
+        amount: order.amount,
+        balanceAfter: providerBalanceAfterDebit,
+        description: `Deposit payment fulfilled for order #${order.orderNumber}`,
+        createdAt: new Date(now.getTime() + 200),
+      },
+    });
 
+    const finalProviderBalance = Number((providerBalanceAfterDebit + fees.qrProviderFee).toFixed(2));
+    await tx.transaction.create({
+      data: {
+        userId: order.qrProviderId,
+        orderId: order.id,
+        type: "DEPOSIT",
+        category: "QR_PROVIDER_FEE",
+        amount: fees.qrProviderFee,
+        balanceAfter: finalProviderBalance,
+        description: `QR Provider fee credit for order #${order.orderNumber}`,
+        createdAt: new Date(now.getTime() + 300),
+      },
+    });
+
+    const finalAvailableBalance = Number((finalProviderBalance - newExposure).toFixed(2));
     await tx.user.update({
       where: { id: order.qrProviderId },
       data: {
@@ -294,59 +296,22 @@ export async function settleCompletedOrder(
       },
     });
 
-    // QR Provider wallet ledger entries
-    const providerBalanceAfterDebit = providerWallet.balance - order.amount;
-    await tx.ledgerEntry.create({
-      data: {
-        walletId: providerWallet.id,
-        orderId: order.id,
-        type: "DR",
-        category: "ORDER_DEBIT",
-        amount: order.amount,
-        balanceAfter: providerBalanceAfterDebit,
-        description: `Deposit payment fulfilled for order #${order.orderNumber}`,
-        createdAt: new Date(now.getTime() + 200),
-      },
-    });
-
-    const providerBalanceAfterFee = providerBalanceAfterDebit + fees.qrProviderFee;
-    await tx.ledgerEntry.create({
-      data: {
-        walletId: providerWallet.id,
-        orderId: order.id,
-        type: "CR",
-        category: "QR_PROVIDER_FEE",
-        amount: fees.qrProviderFee,
-        balanceAfter: providerBalanceAfterFee,
-        description: `QR Provider fee credit for order #${order.orderNumber}`,
-        createdAt: new Date(now.getTime() + 300),
-      },
-    });
-
-    await tx.wallet.update({
-      where: { id: providerWallet.id },
-      data: { balance: providerBalanceAfterFee },
-    });
-
-    // 4. Agent commission if assigned
+    // 3. Agent commission if assigned
     if (order.qrProvider.agentId && fees.agentFee > 0) {
-      const agentWallet = await getOrCreateWallet(order.qrProvider.agentId);
-      const agentNewBal = agentWallet.balance + fees.agentFee;
-      await tx.ledgerEntry.create({
+      const agentUser = await tx.user.findUnique({ where: { id: order.qrProvider.agentId } });
+      const agentCurrentBal = agentUser?.balance ?? 0;
+      const agentNewBal = Number((agentCurrentBal + fees.agentFee).toFixed(2));
+      await tx.transaction.create({
         data: {
-          walletId: agentWallet.id,
+          userId: order.qrProvider.agentId,
           orderId: order.id,
-          type: "CR",
+          type: "DEPOSIT",
           category: "AGENT_COMMISSION",
           amount: fees.agentFee,
           balanceAfter: agentNewBal,
           description: `Agent commission for order #${order.orderNumber}`,
           createdAt: new Date(now.getTime() + 400),
         },
-      });
-      await tx.wallet.update({
-        where: { id: agentWallet.id },
-        data: { balance: agentNewBal },
       });
       await tx.user.update({
         where: { id: order.qrProvider.agentId },
@@ -357,25 +322,22 @@ export async function settleCompletedOrder(
       });
     }
 
-    // 5. Broker commission if assigned to merchant
+    // 4. Broker commission if assigned to merchant
     if (order.merchant.brokerId && fees.brokerFee > 0) {
-      const brokerWallet = await getOrCreateWallet(order.merchant.brokerId);
-      const brokerNewBal = brokerWallet.balance + fees.brokerFee;
-      await tx.ledgerEntry.create({
+      const brokerUser = await tx.user.findUnique({ where: { id: order.merchant.brokerId } });
+      const brokerCurrentBal = brokerUser?.balance ?? 0;
+      const brokerNewBal = Number((brokerCurrentBal + fees.brokerFee).toFixed(2));
+      await tx.transaction.create({
         data: {
-          walletId: brokerWallet.id,
+          userId: order.merchant.brokerId,
           orderId: order.id,
-          type: "CR",
+          type: "DEPOSIT",
           category: "BROKER_COMMISSION",
           amount: fees.brokerFee,
           balanceAfter: brokerNewBal,
           description: `Broker commission for order #${order.orderNumber}`,
           createdAt: new Date(now.getTime() + 500),
         },
-      });
-      await tx.wallet.update({
-        where: { id: brokerWallet.id },
-        data: { balance: brokerNewBal },
       });
       await tx.user.update({
         where: { id: order.merchant.brokerId },
@@ -386,7 +348,7 @@ export async function settleCompletedOrder(
       });
     }
 
-    // 6. Update order status and fee snapshots
+    // 5. Update order status and fee snapshots
     const updatedOrder = await tx.order.update({
       where: { id: numericOrderId },
       data: {
@@ -421,10 +383,7 @@ export async function settleCompletedOrder(
 
 /**
  * Executes multi-party atomic settlement specifically for PAYOUT (withdrawal) orders.
- * Follows Option A rules specified in docs/withdrawal-feature.md:
- * - Merchant Wallet: deduct order amount (1000) + merchant fee (50) with 2 ledger entries.
- * - If QR provider fulfilled: QR provider wallet gets credited (1000 + 10 = 1010), agent gets 20, broker gets 10, platform gets 10.
- * - If Admin fulfilled directly: Platform gets 50 (or 50 minus broker fee if broker is attached).
+ * Option A: Single Source of Truth in User table, Transaction records audit trail.
  */
 export async function settleCompletedPayoutOrder({
   orderId,
@@ -452,14 +411,12 @@ export async function settleCompletedPayoutOrder({
       include: {
         merchant: {
           include: {
-            wallet: true,
-            broker: { include: { wallet: true } },
+            broker: true,
           },
         },
         qrProvider: {
           include: {
-            wallet: true,
-            agent: { include: { wallet: true } },
+            agent: true,
           },
         },
       },
@@ -482,18 +439,28 @@ export async function settleCompletedPayoutOrder({
     }
 
     // Determine fees
-    const merchantFeeRate = order.merchantFeeRate || (order.merchant.payoutMerchantFee ?? 0);
+    const merchantFeeRate =
+      order.merchant.payoutMerchantFee !== undefined && order.merchant.payoutMerchantFee !== null
+        ? order.merchant.payoutMerchantFee
+        : (order.merchantFeeRate || 0);
+
     const brokerFeeRate = order.merchant.brokerId
-      ? (order.brokerFeeRate || (order.merchant.payoutBrokerFee !== undefined && order.merchant.payoutBrokerFee !== null ? order.merchant.payoutBrokerFee : (order.merchant.broker?.commissionPercent ?? 0)))
+      ? (order.merchant.payoutBrokerFee !== undefined && order.merchant.payoutBrokerFee !== null
+          ? order.merchant.payoutBrokerFee
+          : (order.brokerFeeRate || order.merchant.broker?.commissionPercent || 0))
       : 0;
+
     const qrProviderFeeRate = paidByAdmin
       ? 0
-      : (order.qrProviderFeeRate !== null && order.qrProviderFeeRate !== undefined && order.qrProviderFeeRate > 0
-          ? order.qrProviderFeeRate
-          : (order.qrProvider?.payoutQrProviderFee || order.qrProvider?.qrProviderFee || 0));
+      : (order.qrProvider?.payoutQrProviderFee !== undefined && order.qrProvider?.payoutQrProviderFee !== null
+          ? order.qrProvider.payoutQrProviderFee
+          : (order.qrProviderFeeRate || order.qrProvider?.qrProviderFee || 0));
+
     const agentFeeRate = paidByAdmin || !order.qrProvider?.agentId
       ? 0
-      : (order.agentFeeRate || (order.qrProvider?.payoutAgentFee !== undefined && order.qrProvider?.payoutAgentFee !== null ? order.qrProvider.payoutAgentFee : (order.qrProvider?.agent?.commissionPercent ?? 0)));
+      : (order.qrProvider?.payoutAgentFee !== undefined && order.qrProvider?.payoutAgentFee !== null
+          ? order.qrProvider.payoutAgentFee
+          : (order.agentFeeRate || order.qrProvider?.agent?.commissionPercent || 0));
 
     const merchantFee = (order.amount * merchantFeeRate) / 100;
     const qrProviderFee = paidByAdmin ? 0 : (order.amount * qrProviderFeeRate) / 100;
@@ -502,24 +469,15 @@ export async function settleCompletedPayoutOrder({
     const platformFee = Math.max(0, merchantFee - (qrProviderFee + agentFee + brokerFee));
     const totalFees = merchantFee;
 
-    const getOrCreateWallet = async (userId: number) => {
-      let wallet = await tx.wallet.findUnique({ where: { userId } });
-      if (!wallet) {
-        wallet = await tx.wallet.create({ data: { userId, balance: 0.0 } });
-      }
-      return wallet;
-    };
-
-    const merchantWallet = await getOrCreateWallet(order.merchantId);
     const now = new Date();
 
-    // 1. Merchant Wallet: 2 debit entries for Principal and Fee
-    const merchantBalAfterWithdrawal = merchantWallet.balance - order.amount;
-    await tx.ledgerEntry.create({
+    // 1. Merchant: 2 withdrawal entries for Principal and Fee
+    const merchantBalAfterWithdrawal = Number((order.merchant.balance - order.amount).toFixed(2));
+    await tx.transaction.create({
       data: {
-        walletId: merchantWallet.id,
+        userId: order.merchantId,
         orderId: order.id,
-        type: "DR",
+        type: "WITHDRAWAL",
         category: "ORDER_DEBIT",
         amount: order.amount,
         balanceAfter: merchantBalAfterWithdrawal,
@@ -528,23 +486,18 @@ export async function settleCompletedPayoutOrder({
       },
     });
 
-    const merchantFinalBal = merchantBalAfterWithdrawal - totalFees;
-    await tx.ledgerEntry.create({
+    const merchantFinalBal = Number((merchantBalAfterWithdrawal - totalFees).toFixed(2));
+    await tx.transaction.create({
       data: {
-        walletId: merchantWallet.id,
+        userId: order.merchantId,
         orderId: order.id,
-        type: "DR",
+        type: "WITHDRAWAL",
         category: "MERCHANT_FEE",
         amount: totalFees,
         balanceAfter: merchantFinalBal,
         description: `Payout fee deduction for order #${order.orderNumber} (Merchant Gateway Fee)`,
         createdAt: new Date(now.getTime() + 100),
       },
-    });
-
-    await tx.wallet.update({
-      where: { id: merchantWallet.id },
-      data: { balance: merchantFinalBal },
     });
 
     await tx.user.update({
@@ -557,14 +510,12 @@ export async function settleCompletedPayoutOrder({
 
     // 2. If QR Provider fulfilled: Credit reimbursement + fee to QR Provider
     if (!paidByAdmin && order.qrProviderId && order.qrProvider) {
-      const providerWallet = await getOrCreateWallet(order.qrProviderId);
-
-      const providerBalAfterReimbursement = providerWallet.balance + order.amount;
-      await tx.ledgerEntry.create({
+      const providerBalAfterReimbursement = Number((order.qrProvider.balance + order.amount).toFixed(2));
+      await tx.transaction.create({
         data: {
-          walletId: providerWallet.id,
+          userId: order.qrProviderId,
           orderId: order.id,
-          type: "CR",
+          type: "DEPOSIT",
           category: "ORDER_CREDIT",
           amount: order.amount,
           balanceAfter: providerBalAfterReimbursement,
@@ -573,34 +524,28 @@ export async function settleCompletedPayoutOrder({
         },
       });
 
-      const providerFinalWalletBal = providerBalAfterReimbursement + qrProviderFee;
-      await tx.ledgerEntry.create({
+      const providerFinalBal = Number((providerBalAfterReimbursement + qrProviderFee).toFixed(2));
+      await tx.transaction.create({
         data: {
-          walletId: providerWallet.id,
+          userId: order.qrProviderId,
           orderId: order.id,
-          type: "CR",
+          type: "DEPOSIT",
           category: "QR_PROVIDER_FEE",
           amount: qrProviderFee,
-          balanceAfter: providerFinalWalletBal,
+          balanceAfter: providerFinalBal,
           description: `QR Provider payout fee credit for order #${order.orderNumber}`,
           createdAt: new Date(now.getTime() + 300),
         },
       });
 
-      await tx.wallet.update({
-        where: { id: providerWallet.id },
-        data: { balance: providerFinalWalletBal },
-      });
-
-      // Update QR Provider User balances: increase balance and availableBalance by order.amount + qrProviderFee
+      // Update QR Provider User balances
       const providerNewExposure = order.qrProvider.exposure;
-      const providerNewBalance = order.qrProvider.balance + order.amount + qrProviderFee;
-      const providerNewAvailable = providerNewBalance - providerNewExposure;
+      const providerNewAvailable = Number((providerFinalBal - providerNewExposure).toFixed(2));
 
       await tx.user.update({
         where: { id: order.qrProviderId },
         data: {
-          balance: providerNewBalance,
+          balance: providerFinalBal,
           exposure: providerNewExposure,
           availableBalance: providerNewAvailable,
         },
@@ -608,23 +553,20 @@ export async function settleCompletedPayoutOrder({
 
       // 3. Agent Commission
       if (order.qrProvider.agentId && agentFee > 0) {
-        const agentWallet = await getOrCreateWallet(order.qrProvider.agentId);
-        const agentNewBal = agentWallet.balance + agentFee;
-        await tx.ledgerEntry.create({
+        const agentUser = await tx.user.findUnique({ where: { id: order.qrProvider.agentId } });
+        const agentCurrentBal = agentUser?.balance ?? 0;
+        const agentNewBal = Number((agentCurrentBal + agentFee).toFixed(2));
+        await tx.transaction.create({
           data: {
-            walletId: agentWallet.id,
+            userId: order.qrProvider.agentId,
             orderId: order.id,
-            type: "CR",
+            type: "DEPOSIT",
             category: "AGENT_COMMISSION",
             amount: agentFee,
             balanceAfter: agentNewBal,
             description: `Agent commission for payout order #${order.orderNumber}`,
             createdAt: new Date(now.getTime() + 400),
           },
-        });
-        await tx.wallet.update({
-          where: { id: agentWallet.id },
-          data: { balance: agentNewBal },
         });
         await tx.user.update({
           where: { id: order.qrProvider.agentId },
@@ -638,23 +580,20 @@ export async function settleCompletedPayoutOrder({
 
     // 4. Broker Commission
     if (order.merchant.brokerId && brokerFee > 0) {
-      const brokerWallet = await getOrCreateWallet(order.merchant.brokerId);
-      const brokerNewBal = brokerWallet.balance + brokerFee;
-      await tx.ledgerEntry.create({
+      const brokerUser = await tx.user.findUnique({ where: { id: order.merchant.brokerId } });
+      const brokerCurrentBal = brokerUser?.balance ?? 0;
+      const brokerNewBal = Number((brokerCurrentBal + brokerFee).toFixed(2));
+      await tx.transaction.create({
         data: {
-          walletId: brokerWallet.id,
+          userId: order.merchant.brokerId,
           orderId: order.id,
-          type: "CR",
+          type: "DEPOSIT",
           category: "BROKER_COMMISSION",
           amount: brokerFee,
           balanceAfter: brokerNewBal,
           description: `Broker commission for payout order #${order.orderNumber}`,
           createdAt: new Date(now.getTime() + 500),
         },
-      });
-      await tx.wallet.update({
-        where: { id: brokerWallet.id },
-        data: { balance: brokerNewBal },
       });
       await tx.user.update({
         where: { id: order.merchant.brokerId },

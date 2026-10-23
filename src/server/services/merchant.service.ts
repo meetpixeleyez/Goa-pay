@@ -1,6 +1,6 @@
 import prisma from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth";
-import { normalizeIndianPhone, normalizeTelegramId } from "@/lib/validation";
+import { normalizeIndianPhone } from "@/lib/validation";
 import { ApiError } from "@/types/api";
 import {
   MerchantListItem,
@@ -47,7 +47,6 @@ export class MerchantService {
       const orConditions: any[] = [
         { name: { contains: s } },
         { phone: { contains: s } },
-        { telegramId: { contains: s } },
       ];
       const numericId = parseInt(s, 10);
       if (!isNaN(numericId)) {
@@ -61,7 +60,7 @@ export class MerchantService {
     if (sortBy === "name") {
       orderBy = { name: sortOrder };
     } else if (sortBy === "balance") {
-      orderBy = { wallet: { balance: sortOrder } };
+      orderBy = { balance: sortOrder };
     } else if (sortBy === "createdAt") {
       orderBy = { createdAt: sortOrder };
     }
@@ -75,7 +74,6 @@ export class MerchantService {
       prisma.user.findMany({
         where,
         include: {
-          wallet: true,
           broker: { select: { id: true, name: true, commissionPercent: true } },
           _count: {
             select: {
@@ -91,14 +89,14 @@ export class MerchantService {
 
     let stats: MerchantStats | null = null;
     if (includeStats) {
-      const [totalMerchants, activeMerchants, inactiveMerchants, walletAgg, feeAgg, totalOrders] =
+      const [totalMerchants, activeMerchants, inactiveMerchants, balanceAgg, feeAgg, totalOrders] =
         await Promise.all([
           prisma.user.count({ where: { role: "MERCHANT" } }),
           prisma.user.count({ where: { role: "MERCHANT", status: "ACTIVE" } }),
           prisma.user.count({ where: { role: "MERCHANT", status: "INACTIVE" } }),
-          prisma.wallet.aggregate({
+          prisma.user.aggregate({
             _sum: { balance: true },
-            where: { user: { role: "MERCHANT" } },
+            where: { role: "MERCHANT" },
           }),
           prisma.user.aggregate({
             _avg: { payinMerchantFee: true, payoutMerchantFee: true },
@@ -111,7 +109,7 @@ export class MerchantService {
         totalMerchants,
         activeMerchants,
         inactiveMerchants,
-        totalWalletBalance: walletAgg._sum.balance || 0,
+        totalWalletBalance: balanceAgg._sum.balance || 0,
         avgPayinFee: Number((feeAgg._avg.payinMerchantFee || 0).toFixed(2)),
         avgPayoutFee: Number((feeAgg._avg.payoutMerchantFee || 0).toFixed(2)),
         totalOrders,
@@ -142,13 +140,13 @@ export class MerchantService {
           id: true,
           name: true,
           phone: true,
-          address: true,
-          telegramId: true,
           upiId: true,
           qrCodeUrl: true,
           status: true,
           portalAccess: true,
           transactionAllowed: true,
+          balance: true,
+          availableBalance: true,
           payinMerchantFee: true,
           payinQrProviderFee: true,
           payinAgentFee: true,
@@ -171,8 +169,8 @@ export class MerchantService {
     }
 
     if (tab === "summary") {
-      const [wallet, completedOrders, totalOrdersCount] = await Promise.all([
-        prisma.wallet.findUnique({ where: { userId: numericId }, select: { balance: true } }),
+      const [user, completedOrders, totalOrdersCount] = await Promise.all([
+        prisma.user.findUnique({ where: { id: numericId }, select: { balance: true } }),
         prisma.order.findMany({
           where: { merchantId: numericId, status: "completed" },
           select: { amount: true },
@@ -182,8 +180,8 @@ export class MerchantService {
 
       const totalVolume = completedOrders.reduce((sum, o) => sum + o.amount, 0);
 
-      const summary: MerchantSummaryStats = {
-        balance: wallet?.balance || 0.0,
+      const summary = {
+        balance: user?.balance || 0.0,
         completedCount: completedOrders.length,
         totalOrdersCount,
         totalVolume,
@@ -192,22 +190,28 @@ export class MerchantService {
       return { summary };
     }
 
-    if (tab === "wallet") {
-      const wallet = await prisma.wallet.findUnique({
-        where: { userId: numericId },
-        include: {
-          entries: {
-            include: {
-              order: {
-                select: { id: true, orderNumber: true, amount: true, status: true },
-              },
-            },
-            orderBy: { createdAt: "desc" },
-          },
-        },
+    if (tab === "wallet" || tab === "transactions") {
+      const user = await prisma.user.findUnique({
+        where: { id: numericId },
+        select: { id: true, balance: true, availableBalance: true },
       });
 
-      return { wallet: wallet || { balance: 0.0, entries: [] } };
+      const transactions = await prisma.transaction.findMany({
+        where: { userId: numericId },
+        include: {
+          order: {
+            select: { id: true, orderNumber: true, amount: true, status: true, type: true },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      });
+
+      return {
+        wallet: {
+          balance: user?.balance || 0.0,
+          entries: transactions,
+        },
+      };
     }
 
     if (tab === "orders") {
@@ -227,12 +231,11 @@ export class MerchantService {
     const merchant = await prisma.user.findUnique({
       where: { id: numericId, role: "MERCHANT" },
       include: {
-        wallet: {
+        transactions: {
+          take: 50,
+          orderBy: { createdAt: "desc" },
           include: {
-            entries: {
-              take: 50,
-              orderBy: { createdAt: "desc" },
-            },
+            order: { select: { id: true, orderNumber: true, amount: true, status: true, type: true } },
           },
         },
         broker: {
@@ -250,15 +253,13 @@ export class MerchantService {
   }
 
   /**
-   * Provisions a new merchant account with wallet and audit logging in an atomic transaction.
+   * Provisions a new Merchant account.
    */
   static async createMerchant(input: CreateMerchantInput, adminUserId: number | string) {
     const {
       name,
-      password = "merchant@12345",
+      password,
       phone,
-      address,
-      telegramId,
       upiId,
       qrCodeUrl,
       payinMerchantFee = 0.0,
@@ -271,16 +272,8 @@ export class MerchantService {
       transactionAllowed = true,
     } = input;
 
-    if (!name || !name.trim()) throw new ApiError("Store Name is required", 400);
-
-    const existingUsers = await prisma.user.findMany({ select: { id: true, name: true, role: true } });
-    const duplicate = existingUsers.find((u) => u.name.trim().toLowerCase() === name.trim().toLowerCase());
-    if (duplicate) {
-      if (duplicate.role === "MERCHANT") {
-        throw new ApiError(`A Merchant with username "${name.trim()}" already exists. Please choose a different username.`, 400);
-      } else {
-        throw new ApiError(`A user with username "${name.trim()}" already exists as a ${duplicate.role}. Please choose a different username.`, 400);
-      }
+    if (!password || password.length < 6) {
+      throw new ApiError("Password must be at least 6 characters", 400);
     }
 
     const numBrokerId = brokerId ? (typeof brokerId === "number" ? brokerId : parseInt(brokerId, 10)) : null;
@@ -288,14 +281,11 @@ export class MerchantService {
       const broker = await prisma.user.findFirst({
         where: { id: numBrokerId, role: "BROKER" },
       });
-      if (!broker) {
-        throw new ApiError("Selected broker not found or invalid", 400);
-      }
+      if (!broker) throw new ApiError("Assigned broker does not exist", 400);
     }
 
     const passwordHash = await hashPassword(password);
     const cleanPhone = phone ? normalizeIndianPhone(phone) : null;
-    const cleanTelegram = telegramId ? normalizeTelegramId(telegramId) : null;
     const numericAdminId = typeof adminUserId === "number" ? adminUserId : parseInt(adminUserId as any, 10);
 
     try {
@@ -306,26 +296,19 @@ export class MerchantService {
             passwordHash,
             role: "MERCHANT",
             phone: cleanPhone,
-            address: address?.trim() || null,
-            telegramId: cleanTelegram,
             upiId: upiId?.trim() || null,
             qrCodeUrl: qrCodeUrl?.trim() || null,
-            status: status.toUpperCase(),
+            status: status.toUpperCase() as any,
             portalAccess: Boolean(portalAccess),
             transactionAllowed: Boolean(transactionAllowed),
+            balance: 0.0,
+            exposure: 0.0,
+            availableBalance: 0.0,
             payinMerchantFee: parseFloat(String(payinMerchantFee)) || 0.0,
             payoutMerchantFee: parseFloat(String(payoutMerchantFee)) || 0.0,
             payinBrokerFee: numBrokerId ? (parseFloat(String(payinBrokerFee)) || 0.0) : 0.0,
             payoutBrokerFee: numBrokerId ? (parseFloat(String(payoutBrokerFee)) || 0.0) : 0.0,
             brokerId: numBrokerId || null,
-          },
-        });
-
-        // Initialize Merchant Wallet with 0 balance
-        const wallet = await tx.wallet.create({
-          data: {
-            userId: user.id,
-            balance: 0.0,
           },
         });
 
@@ -338,7 +321,6 @@ export class MerchantService {
             entityId: String(user.id),
             metadata: JSON.stringify({
               merchantName: user.name,
-              walletId: wallet.id,
               brokerId: user.brokerId,
               fees: {
                 payin: user.payinMerchantFee,
@@ -375,8 +357,6 @@ export class MerchantService {
     const data: any = {};
     if (input.name !== undefined) data.name = input.name.trim();
     if (input.phone !== undefined) data.phone = input.phone ? normalizeIndianPhone(input.phone) : null;
-    if (input.address !== undefined) data.address = input.address?.trim() || null;
-    if (input.telegramId !== undefined) data.telegramId = input.telegramId ? normalizeTelegramId(input.telegramId) : null;
     if (input.upiId !== undefined) data.upiId = input.upiId?.trim() || null;
     if (input.qrCodeUrl !== undefined) data.qrCodeUrl = input.qrCodeUrl?.trim() || null;
     if (input.status !== undefined) data.status = input.status.toUpperCase();
@@ -409,7 +389,6 @@ export class MerchantService {
         where: { id: numericId },
         data,
         include: {
-          wallet: true,
           broker: { select: { id: true, name: true, commissionPercent: true } },
         },
       });
@@ -451,29 +430,28 @@ export class MerchantService {
   }
 
   /**
-   * Adjusts merchant wallet balance manually (Credit / Debit) with atomic ledger and audit logging.
+   * Admin balance credit / debit management for Merchant.
    */
-  static async adjustWalletBalance({
+  static async manageMerchantBalance({
     merchantId,
+    adminUserId,
+    adminEmail,
     action,
     amount,
     description,
-    adminUserId,
-    adminEmail,
   }: {
     merchantId: number | string;
-    action: "ADD_BALANCE" | "DEDUCT_BALANCE" | "CLEAR_BALANCE";
-    amount: number;
-    description?: string;
     adminUserId: number | string;
     adminEmail: string;
+    action: "ADD_BALANCE" | "DEDUCT_BALANCE" | "CLEAR_BALANCE";
+    amount: number | string;
+    description?: string;
   }) {
     const numericMerchantId = typeof merchantId === "number" ? merchantId : parseInt(merchantId, 10);
     const numericAdminId = typeof adminUserId === "number" ? adminUserId : parseInt(adminUserId, 10);
 
     const merchant = await prisma.user.findUnique({
       where: { id: numericMerchantId, role: "MERCHANT" },
-      include: { wallet: true },
     });
     if (!merchant) throw new ApiError("Merchant not found", 404);
 
@@ -482,31 +460,23 @@ export class MerchantService {
       throw new ApiError("Amount must be a positive number greater than 0", 400);
     }
 
-    let wallet = merchant.wallet;
-    if (!wallet) {
-      wallet = await prisma.wallet.create({
-        data: { userId: merchant.id, balance: 0.0 },
-      });
-    }
-
     return await prisma.$transaction(async (tx) => {
-      const currentWallet = await tx.wallet.findUnique({ where: { id: wallet.id } });
-      const currentBalance = currentWallet?.balance || 0;
+      const currentBalance = merchant.balance || 0;
 
       let newBalance: number;
-      let entryType: "CR" | "DR";
-      let category: string;
+      let entryType: "DEPOSIT" | "WITHDRAWAL";
+      let category: any;
       let defaultDesc: string;
 
       if (action === "ADD_BALANCE") {
         newBalance = Number((currentBalance + numAmount).toFixed(2));
-        entryType = "CR";
-        category = "MANUAL_CREDIT";
+        entryType = "DEPOSIT";
+        category = "DEPOSIT";
         defaultDesc = `Manual Balance Credit by Admin (${adminEmail})`;
       } else if (action === "DEDUCT_BALANCE" || action === "CLEAR_BALANCE") {
         newBalance = Number((currentBalance - numAmount).toFixed(2));
-        entryType = "DR";
-        category = "MANUAL_DEBIT";
+        entryType = "WITHDRAWAL";
+        category = "WITHDRAWAL";
         defaultDesc =
           action === "CLEAR_BALANCE"
             ? `Manual Balance Deduction (Clear Balance) by Admin (${adminEmail})`
@@ -515,12 +485,7 @@ export class MerchantService {
         throw new ApiError(`Invalid action: ${action}`, 400);
       }
 
-      const updatedWallet = await tx.wallet.update({
-        where: { id: wallet.id },
-        data: { balance: newBalance },
-      });
-
-      await tx.user.update({
+      const updatedUser = await tx.user.update({
         where: { id: merchant.id },
         data: {
           balance: newBalance,
@@ -528,9 +493,9 @@ export class MerchantService {
         },
       });
 
-      const entry = await tx.ledgerEntry.create({
+      const entry = await tx.transaction.create({
         data: {
-          walletId: wallet.id,
+          userId: merchant.id,
           type: entryType,
           category,
           amount: numAmount,
@@ -543,8 +508,8 @@ export class MerchantService {
         data: {
           userId: numericAdminId,
           action: action === "CLEAR_BALANCE" ? "MANUAL_DEBIT" : action,
-          entity: "Wallet",
-          entityId: String(wallet.id),
+          entity: "User",
+          entityId: String(merchant.id),
           metadata: JSON.stringify({
             merchantId: merchant.id,
             merchantName: merchant.name,
@@ -557,7 +522,7 @@ export class MerchantService {
       });
 
       return {
-        wallet: updatedWallet,
+        user: updatedUser,
         entry,
         previousBalance: currentBalance,
         newBalance,

@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { validateUserData, normalizeIndianPhone, normalizeTelegramId } from "@/lib/validation";
+import { validateUserData, normalizeIndianPhone } from "@/lib/validation";
+
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
@@ -14,7 +16,6 @@ export async function GET() {
         broker: { select: { id: true, name: true } },
         agent: { select: { id: true, name: true } },
         qrProvider: { select: { id: true, name: true, phone: true } },
-        wallet: true,
         auditLogs: {
           where: { action: "OPERATOR_LOGIN" },
           orderBy: { createdAt: "desc" },
@@ -106,17 +107,14 @@ export async function PUT(request: Request) {
       );
     }
 
-    const { name, phone, address, telegramId, upiId } = body;
+    const { name, phone, upiId } = body;
     const cleanPhone = phone !== undefined ? (phone ? normalizeIndianPhone(phone) : null) : undefined;
-    const cleanTelegram = telegramId !== undefined ? normalizeTelegramId(telegramId) : undefined;
 
     const updated = await prisma.user.update({
       where: { id: session.userId },
       data: {
         name: name !== undefined ? name.trim() : undefined,
         phone: cleanPhone,
-        address: address !== undefined ? (address ? address.trim() : null) : undefined,
-        telegramId: cleanTelegram,
         upiId: upiId !== undefined ? (upiId ? upiId.trim() : null) : undefined,
       },
     });

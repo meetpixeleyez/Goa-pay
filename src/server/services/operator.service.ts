@@ -395,11 +395,7 @@ export class OperatorService {
         data: { verifiedById: null },
       });
 
-      const wallet = await tx.wallet.findUnique({ where: { userId: numericId } });
-      if (wallet) {
-        await tx.ledgerEntry.deleteMany({ where: { walletId: wallet.id } });
-        await tx.wallet.delete({ where: { id: wallet.id } });
-      }
+      await tx.transaction.deleteMany({ where: { userId: numericId } });
 
       await tx.auditLog.updateMany({
         where: { userId: numericId },

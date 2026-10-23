@@ -163,8 +163,8 @@ export default function PayoutFulfillmentModal({
       return;
     }
 
-    if (cleanUtr.length < 6) {
-      setError("UTR reference is too short. Please provide a valid transfer reference number.");
+    if (!/^\d{12}$/.test(cleanUtr)) {
+      setError("UTR reference must be exactly 12 numeric digits.");
       return;
     }
 
@@ -387,16 +387,19 @@ export default function PayoutFulfillmentModal({
               {/* Step 1: 12-Digit UTR */}
               <div>
                 <label className="block text-xs font-bold text-base-900 mb-1">
-                  12-Digit Bank / UPI Transfer Reference UTR *
+                  12-Digit Bank / UPI Transfer Reference UTR <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   required
                   disabled={submitting || cancelling || !!success}
                   value={payoutProofUtr}
-                  onChange={(e) => setPayoutProofUtr(e.target.value.trim())}
-                  placeholder="e.g. 427812984561 (From GPay, PhonePe, Paytm, or NetBanking)"
-                  maxLength={24}
+                  onChange={(e) => {
+                    const digits = e.target.value.replace(/\D/g, "").slice(0, 12);
+                    setPayoutProofUtr(digits);
+                  }}
+                  placeholder="e.g. 427812984561 (12 digits from Bank/UPI app)"
+                  maxLength={12}
                   className="w-full px-3.5 py-2.5 text-xs sm:text-sm font-mono font-bold border-2 border-base-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
                 />
               </div>
@@ -404,7 +407,7 @@ export default function PayoutFulfillmentModal({
               {/* Step 2: Upload Proof Image Dropzone */}
               <div className="space-y-2">
                 <label className="block text-xs font-bold text-base-900">
-                  Upload Transfer Proof Screenshot / Receipt *
+                  Upload Transfer Proof Screenshot / Receipt <span className="text-slate-400 font-normal text-[11px]">(Optional)</span>
                 </label>
 
                 {!proofPreview ? (

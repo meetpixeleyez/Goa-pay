@@ -1,10 +1,6 @@
 import prisma from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth";
-import {
-  normalizeIndianPhone,
-  normalizeTelegramId,
-  validateUserData,
-} from "@/lib/validation";
+import { normalizeIndianPhone } from "@/lib/validation";
 import { ApiError } from "@/types/api";
 import { SessionUser } from "./qr-code.service";
 import {
@@ -35,7 +31,6 @@ export class AgentService {
       const orConditions: any[] = [
         { name: { contains: s } },
         { phone: { contains: s } },
-        { telegramId: { contains: s } },
       ];
       const numericId = parseInt(s, 10);
       if (!isNaN(numericId)) {
@@ -55,7 +50,6 @@ export class AgentService {
       prisma.user.findMany({
         where,
         include: {
-          wallet: { select: { balance: true } },
           _count: { select: { agentQrProviders: true } },
         },
         orderBy: { [sortBy]: sortOrder },
@@ -68,13 +62,11 @@ export class AgentService {
       id: a.id,
       name: a.name,
       phone: a.phone,
-      telegramId: a.telegramId,
-      address: a.address,
       status: a.status as "ACTIVE" | "INACTIVE",
       portalAccess: a.portalAccess,
       commissionPercent: a.commissionPercent || 0,
       qrProvidersCount: a._count?.agentQrProviders || 0,
-      walletBalance: a.wallet?.balance || 0,
+      balance: a.balance || 0,
       createdAt: a.createdAt,
       updatedAt: a.updatedAt,
     }));
@@ -104,7 +96,6 @@ export class AgentService {
     const agent = await prisma.user.findFirst({
       where: { id: numericAgentId, role: "AGENT" },
       include: {
-        wallet: { select: { balance: true } },
         agentQrProviders: {
           select: {
             id: true,
@@ -122,7 +113,7 @@ export class AgentService {
 
     return {
       ...agent,
-      walletBalance: agent.wallet?.balance || 0,
+      balance: agent.balance || 0,
     };
   }
 
@@ -130,15 +121,10 @@ export class AgentService {
    * Creates a new Agent.
    */
   static async createAgent(input: CreateAgentInput, adminUserId: number | string) {
-    const { name, email, password, phone, telegramId, address, commissionPercent, status, portalAccess } = input;
+    const { name, password, phone, commissionPercent, status, portalAccess } = input;
 
     if (!name?.trim() || !password?.trim()) {
       throw new ApiError("Name and Password are required", 400);
-    }
-
-    const validation = validateUserData(input, { isCreate: true, role: "AGENT" });
-    if (!validation.valid) {
-      throw new ApiError(validation.errors[0] || "Invalid agent data", 400);
     }
 
     const existingUsers = await prisma.user.findMany({ select: { id: true, name: true, role: true } });
@@ -153,7 +139,6 @@ export class AgentService {
 
     const passwordHash = await hashPassword(password);
     const cleanPhone = phone ? normalizeIndianPhone(phone) : null;
-    const cleanTelegram = normalizeTelegramId(telegramId);
     const commRate = parseFloat(String(commissionPercent ?? 0.0)) || 0.0;
     const numericAdminId = typeof adminUserId === "number" ? adminUserId : parseInt(adminUserId as any, 10);
 
@@ -165,19 +150,12 @@ export class AgentService {
             name: name.trim(),
             passwordHash,
             phone: cleanPhone,
-            telegramId: cleanTelegram,
-            address: address ? address.trim() : null,
             commissionPercent: commRate,
-            status: status || "ACTIVE",
+            status: (status as any) || "ACTIVE",
             portalAccess: portalAccess !== undefined ? Boolean(portalAccess) : true,
             transactionAllowed: true,
-          },
-        });
-
-        await tx.wallet.create({
-          data: {
-            userId: newUser.id,
             balance: 0.0,
+            availableBalance: 0.0,
           },
         });
 
@@ -224,7 +202,6 @@ export class AgentService {
       },
       include: {
         qrCodes: true,
-        wallet: true,
       },
       orderBy: { createdAt: "desc" },
     });
@@ -233,7 +210,7 @@ export class AgentService {
   }
 
   /**
-   * Retrieves wallet balance and entries for an Agent.
+   * Retrieves transactions and balance for an Agent.
    */
   static async getAgentWallet(agentId: number | string, user: SessionUser) {
     const numericAgentId = typeof agentId === "number" ? agentId : parseInt(agentId, 10);
@@ -243,36 +220,33 @@ export class AgentService {
       throw new ApiError("Unauthorized", 403);
     }
 
-    const wallet = await prisma.wallet.findUnique({
-      where: { userId: numericAgentId },
-      include: {
-        entries: {
-          include: {
-            order: {
-              select: {
-                id: true,
-                orderNumber: true,
-                amount: true,
-                status: true,
-              },
-            },
-          },
-          orderBy: { createdAt: "asc" },
-        },
-      },
-    });
-
     const agentUser = await prisma.user.findUnique({
       where: { id: numericAgentId },
-      select: { commissionPercent: true, payinAgentFee: true, payoutAgentFee: true },
+      select: { balance: true, commissionPercent: true, payinAgentFee: true, payoutAgentFee: true },
+    });
+
+    const transactions = await prisma.transaction.findMany({
+      where: { userId: numericAgentId },
+      include: {
+        order: {
+          select: {
+            id: true,
+            orderNumber: true,
+            amount: true,
+            status: true,
+            type: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
     });
 
     return {
-      balance: wallet?.balance || 0.0,
+      balance: agentUser?.balance || 0.0,
       commissionPercent: agentUser?.commissionPercent || 1.0,
       payinAgentFee: agentUser?.payinAgentFee ?? agentUser?.commissionPercent ?? 0.0,
       payoutAgentFee: agentUser?.payoutAgentFee ?? 0.0,
-      entries: wallet?.entries || [],
+      entries: transactions,
     };
   }
 }

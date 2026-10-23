@@ -114,6 +114,15 @@ export class OrderService {
         feeType: "PAYOUT",
         merchantFeeConfiguration: feeConfig,
       });
+
+      // Verify Merchant Balance: balance >= amount + totalFees
+      const requiredBalance = orderAmount + feeSnapshot.totalFees;
+      if ((merchant.balance || 0) < requiredBalance) {
+        throw new ApiError(
+          `Insufficient merchant balance. Required: ₹${requiredBalance.toFixed(2)} (Amount: ₹${orderAmount.toFixed(2)} + Fees: ₹${feeSnapshot.totalFees.toFixed(2)}), Available: ₹${(merchant.balance || 0).toFixed(2)}`,
+          422
+        );
+      }
     } else {
       // PAYIN: Match and reserve eligible QR provider exposure atomically
       const qrAssign = await assignEligibleQRProvider(orderAmount);
@@ -151,7 +160,8 @@ export class OrderService {
 
     // Generate unique order number
     const orderNumber = `ORD-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+    // 5 minutes timer for customer deposit checkout; null for payout pool (fulfillment timer starts upon acceptance)
+    const expiresAt = orderType === "PAYIN" ? new Date(Date.now() + 5 * 60 * 1000) : null;
 
     const order = await prisma.order.create({
       data: {
@@ -166,6 +176,7 @@ export class OrderService {
         remark: input.remark?.trim() || null,
         type: orderType,
         status: "pending",
+        payoutBroadcast: orderType === "PAYOUT" ? true : false,
         beneficiaryDetails,
         expiresAt,
         merchantFeeRate: feeSnapshot.merchantFeeRate,
@@ -260,11 +271,17 @@ export class OrderService {
       if (user.role === "MERCHANT" && order.merchantId !== user.userId) {
         throw new ApiError("Unauthorized", 403);
       }
-      if (user.role === "QR_PROVIDER" && order.qrProviderId !== user.userId) {
-        throw new ApiError("Unauthorized", 403);
+      if (user.role === "QR_PROVIDER") {
+        const isAssigned = order.qrProviderId === user.userId;
+        const isAvailablePayout = order.type === "PAYOUT" && order.payoutBroadcast && (!order.qrProviderId || order.status === "pending");
+        if (!isAssigned && !isAvailablePayout) {
+          throw new ApiError("Unauthorized", 403);
+        }
       }
       if (user.role === "OPERATOR") {
-        if (!order.qrCode?.operatorId || order.qrCode.operatorId !== user.userId) {
+        const isAssigned = order.qrCode?.operatorId === user.userId;
+        const isAvailablePayout = order.type === "PAYOUT" && order.payoutBroadcast && (!order.qrProviderId || order.status === "pending");
+        if (!isAssigned && !isAvailablePayout) {
           throw new ApiError("Unauthorized", 403);
         }
       }

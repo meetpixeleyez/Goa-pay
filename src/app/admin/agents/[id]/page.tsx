@@ -179,8 +179,17 @@ export default function AgentDetailPage() {
 
   const getEntryTypeBadge = (entry: any) => {
     const type = (entry.type || "").toUpperCase();
+    const cat = (entry.category || "").toUpperCase();
 
-    if (type === "CR") {
+    const isCredit =
+      type === "DEPOSIT" ||
+      type === "CREDIT" ||
+      cat === "AGENT_COMMISSION" ||
+      cat === "ORDER_CREDIT" ||
+      cat === "MANUAL_CREDIT" ||
+      cat === "ADD_CREDIT";
+
+    if (isCredit) {
       return {
         label: "+ DEPOSIT",
         className: "bg-green-100 text-green-800",
@@ -362,11 +371,11 @@ export default function AgentDetailPage() {
   const assignedProviders = agent.agentQrProviders || [];
   const walletEntries = agent.wallet?.entries || [];
   const totalCommissionEarned = walletEntries
-    .filter((e: any) => e.type === "CR")
-    .reduce((sum: number, e: any) => sum + e.amount, 0);
+    .filter((e: any) => e.type === "DEPOSIT" || e.category === "AGENT_COMMISSION")
+    .reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0);
   const totalDebit = walletEntries
-    .filter((e: any) => e.type === "DR")
-    .reduce((sum: number, e: any) => sum + e.amount, 0);
+    .filter((e: any) => e.type === "DR" || e.type === "WITHDRAWAL")
+    .reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0);
 
   return (
     <PortalLayout

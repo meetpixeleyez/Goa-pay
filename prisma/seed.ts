@@ -6,8 +6,8 @@ const prisma = new PrismaClient();
 async function main() {
   console.log("Seeding database (User Accounts Only, Zero Orders)...");
 
-  // 0. Remove all previous orders, ledger transactions, and audit logs to ensure clean slate
-  await prisma.ledgerEntry.deleteMany({});
+  // 0. Remove all previous orders, transactions, and audit logs to ensure clean slate
+  await prisma.transaction.deleteMany({});
   await prisma.order.deleteMany({});
   await prisma.auditLog.deleteMany({});
 
@@ -26,7 +26,7 @@ async function main() {
       },
     },
   });
-  console.log("Cleared all extra users, orders, ledger statements, and audit logs.");
+  console.log("Cleared all extra users, orders, transactions, and audit logs.");
 
   // 1. Create Default Admin
   const adminPassword = await bcrypt.hash("admin123", 10);
@@ -35,12 +35,13 @@ async function main() {
     update: {
       passwordHash: adminPassword,
       role: "ADMIN",
+      status: "ACTIVE",
     },
     create: {
       role: "ADMIN",
       name: "admin",
       phone: "+919876543210",
-      telegramId: "@goa_admin",
+      status: "ACTIVE",
       passwordHash: adminPassword,
     },
   });
@@ -54,18 +55,16 @@ async function main() {
       commissionPercent: 1.0,
       passwordHash: agentPassword,
       role: "AGENT",
+      status: "ACTIVE",
     },
     create: {
       role: "AGENT",
       name: "agent",
       phone: "+919811122233",
-      address: "Panaji, Goa",
-      telegramId: "@agent_rajesh",
       commissionPercent: 1.0, // 1%
+      status: "ACTIVE",
       passwordHash: agentPassword,
-      wallet: {
-        create: { balance: 0.0 },
-      },
+      balance: 0.0,
     },
   });
   console.log("Agent ready:", agent.name);
@@ -84,19 +83,15 @@ async function main() {
       role: "BROKER",
       name: "broker",
       phone: "+919844455566",
-      address: "Panaji, Goa",
-      telegramId: "@elite_broker",
       commissionPercent: 1.0, // 1%
       status: "ACTIVE",
       passwordHash: brokerPassword,
-      wallet: {
-        create: { balance: 0.0 },
-      },
+      balance: 0.0,
     },
   });
   console.log("Broker ready:", broker.name);
 
-  // 4. Create Merchant (with Broker assigned, 0.00 wallet)
+  // 4. Create Merchant (with Broker assigned, 0.00 balance)
   const merchantPassword = await bcrypt.hash("merchant123", 10);
   const merchant = await prisma.user.upsert({
     where: { name: "merchant" },
@@ -108,18 +103,18 @@ async function main() {
       payinBrokerFee: 1.0,
       payoutMerchantFee: 5.0,
       payoutQrProviderFee: 2.0,
-      payoutAgentFee: 1.0,
-      payoutBrokerFee: 2.0,
+      payoutAgentFee: 2.0,
+      payoutBrokerFee: 1.0,
       status: "ACTIVE",
       passwordHash: merchantPassword,
       role: "MERCHANT",
+      balance: 0.0,
+      availableBalance: 0.0,
     },
     create: {
       role: "MERCHANT",
       name: "merchant",
       phone: "+919822233344",
-      address: "Calangute, Goa",
-      telegramId: "@beachwear_merchant",
       upiId: "beachwear@upi",
       qrCodeUrl: "/uploads/sample-merchant-qr.png",
       payinMerchantFee: 5.0,
@@ -128,14 +123,13 @@ async function main() {
       payinBrokerFee: 1.0,
       payoutMerchantFee: 5.0,
       payoutQrProviderFee: 2.0,
-      payoutAgentFee: 1.0,
-      payoutBrokerFee: 2.0,
+      payoutAgentFee: 2.0,
+      payoutBrokerFee: 1.0,
       brokerId: broker.id, // Assigned to Broker
       status: "ACTIVE",
       passwordHash: merchantPassword,
-      wallet: {
-        create: { balance: 0.0 },
-      },
+      balance: 0.0,
+      availableBalance: 0.0,
     },
   });
   console.log("Merchant ready:", merchant.name);
@@ -148,24 +142,27 @@ async function main() {
       balance: 10000.0,
       exposure: 0.0,
       availableBalance: 10000.0,
+      payoutQrProviderFee: 2.0,
+      payinAgentFee: 1.0,
+      payoutAgentFee: 2.0,
       passwordHash: providerPassword,
       role: "QR_PROVIDER",
+      status: "ACTIVE",
     },
     create: {
       role: "QR_PROVIDER",
       name: "provider",
       phone: "+919833344455",
-      address: "Margao, Goa",
-      telegramId: "@fastpay_provider",
       agentId: agent.id, // Related to Agent
       balance: 10000.0,
       exposure: 0.0,
       availableBalance: 10000.0,
-      qrProviderFee: 3.0, // 3%
+      qrProviderFee: 2.0,
+      payoutQrProviderFee: 2.0,
+      payinAgentFee: 1.0,
+      payoutAgentFee: 2.0,
       passwordHash: providerPassword,
-      wallet: {
-        create: { balance: 10000.0 },
-      },
+      status: "ACTIVE",
       qrCodes: {
         create: [
           {
@@ -174,6 +171,7 @@ async function main() {
             accountHolderName: "FastPay Liquidity Services",
             bankName: "ICICI Bank",
             isActive: true,
+            status: "ACTIVE",
           },
           {
             upiId: "fastpay.backup@hdfc",
@@ -181,12 +179,31 @@ async function main() {
             accountHolderName: "FastPay Secondary",
             bankName: "HDFC Bank",
             isActive: true,
+            status: "ACTIVE",
           },
         ],
       },
     },
   });
   console.log("QR Provider ready:", provider.name);
+
+  // Record initial liquidity deposit transaction for provider
+  const existingInitTx = await prisma.transaction.findFirst({
+    where: { userId: provider.id, category: "INITIAL_BALANCE" },
+  });
+  if (!existingInitTx) {
+    await prisma.transaction.create({
+      data: {
+        userId: provider.id,
+        type: "DEPOSIT",
+        category: "INITIAL_BALANCE",
+        amount: 10000.0,
+        balanceAfter: 10000.0,
+        description: "Initial allocated liquidity balance for QR Provider",
+      },
+    });
+    console.log("Created opening ledger transaction of ₹10,000 for QR Provider");
+  }
 
   // Ensure provider has active QR codes
   const providerQrCount = await prisma.qRCode.count({ where: { providerId: provider.id } });
@@ -200,6 +217,7 @@ async function main() {
           accountHolderName: "FastPay Liquidity Services",
           bankName: "ICICI Bank",
           isActive: true,
+          status: "ACTIVE",
         },
         {
           providerId: provider.id,
@@ -208,6 +226,7 @@ async function main() {
           accountHolderName: "FastPay Secondary",
           bankName: "HDFC Bank",
           isActive: true,
+          status: "ACTIVE",
         },
       ],
     });
@@ -229,8 +248,6 @@ async function main() {
       role: "OPERATOR",
       name: "operator",
       phone: "+919877788899",
-      address: "Margao, Goa",
-      telegramId: "@fastpay_operator1",
       qrProviderId: provider.id,
       status: "ACTIVE",
       portalAccess: true,
@@ -252,26 +269,7 @@ async function main() {
     console.log(`Assigned QR code '${primaryQR.upiId}' to Operator '${operator.name}'`);
   }
 
-  // 7. Reset all wallets to their clean initial state
-  await prisma.wallet.updateMany({
-    where: {
-      user: {
-        role: { in: ["MERCHANT", "AGENT", "BROKER"] },
-      },
-    },
-    data: { balance: 0.0 },
-  });
-
-  await prisma.wallet.updateMany({
-    where: {
-      user: {
-        role: "QR_PROVIDER",
-      },
-    },
-    data: { balance: 10000.0 },
-  });
-
-  console.log("All wallets cleanly reset: Merchant = ₹0.00, Broker = ₹0.00, Agent = ₹0.00, Provider Liquidity = ₹10,000.00");
+  console.log("Balances initialized: Merchant = ₹0.00, Broker = ₹0.00, Agent = ₹0.00, Provider Liquidity = ₹10,000.00");
   console.log("Database seeded successfully with ONLY user accounts (0 orders).");
 }
 

@@ -184,8 +184,16 @@ export default function AdminOtherUserDetailPage() {
   // Handle Save Info
   const getEntryTypeBadge = (entry: any) => {
     const type = (entry.type || "").toUpperCase();
+    const cat = (entry.category || "").toUpperCase();
 
-    if (type === "CR") {
+    const isCredit =
+      type === "DEPOSIT" ||
+      type === "CREDIT" ||
+      cat === "ORDER_CREDIT" ||
+      cat === "MANUAL_CREDIT" ||
+      cat === "ADD_CREDIT";
+
+    if (isCredit) {
       return {
         label: "+ DEPOSIT",
         className: "bg-green-100 text-green-800",

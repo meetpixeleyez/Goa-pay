@@ -309,8 +309,8 @@ export default function QRProviderDashboard() {
       <div className="card-theme overflow-hidden shadow-sm">
         <div className="p-4 border-b border-base-200 flex items-center justify-between">
           <div>
-            <h2 className="text-sm font-bold text-base-900">Recent Assigned Orders</h2>
-            <p className="text-xs text-base-700">Deposit transactions routed to your collection accounts</p>
+            <h2 className="text-sm font-bold text-base-900">Recent Orders</h2>
+            <p className="text-xs text-base-700">Real-time stream of incoming collections and customer disbursements</p>
           </div>
           <Link
             href="/qr-provider/orders"
@@ -326,6 +326,7 @@ export default function QRProviderDashboard() {
             <thead className="bg-base-100/60 text-base-900 font-semibold border-b border-base-200">
               <tr>
                 <th className="p-3">Order Number</th>
+                <th className="p-3">Type</th>
                 <th className="p-3">Customer</th>
                 <th className="p-3">Amount</th>
                 <th className="p-3">Verification</th>
@@ -335,82 +336,104 @@ export default function QRProviderDashboard() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#e0f2fe]">
-              {orders.slice(0, 5).map((ord) => (
-                <tr key={ord.id} className="hover:bg-[#ffffff] transition">
-                  <td className="p-3 font-mono font-bold text-base-900">
-                    {ord.orderNumber}
-                  </td>
-                  <td className="p-3">
-                    <div className="font-semibold text-base-900">{ord.customerName}</div>
-                    <div className="text-[10px] text-slate-500">{ord.customerMobile}</div>
-                  </td>
-                  <td className="p-3 font-bold text-base-900">
-                    ₹{ord.amount.toFixed(2)}
-                  </td>
-                  <td className="p-3 font-mono text-[11px]">
-                    {(ord.type || "PAYIN") === "PAYIN" ? (
-                      ord.status === "completed" ? (
-                        <span className="text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 text-[10px]">
-                          {ord.verifierUtr || ord.customerUtr || "Bank Verified"}
-                        </span>
-                      ) : ord.status === "processing" ? (
-                        ord.customerUtr ? (
-                          <span className="text-blue-800 font-bold bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200 text-[10px]">
-                            {ord.customerUtr}
-                          </span>
-                        ) : (
-                          <span className="text-sky-800 font-semibold bg-sky-50 px-1.5 py-0.5 rounded border border-sky-200 text-[10px]">
-                            Pending UTR
-                          </span>
-                        )
-                      ) : (
-                        <span className="text-gray-400 italic">--</span>
-                      )
-                    ) : (
-                      ord.payoutProofUtr ? (
-                        <span className="bg-blue-50 text-blue-800 border border-blue-200 px-1.5 py-0.5 rounded font-bold text-[10px]">
-                          {ord.payoutProofUtr}
-                        </span>
-                      ) : (
-                        <span className="text-gray-400 italic">Not Submitted</span>
-                      )
-                    )}
-                  </td>
-                  <td className="p-3">
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                        ord.status === "completed"
-                          ? "badge-completed"
-                          : ord.status === "processing"
-                          ? "badge-processing animate-pulse"
-                          : ord.status === "pending"
-                          ? "badge-pending"
-                          : "badge-rejected"
-                      }`}
-                    >
-                      {ord.status}
-                    </span>
-                  </td>
-                  <td className="p-3 text-slate-500 text-[11px]">
-                    {new Date(ord.createdAt).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </td>
-                  <td className="p-3 text-right">
-                    {ord.status === "processing" ? (
-                      <Link
-                        href="/qr-provider/orders"
-                        className="btn-primary py-1 px-2.5 text-xs shadow"
-                      >
-                        Verify Deposit
-                      </Link>
-                    ) : (
-                      <span className="text-gray-400">--</span>
-                    )}
+              {orders.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="p-6 text-center text-slate-500">
+                    No assigned orders yet.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                orders.slice(0, 5).map((ord) => {
+                  const isDeposit = (ord.type || "PAYIN") === "PAYIN";
+                  return (
+                    <tr key={ord.id} className="hover:bg-[#ffffff] transition">
+                      <td className="p-3 font-mono font-bold text-base-900">
+                        {ord.orderNumber}
+                      </td>
+                      <td className="p-3">
+                        <span
+                          className={`inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                            isDeposit
+                              ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                              : "bg-red-100 text-red-800 border border-red-200"
+                          }`}
+                        >
+                          {isDeposit ? "+ DEPOSIT" : "- WITHDRAWAL"}
+                        </span>
+                      </td>
+                      <td className="p-3">
+                        <div className="font-semibold text-base-900">{ord.customerName}</div>
+                        <div className="text-[10px] text-slate-500">{ord.customerMobile}</div>
+                      </td>
+                      <td className="p-3 font-bold text-base-900">
+                        ₹{ord.amount.toFixed(2)}
+                      </td>
+                      <td className="p-3 font-mono text-[11px]">
+                        {isDeposit ? (
+                          ord.status === "completed" ? (
+                            <span className="text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 text-[10px]">
+                              {ord.verifierUtr || ord.customerUtr || "Bank Verified"}
+                            </span>
+                          ) : ord.status === "processing" ? (
+                            ord.customerUtr ? (
+                              <span className="text-blue-800 font-bold bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200 text-[10px]">
+                                {ord.customerUtr}
+                              </span>
+                            ) : (
+                              <span className="text-sky-800 font-semibold bg-sky-50 px-1.5 py-0.5 rounded border border-sky-200 text-[10px]">
+                                Pending UTR
+                              </span>
+                            )
+                          ) : (
+                            <span className="text-gray-400 italic">--</span>
+                          )
+                        ) : (
+                          ord.payoutProofUtr ? (
+                            <span className="bg-blue-50 text-blue-800 border border-blue-200 px-1.5 py-0.5 rounded font-bold text-[10px]">
+                              {ord.payoutProofUtr}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400 italic">Not Submitted</span>
+                          )
+                        )}
+                      </td>
+                      <td className="p-3">
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                            ord.status === "completed"
+                              ? "badge-completed"
+                              : ord.status === "processing"
+                              ? "badge-processing animate-pulse"
+                              : ord.status === "pending"
+                              ? "badge-pending"
+                              : "badge-rejected"
+                          }`}
+                        >
+                          {ord.status}
+                        </span>
+                      </td>
+                      <td className="p-3 text-slate-500 text-[11px]">
+                        {new Date(ord.createdAt).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </td>
+                      <td className="p-3 text-right">
+                        {ord.status === "processing" ? (
+                          <Link
+                            href="/qr-provider/orders"
+                            className="btn-primary py-1 px-2.5 text-xs shadow"
+                          >
+                            {isDeposit ? "Verify Deposit" : "Fulfill Payout"}
+                          </Link>
+                        ) : (
+                          <span className="text-gray-400">--</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>

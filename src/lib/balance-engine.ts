@@ -156,7 +156,7 @@ export async function checkAndHandleExpiredPayoutOrders() {
           data: {
             status: "pending",
             qrProviderId: null,
-            payoutBroadcast: false,
+            payoutBroadcast: true,
             expiresAt: null,
             payoutProofUtr: null,
             payoutProofImage: null,
@@ -172,7 +172,7 @@ export async function checkAndHandleExpiredPayoutOrders() {
             metadata: JSON.stringify({
               orderNumber: order.orderNumber,
               amount: order.amount,
-              reason: "5-minute fulfillment window expired without payment proof",
+              reason: "Fulfillment window expired without payment proof; returned to pool",
             }),
           },
         });
@@ -184,31 +184,6 @@ export async function checkAndHandleExpiredPayoutOrders() {
           order.qrProvider?.name || "QR Provider"
         );
       });
-    }
-
-    // 2. Pending broadcasted payout orders where 5-min pool timer expired without acceptance
-    const expiredBroadcast = await prisma.order.findMany({
-      where: {
-        type: "PAYOUT",
-        status: "pending",
-        payoutBroadcast: true,
-        expiresAt: { lte: now },
-      },
-    });
-
-    for (const order of expiredBroadcast) {
-      const updated = await prisma.order.update({
-        where: { id: order.id },
-        data: {
-          payoutBroadcast: false,
-          expiresAt: null,
-        },
-      });
-
-      await txAuditLog(order);
-
-      const { notifyPayoutReleased } = await import("./socket-server");
-      notifyPayoutReleased(updated);
     }
   } catch (error) {
     console.error("Error checking expired payout orders:", error);

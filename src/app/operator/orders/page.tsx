@@ -306,18 +306,18 @@ export default function OperatorOrdersPage() {
                         </td>
                         <td className="p-3 whitespace-nowrap">
                           <span
-                            className={`inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                            className={`inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                               isDeposit
-                                ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
-                                : "bg-sky-100 text-sky-800 border border-sky-200"
+                                ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                                : "bg-rose-100 text-rose-800 border border-rose-300"
                             }`}
                           >
                             {isDeposit ? (
-                              <ArrowDownLeft className="w-3 h-3" />
+                              <ArrowDownLeft className="w-3 h-3 text-emerald-700" />
                             ) : (
-                              <ArrowUpRight className="w-3 h-3" />
+                              <ArrowUpRight className="w-3 h-3 text-rose-700" />
                             )}
-                            <span>{ord.type}</span>
+                            <span>{isDeposit ? "Deposit" : "Withdrawal"}</span>
                           </span>
                         </td>
                         <td className="p-3 whitespace-nowrap">

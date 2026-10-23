@@ -1,32 +1,29 @@
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 generator client {
   provider = "prisma-client-js"
 }
-
 model User {
-  id              Int       @id @default(autoincrement())
-  role            String    // "ADMIN" | "MERCHANT" | "AGENT" | "QR_PROVIDER" | "BROKER"
-  name            String    @unique
+  id              Int        @id @default(autoincrement())
+  role            Role
+  name            String     @unique
   phone           String?
-  address         String?
-  telegramId      String?
   passwordHash    String
 
   // Account status & permissions
-  status              String    @default("ACTIVE") // "ACTIVE" | "INACTIVE"
-  portalAccess        Boolean   @default(true)
-  transactionAllowed  Boolean   @default(true)
+  status              Status     @default(ACTIVE)
+  portalAccess        Boolean    @default(true)
+  transactionAllowed  Boolean    @default(true)
 
   // Merchant specific fields
   upiId           String?
   qrCodeUrl       String?
   brokerId        Int?
-  broker          User?     @relation("BrokerMerchants", fields: [brokerId], references: [id])
-  brokeredMerchants User[]  @relation("BrokerMerchants")
+  broker          User?      @relation("BrokerMerchants", fields: [brokerId], references: [id])
+  brokeredMerchants User[]   @relation("BrokerMerchants")
 
   // PAYIN / Deposit Fee Configuration (%)
   payinMerchantFee    Float     @default(0.0)
@@ -41,17 +38,17 @@ model User {
   payoutBrokerFee     Float     @default(0.0)
 
   // Agent specific fields
-  commissionPercent Float   @default(1.0) // Percentage, e.g. 1%
+  commissionPercent Float   @default(1.0)
   agentQrProviders User[]   @relation("AgentQRProviders")
 
-  // QR Provider specific fields
-  agentId         Int?
-  agent           User?     @relation("AgentQRProviders", fields: [agentId], references: [id])
-  balance         Float     @default(0.0)
-  exposure        Float     @default(0.0)
-  availableBalance Float    @default(0.0)
-  credit          Float     @default(0.0)
-  qrProviderFee   Float     @default(3.0) // Percentage, e.g. 3%
+  // QR Provider & Merchant Liquidity & Balances (Single Source of Truth)
+  agentId          Int?
+  agent            User?     @relation("AgentQRProviders", fields: [agentId], references: [id])
+  balance          Float     @default(0.0)
+  exposure         Float     @default(0.0)
+  availableBalance Float     @default(0.0)
+  credit           Float     @default(0.0)
+  qrProviderFee    Float     @default(3.0)
 
   // Operator relationship (QR Provider <-> Operators)
   qrProviderId        Int?
@@ -60,11 +57,11 @@ model User {
   assignedQRCodes     QRCode[]  @relation("OperatorAssignedQRCodes")
 
   // Relations
-  qrCodes         QRCode[]  @relation("ProviderQRCodes")
-  wallet          Wallet?
-  merchantOrders  Order[]   @relation("MerchantOrders")
-  providerOrders  Order[]   @relation("ProviderOrders")
-  verifiedOrders  Order[]   @relation("VerifiedOrders")
+  qrCodes         QRCode[]      @relation("ProviderQRCodes")
+  transactions    Transaction[] @relation("UserTransactions")
+  merchantOrders  Order[]       @relation("MerchantOrders")
+  providerOrders  Order[]       @relation("ProviderOrders")
+  verifiedOrders  Order[]       @relation("VerifiedOrders")
   auditLogs       AuditLog[]
 
   // Merchant API & Webhook Configuration
@@ -73,51 +70,44 @@ model User {
   defaultFailureUrl  String?
   apiKeys            ApiKey[]
 
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
 }
 
 model QRCode {
-  id                Int         @id @default(autoincrement())
+  id                Int      @id @default(autoincrement())
   providerId        Int
-  provider          User        @relation("ProviderQRCodes", fields: [providerId], references: [id], onDelete: Cascade)
+  provider          User     @relation("ProviderQRCodes", fields: [providerId], references: [id], onDelete: Cascade)
   operatorId        Int?
-  operator          User?       @relation("OperatorAssignedQRCodes", fields: [operatorId], references: [id], onDelete: SetNull)
+  operator          User?    @relation("OperatorAssignedQRCodes", fields: [operatorId], references: [id], onDelete: SetNull)
   upiId             String
   imageUrl          String
-  name              String?     // e.g. Primary ICICI QR
+  name              String?
   accountHolderName String?
   bankName          String?
-  status            String      @default("ACTIVE") // "ACTIVE" | "INACTIVE"
-  isActive          Boolean     @default(true)
-  orders            Order[]     @relation("AssignedQRCode")
+  status            Status   @default(ACTIVE)
+  isActive          Boolean  @default(true)
+  orders            Order[]  @relation("AssignedQRCode")
 
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }
 
-model Wallet {
-  id           Int           @id @default(autoincrement())
-  userId       Int           @unique
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  balance      Float         @default(0.0)
-  entries      LedgerEntry[]
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-}
-
-model LedgerEntry {
-  id           Int           @id @default(autoincrement())
-  walletId     Int
-  wallet       Wallet        @relation(fields: [walletId], references: [id], onDelete: Cascade)
+model Transaction {
+  id           Int                  @id @default(autoincrement())
+  userId       Int
+  user         User                 @relation("UserTransactions", fields: [userId], references: [id], onDelete: Cascade)
   orderId      Int?
-  order        Order?        @relation(fields: [orderId], references: [id], onDelete: SetNull)
-  type         String        // "CR" | "DR"
-  category     String?       // "ORDER_CREDIT" | "MERCHANT_FEE" | "QR_PROVIDER_FEE" | "AGENT_COMMISSION" | "BROKER_COMMISSION"
+  order        Order?               @relation("OrderTransactions", fields: [orderId], references: [id], onDelete: SetNull)
+  type         TransactionType
+  category     TransactionCategory?
   amount       Float
   balanceAfter Float
   description  String
-  createdAt    DateTime      @default(now())
+  createdAt    DateTime             @default(now())
+
+  @@index([userId])
+  @@index([orderId])
 }
 
 model Order {
@@ -136,8 +126,8 @@ model Order {
   customerEmail      String?
   remark             String?
 
-  status             String        @default("pending") // pending | processing | completed | rejected | expired | cancelled
-  type               String        // PAYIN | PAYOUT
+  status             OrderStatus   @default(pending)
+  type               OrderType
   
   // Customer submission
   customerUtr        String?
@@ -150,7 +140,7 @@ model Order {
   payoutBroadcast    Boolean       @default(false)
   payoutProofUtr     String?
   payoutProofImage   String?
-  payoutPaidBy       String?       // "ADMIN" | "QR_PROVIDER"
+  payoutPaidBy       String?
 
   // Verification submission (QR Provider or Admin)
   verifierUtr        String?
@@ -174,13 +164,13 @@ model Order {
   totalFees          Float         @default(0.0)
 
   // Merchant API tracking & Checkout redirects
-  clientOrderId      String?       // Merchant external reference / idempotency key
-  successUrl         String?       // Order-specific success redirect URL
-  failureUrl         String?       // Order-specific failure redirect URL
-  webhookUrl         String?       // Order-specific webhook callback URL
-  checkoutState      String        @default("ACTIVE") // "ACTIVE" | "COMPLETED" | "EXPIRED" | "CANCELLED"
+  clientOrderId      String?
+  successUrl         String?
+  failureUrl         String?
+  webhookUrl         String?
+  checkoutState      CheckoutState @default(ACTIVE)
 
-  ledgerEntries      LedgerEntry[]
+  transactions       Transaction[] @relation("OrderTransactions")
   webhookDeliveries  WebhookDelivery[]
 
   expiresAt          DateTime?
@@ -191,51 +181,51 @@ model Order {
 }
 
 model ApiKey {
-  id             Int       @id @default(autoincrement())
+  id             Int          @id @default(autoincrement())
   userId         Int
-  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   
-  keyId          String    @unique // e.g. "27_686148"
-  secretHash     String    // Encrypted AES-256-GCM ciphertext of the apiSecret
-  secretMasked   String    // e.g. "1a24d210...fb76" for UI identification
+  keyId          String       @unique
+  secretHash     String
+  secretMasked   String
   
-  name           String    @default("Production API Key")
-  status         String    @default("ACTIVE") // "ACTIVE" | "INACTIVE" | "REVOKED"
-  permissions    String    @default("PAYIN,PAYOUT,READ") // Comma-separated permissions
+  name           String       @default("Production API Key")
+  status         ApiKeyStatus @default(ACTIVE)
+  permissions    String       @default("PAYIN,PAYOUT,READ")
   
-  whitelistedIps String?   // Comma-separated IPv4/IPv6 addresses, or null for all IPs
-  rateLimit      Int       @default(60) // Allowed requests per minute
+  whitelistedIps String?
+  rateLimit      Int          @default(60)
   
   lastUsedAt     DateTime?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
   @@index([userId])
   @@index([keyId])
 }
 
 model WebhookDelivery {
-  id           Int       @id @default(autoincrement())
+  id           Int           @id @default(autoincrement())
   merchantId   Int
   orderId      Int?
-  order        Order?    @relation(fields: [orderId], references: [id], onDelete: SetNull)
-  event        String    // "order.payin.completed" | "order.payin.rejected" | "order.payout.completed" | "order.payout.rejected"
+  order        Order?        @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  event        String
   targetUrl    String
   
-  payload      String    // JSON stringified payload
-  signature    String    // HMAC-SHA256 signature generated with merchant secret
+  payload      String
+  signature    String
   
-  status       String    @default("PENDING") // "PENDING" | "DELIVERED" | "FAILED"
-  attempts     Int       @default(0)
-  maxAttempts  Int       @default(5)
+  status       WebhookStatus @default(PENDING)
+  attempts     Int           @default(0)
+  maxAttempts  Int           @default(5)
   responseCode Int?
   responseBody String?
   errorMessage String?
   
   nextRetryAt  DateTime?
   deliveredAt  DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 
   @@index([merchantId])
   @@index([orderId])
@@ -246,9 +236,78 @@ model AuditLog {
   id         Int      @id @default(autoincrement())
   userId     Int?
   user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  action     String   // e.g. "LOGIN", "CREATE_ORDER", "VERIFY_UTR", "RESET_PASSWORD"
-  entity     String   // e.g. "Order", "User", "Wallet"
+  action     String
+  entity     String
   entityId   String?
-  metadata   String?  // JSON stringified details
+  metadata   String?
   createdAt  DateTime @default(now())
+}
+
+enum Role {
+  ADMIN
+  MERCHANT
+  AGENT
+  QR_PROVIDER
+  BROKER
+  OPERATOR
+  OTHER
+}
+
+enum Status {
+  ACTIVE
+  INACTIVE
+}
+
+enum OrderStatus {
+  pending
+  processing
+  completed
+  rejected
+  expired
+  cancelled
+}
+
+enum OrderType {
+  PAYIN
+  PAYOUT
+}
+
+enum TransactionType {
+  DEPOSIT
+  WITHDRAWAL
+}
+
+enum TransactionCategory {
+  ORDER_CREDIT
+  ORDER_DEBIT
+  MERCHANT_FEE
+  QR_PROVIDER_FEE
+  AGENT_COMMISSION
+  BROKER_COMMISSION
+  DEPOSIT
+  WITHDRAWAL
+  ADD_CREDIT
+  DEDUCT_CREDIT
+  HAWALA_TRANSFER
+  HAWALA_RECEIPT
+  INITIAL_BALANCE
+}
+
+enum ApiKeyStatus {
+  ACTIVE
+  INACTIVE
+  REVOKED
+}
+
+enum WebhookStatus {
+  PENDING
+  DELIVERED
+  FAILED
+}
+
+enum CheckoutState {
+  ACTIVE
+  COMPLETED
+  EXPIRED
+  CANCELLED
 }

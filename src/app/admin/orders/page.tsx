@@ -684,13 +684,13 @@ export default function AdminOrdersPage() {
                       </td>
                       <td className="p-3 whitespace-nowrap">
                         <span
-                          className={`inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                          className={`inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                             isDeposit
-                              ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
-                              : "bg-red-100 text-red-800 border border-red-200"
+                              ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                              : "bg-rose-100 text-rose-800 border border-rose-300"
                           }`}
                         >
-                          {isDeposit ? <ArrowDownLeft className="w-3 h-3" /> : <ArrowUpRight className="w-3 h-3" />}
+                          {isDeposit ? <ArrowDownLeft className="w-3 h-3 text-emerald-700" /> : <ArrowUpRight className="w-3 h-3 text-rose-700" />}
                           <span>{isDeposit ? "Deposit" : "Withdrawal"}</span>
                         </span>
                       </td>

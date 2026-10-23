@@ -130,17 +130,49 @@ export class PayoutService {
         throw new ApiError("This withdrawal order has already been accepted by another QR provider.", 409);
       }
 
+      // 5-minute fulfillment window for QR provider to complete bank transfer and submit proof
       const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
-      const providerUser = await tx.user.findUnique({
-        where: { id: effectiveProviderId },
-        select: { payoutQrProviderFee: true, qrProviderFee: true },
-      });
+      const [providerUser, merchantUser] = await Promise.all([
+        tx.user.findUnique({
+          where: { id: effectiveProviderId },
+          select: {
+            payoutQrProviderFee: true,
+            qrProviderFee: true,
+            agentId: true,
+            payoutAgentFee: true,
+            agent: { select: { commissionPercent: true } },
+          },
+        }),
+        tx.user.findUnique({
+          where: { id: order.merchantId },
+          select: {
+            brokerId: true,
+            payoutBrokerFee: true,
+            broker: { select: { commissionPercent: true } },
+          },
+        }),
+      ]);
+
       const providerPayoutRate =
         providerUser?.payoutQrProviderFee !== undefined && providerUser?.payoutQrProviderFee !== null
           ? providerUser.payoutQrProviderFee
           : (providerUser?.qrProviderFee ?? 0);
       const calculatedQrFee = (order.amount * providerPayoutRate) / 100;
+
+      const brokerFeeRate = merchantUser?.brokerId
+        ? (merchantUser.payoutBrokerFee !== undefined && merchantUser.payoutBrokerFee !== null
+            ? merchantUser.payoutBrokerFee
+            : (merchantUser.broker?.commissionPercent ?? 0))
+        : 0;
+      const calculatedBrokerFee = (order.amount * brokerFeeRate) / 100;
+
+      const agentFeeRate = providerUser?.agentId
+        ? (providerUser.payoutAgentFee !== undefined && providerUser.payoutAgentFee !== null
+            ? providerUser.payoutAgentFee
+            : (providerUser.agent?.commissionPercent ?? 0))
+        : 0;
+      const calculatedAgentFee = (order.amount * agentFeeRate) / 100;
 
       const updateResult = await tx.order.updateMany({
         where: {
@@ -154,6 +186,10 @@ export class PayoutService {
           qrCodeId: effectiveQrCodeId,
           qrProviderFeeRate: providerPayoutRate,
           qrProviderFee: calculatedQrFee,
+          brokerFeeRate,
+          brokerFee: calculatedBrokerFee,
+          agentFeeRate,
+          agentFee: calculatedAgentFee,
           status: "processing",
           expiresAt,
         },
@@ -237,7 +273,7 @@ export class PayoutService {
       throw new ApiError("Order is already completed", 400);
     }
 
-    if (order.status !== "processing" && order.status !== "pending" && order.status !== "submitted") {
+    if (order.status !== "processing" && order.status !== "pending") {
       throw new ApiError(`Cannot complete payment for order with status '${order.status}'`, 400);
     }
 

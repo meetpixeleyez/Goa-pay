@@ -14,10 +14,11 @@ import {
 } from "lucide-react";
 
 export interface LedgerItem {
-  id: string;
-  walletId?: string;
+  id: string | number;
+  userId?: number;
+  walletId?: string | number;
   orderId?: number | string | null;
-  type: "CR" | "DR" | string;
+  type: "CR" | "DR" | "DEPOSIT" | "WITHDRAWAL" | string;
   category?: string | null;
   amount: number;
   balanceAfter: number;
@@ -29,9 +30,14 @@ export interface LedgerItem {
     amount?: number;
     status?: string;
   } | null;
+  user?: {
+    id?: number | string;
+    name?: string;
+    role?: string;
+  } | null;
   wallet?: {
     user?: {
-      id?: string;
+      id?: string | number;
       name?: string;
       email?: string;
       role?: string;
@@ -51,19 +57,19 @@ interface BankStatementTableProps {
 export default function BankStatementTable({
   entries,
   title = "Bank Passbook Statement",
-  subtitle = "Chronological record of deposits, deductions, and real-time running balances",
+  subtitle = "Chronological record of deposits, withdrawals, and real-time running balances",
   showOwner = false,
   defaultSort = "desc",
   walletBalance,
 }: BankStatementTableProps) {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">(defaultSort);
-  const [filterType, setFilterType] = useState<"ALL" | "CR" | "DR">("ALL");
+  const [filterType, setFilterType] = useState<"ALL" | "DEPOSIT" | "WITHDRAWAL">("ALL");
   const [searchTerm, setSearchTerm] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  const handleCopy = (text: string, id: string) => {
+  const handleCopy = (text: string, id: string | number) => {
     navigator.clipboard.writeText(text);
-    setCopiedId(id);
+    setCopiedId(String(id));
     setTimeout(() => setCopiedId(null), 1500);
   };
 
@@ -71,9 +77,11 @@ export default function BankStatementTable({
   const processedEntries = useMemo(() => {
     let list = [...entries];
 
-    // Filter by CR/DR
-    if (filterType !== "ALL") {
-      list = list.filter((e) => e.type === filterType);
+    // Filter by Deposit/Withdrawal (or CR/DR)
+    if (filterType === "DEPOSIT") {
+      list = list.filter((e) => e.type === "DEPOSIT" || e.type === "CR");
+    } else if (filterType === "WITHDRAWAL") {
+      list = list.filter((e) => e.type === "WITHDRAWAL" || e.type === "DR");
     }
 
     // Filter by search term
@@ -83,7 +91,7 @@ export default function BankStatementTable({
         (e) =>
           e.description?.toLowerCase().includes(q) ||
           e.order?.orderNumber?.toLowerCase().includes(q) ||
-          (showOwner && e.wallet?.user?.name?.toLowerCase().includes(q))
+          (showOwner && ((e.user?.name || e.wallet?.user?.name)?.toLowerCase().includes(q)))
       );
     }
 
@@ -102,81 +110,89 @@ export default function BankStatementTable({
     let totalCredit = 0;
     let totalDebit = 0;
     entries.forEach((e) => {
-      if (e.type === "CR") totalCredit += e.amount;
-      if (e.type === "DR") totalDebit += e.amount;
+      if (e.type === "DEPOSIT") totalCredit += e.amount;
+      if (e.type === "WITHDRAWAL") totalDebit += e.amount;
     });
     return {
       totalCredit,
       totalDebit,
-      netTotal: totalCredit - totalDebit,
+      netCashflow: totalCredit - totalDebit,
       count: entries.length,
     };
   }, [entries]);
 
   return (
-    <div className="card-theme overflow-hidden shadow-sm">
-      {/* Header with Title and Quick Stats */}
+    <div className="bg-white rounded-xl border border-base-200 overflow-hidden shadow-sm">
+      {/* Header section */}
       <div className="p-4 sm:p-5 border-b border-base-200 bg-white">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <div className="flex items-center space-x-2">
-              <FileSpreadsheet className="w-4 h-4 text-primary" />
-              <h2 className="text-[15px] sm:text-[16px] font-bold text-base-900">{title}</h2>
+              <FileSpreadsheet className="w-5 h-5 text-primary" />
+              <h3 className="text-base font-bold text-base-900">{title}</h3>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-base-100 text-slate-700 font-semibold border border-base-200">
+                {stats.count} Transactions
+              </span>
             </div>
-            <p className="text-xs text-base-700 mt-0.5">{subtitle}</p>
+            <p className="text-xs text-slate-500 mt-1">{subtitle}</p>
           </div>
 
-          {/* Mini Summary Cards */}
-          <div className="flex items-center space-x-2 sm:space-x-3 text-xs">
-            <div className="px-3.5 py-2 rounded-xl bg-green-50 border border-green-200 shadow-2xs">
-              <span className="text-[10px] text-green-700 font-bold block uppercase tracking-wider">Total Credits (+CR)</span>
-              <span className="text-xs sm:text-sm font-bold text-green-700">
+          {/* Quick Metrics */}
+          <div className="flex items-center gap-3">
+            <div className="text-right">
+              <div className="text-[10px] text-gray-400 uppercase font-semibold">Total Deposits</div>
+              <div className="text-xs font-bold text-green-600 font-mono">
                 +₹{stats.totalCredit.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </span>
+              </div>
             </div>
-
-            <div className="px-3.5 py-2 rounded-xl bg-red-50 border border-red-200 shadow-2xs">
-              <span className="text-[10px] text-red-700 font-bold block uppercase tracking-wider">Total Debits (-DR)</span>
-              <span className="text-xs sm:text-sm font-bold text-red-700">
+            <div className="h-6 w-px bg-base-200" />
+            <div className="text-right">
+              <div className="text-[10px] text-gray-400 uppercase font-semibold">Total Withdrawals</div>
+              <div className="text-xs font-bold text-red-600 font-mono">
                 -₹{stats.totalDebit.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </span>
+              </div>
             </div>
-
-            <div className="px-3.5 py-2 rounded-xl bg-primary/15 border border-primary/30 shadow-2xs">
-              <span className="text-[10px] text-[#0c4a6e] font-bold block uppercase tracking-wider">Settled Balance</span>
-              <span className="text-xs sm:text-sm font-bold text-base-900">
-                ₹{(walletBalance !== undefined && entries.length === 0 ? walletBalance : stats.netTotal).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </span>
-            </div>
+            {walletBalance !== undefined && (
+              <>
+                <div className="h-6 w-px bg-base-200" />
+                <div className="text-right pl-1">
+                  <div className="text-[10px] text-primary uppercase font-bold">Current Balance</div>
+                  <div className="text-xs font-extrabold text-base-900 font-mono">
+                    ₹{walletBalance.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
-        {/* Toolbar: Sort toggle, Filters, and Search */}
-        <div className="mt-4 pt-3 border-t border-[#e0f2fe] flex flex-wrap items-center justify-between gap-3 text-xs">
-          <div className="flex items-center space-x-2">
-            {/* Sort Toggle */}
+        {/* Filters and Controls */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-4 pt-3 border-t border-base-100">
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Sort toggle */}
             <div className="inline-flex rounded-lg border border-base-200 p-0.5 bg-[#ffffff]">
               <button
                 type="button"
                 onClick={() => setSortOrder("desc")}
-                className={`px-2.5 py-1 rounded text-xs font-semibold flex items-center space-x-1 transition ${sortOrder === "desc"
-                    ? "bg-primary text-white shadow-sm"
-                    : "text-gray-600 hover:text-base-900"
+                className={`px-2 py-1 rounded text-xs font-semibold flex items-center space-x-1 ${sortOrder === "desc"
+                  ? "bg-white text-base-900 shadow-xs"
+                  : "text-slate-500 hover:text-slate-700"
                   }`}
-                title="View newest transactions first"
+                title="Newest transactions at top"
               >
-                <span>Latest First</span>
+                <ArrowUpDown className="w-3 h-3 text-slate-400" />
+                <span>Newest First</span>
               </button>
               <button
                 type="button"
                 onClick={() => setSortOrder("asc")}
-                className={`px-2.5 py-1 rounded text-xs font-semibold flex items-center space-x-1 transition ${sortOrder === "asc"
-                    ? "bg-primary text-white shadow-sm"
-                    : "text-gray-600 hover:text-base-900"
+                className={`px-2 py-1 rounded text-xs font-semibold flex items-center space-x-1 ${sortOrder === "asc"
+                  ? "bg-white text-base-900 shadow-xs"
+                  : "text-slate-500 hover:text-slate-700"
                   }`}
-                title="View in chronological order (Oldest first: 1000 deposit -> 100 fee -> 2100 deposit -> 210 fee)"
+                title="Passbook style: oldest at top, running balance updates downward"
               >
-                <ArrowUpDown className="w-3 h-3" />
+                <ArrowUpDown className="w-3 h-3 text-slate-400" />
                 <span>Passbook Order (Oldest First)</span>
               </button>
             </div>
@@ -193,19 +209,19 @@ export default function BankStatementTable({
               </button>
               <button
                 type="button"
-                onClick={() => setFilterType("CR")}
-                className={`px-2 py-1 rounded text-xs font-semibold ${filterType === "CR" ? "bg-green-100 text-green-800" : "text-slate-500"
+                onClick={() => setFilterType("DEPOSIT")}
+                className={`px-2 py-1 rounded text-xs font-semibold ${filterType === "DEPOSIT" ? "bg-green-100 text-green-800" : "text-slate-500"
                   }`}
               >
-                Credits Only
+                Deposits (+CR)
               </button>
               <button
                 type="button"
-                onClick={() => setFilterType("DR")}
-                className={`px-2 py-1 rounded text-xs font-semibold ${filterType === "DR" ? "bg-red-100 text-red-800" : "text-slate-500"
+                onClick={() => setFilterType("WITHDRAWAL")}
+                className={`px-2 py-1 rounded text-xs font-semibold ${filterType === "WITHDRAWAL" ? "bg-red-100 text-red-800" : "text-slate-500"
                   }`}
               >
-                Debits Only
+                Withdrawals (-DR)
               </button>
             </div>
           </div>
@@ -235,10 +251,10 @@ export default function BankStatementTable({
               <th className="p-3 whitespace-nowrap min-w-[140px]">Ref / Order #</th>
               {showOwner && <th className="p-3 whitespace-nowrap min-w-[130px]">Account Owner</th>}
               <th className="p-3 text-right bg-red-50/50 text-red-900 border-l border-r border-base-200/60 min-w-[120px]">
-                Debit (-DR)
+                Withdrawal (-DR)
               </th>
               <th className="p-3 text-right bg-green-50/50 text-green-900 border-r border-base-200/60 min-w-[120px]">
-                Credit (+CR)
+                Deposit (+CR)
               </th>
               <th className="p-3 text-right whitespace-nowrap min-w-[130px] font-extrabold">
                 Closing Balance
@@ -261,8 +277,8 @@ export default function BankStatementTable({
               </tr>
             ) : (
               processedEntries.map((entry, idx) => {
-                const isCredit = entry.type === "CR";
-                const isDebit = entry.type === "DR";
+                const isCredit = entry.type === "DEPOSIT";
+                const isDebit = entry.type === "WITHDRAWAL";
 
                 return (
                   <tr
@@ -323,7 +339,7 @@ export default function BankStatementTable({
                             className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-700 transition"
                             title="Copy Order #"
                           >
-                            {copiedId === entry.id ? (
+                            {copiedId === String(entry.id) ? (
                               <Check className="w-3 h-3 text-green-600" />
                             ) : (
                               <Copy className="w-3 h-3" />
@@ -339,10 +355,10 @@ export default function BankStatementTable({
                     {showOwner && (
                       <td className="p-3 whitespace-nowrap">
                         <div className="font-semibold text-base-900">
-                          {entry.wallet?.user?.name || "System"}
+                          {entry.user?.name || entry.wallet?.user?.name || "System"}
                         </div>
                         <span className="text-[10px] px-1.5 py-0.2 rounded bg-gray-100 uppercase text-gray-600 font-mono">
-                          {entry.wallet?.user?.role || "USER"}
+                          {entry.user?.role || entry.wallet?.user?.role || "USER"}
                         </span>
                       </td>
                     )}
@@ -379,17 +395,6 @@ export default function BankStatementTable({
             )}
           </tbody>
         </table>
-      </div>
-
-      {/* Footer Statement Note */}
-      <div className="p-3 bg-base-100/30 border-t border-base-200 flex flex-col sm:flex-row items-center justify-between text-[11px] text-base-700 gap-2">
-        <div className="flex items-center space-x-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-          <span>Double-entry verified ledger statement. Left: Debits (-DR) | Right: Credits (+CR) | End: Closing Running Balance.</span>
-        </div>
-        <div className="font-mono text-slate-500">
-          Showing {processedEntries.length} of {entries.length} entries
-        </div>
       </div>
     </div>
   );

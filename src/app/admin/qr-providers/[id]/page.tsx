@@ -664,14 +664,14 @@ export default function QRProviderDetailPage() {
     provider.totalCredit !== undefined
       ? Number(provider.totalCredit)
       : walletEntries
-          .filter((e: any) => e.type === "CR")
+          .filter((e: any) => e.type === "DEPOSIT")
           .reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0);
 
   const totalDebit =
     provider.totalDebit !== undefined
       ? Number(provider.totalDebit)
       : walletEntries
-          .filter((e: any) => e.type === "DR")
+          .filter((e: any) => e.type === "DR" || e.type === "WITHDRAWAL")
           .reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0);
 
   // Strictly enforce the rule: Available Balance = Balance - Exposure
@@ -683,7 +683,10 @@ export default function QRProviderDetailPage() {
     const cat = (entry.category || "").toUpperCase();
     const desc = (entry.description || "").toLowerCase();
     const type = (entry.type || "").toUpperCase();
+    const isCredit = type === "DEPOSIT";
+    const isDebit = type === "WITHDRAWAL";
 
+    // 1. Credit Line adjustments
     if (cat === "ADD_CREDIT" || type === "ADD_CREDIT" || desc.includes("credit added") || desc.includes("manual_add_credit")) {
       return {
         label: "+ ADD CREDIT",
@@ -704,42 +707,78 @@ export default function QRProviderDetailPage() {
       };
     }
 
-    if (cat === "DEPOSIT" || cat === "MANUAL_DEPOSIT" || cat === "MANUAL_CREDIT" || desc.includes("deposit")) {
+    // 2. Provider fee commissions
+    if (cat === "QR_PROVIDER_FEE" || (isCredit && (desc.includes("fee") || desc.includes("commission")))) {
+      return {
+        label: "+ FEE CREDIT",
+        className: "bg-emerald-100 text-emerald-800",
+        amountPrefix: "+",
+        amountColor: "text-emerald-700",
+        displayCategory: "QR_PROVIDER_FEE",
+      };
+    }
+
+    // 3. Payin Order Fulfillment (Customer deposit paid into Provider's bank -> platform balance debited)
+    if (cat === "ORDER_DEBIT" || (isDebit && (desc.includes("deposit payment fulfilled") || desc.includes("order debit") || desc.includes("fulfilled for order")))) {
+      return {
+        label: "- DEBIT",
+        className: "bg-red-100 text-red-800",
+        amountPrefix: "-",
+        amountColor: "text-red-700",
+        displayCategory: entry.category || "ORDER_DEBIT",
+      };
+    }
+
+    // 4. Payout / Withdrawal Order Reimbursement (Provider paid out to customer -> platform balance credited)
+    if (cat === "ORDER_CREDIT" || (isCredit && (desc.includes("payout") || desc.includes("reimbursement") || desc.includes("withdrawal disbursement")))) {
+      return {
+        label: "+ CREDIT",
+        className: "bg-green-100 text-green-800",
+        amountPrefix: "+",
+        amountColor: "text-green-700",
+        displayCategory: entry.category || "ORDER_CREDIT",
+      };
+    }
+
+    // 5. Manual Admin Top-up (Deposit)
+    if (isCredit && (cat === "DEPOSIT" || cat === "MANUAL_DEPOSIT" || cat === "MANUAL_CREDIT" || desc.includes("manual deposit") || desc.includes("deposit added") || desc.includes("top up"))) {
       return {
         label: "+ DEPOSIT",
         className: "bg-green-100 text-green-800",
         amountPrefix: "+",
         amountColor: "text-green-700",
-        displayCategory: "DEPOSIT",
+        displayCategory: entry.category || "MANUAL_DEPOSIT",
       };
     }
 
-    if (cat === "WITHDRAWAL" || cat === "MANUAL_WITHDRAWAL" || cat === "MANUAL_DEBIT" || desc.includes("withdrawal")) {
+    // 6. Manual Admin Withdrawal
+    if (isDebit && (cat === "WITHDRAWAL" || cat === "MANUAL_WITHDRAWAL" || cat === "MANUAL_DEBIT" || desc.includes("manual withdrawal") || desc.includes("withdrawal"))) {
       return {
         label: "- WITHDRAWAL",
         className: "bg-red-100 text-red-800",
         amountPrefix: "-",
         amountColor: "text-red-700",
-        displayCategory: "WITHDRAWAL",
+        displayCategory: entry.category || "MANUAL_WITHDRAWAL",
       };
     }
 
-    if (type === "CR") {
+    // 7. General Fallbacks strictly based on isCredit vs isDebit
+    if (isCredit) {
       return {
-        label: "+ DEPOSIT",
+        label: `+ ${entry.category ? entry.category.replace(/_/g, " ") : "CREDIT"}`,
         className: "bg-green-100 text-green-800",
         amountPrefix: "+",
         amountColor: "text-green-700",
-        displayCategory: entry.category || "DEPOSIT",
+        displayCategory: entry.category || "CREDIT",
       };
     }
 
     return {
-      label: "- WITHDRAWAL",
+      label: `- ${entry.category ? entry.category.replace(/_/g, " ") : "DEBIT"}`,
       className: "bg-red-100 text-red-800",
       amountPrefix: "-",
       amountColor: "text-red-700",
-      displayCategory: entry.category || "WITHDRAWAL",
+      displayCategory: entry.category || "DEBIT",
     };
   };
 
@@ -1537,6 +1576,7 @@ export default function QRProviderDetailPage() {
                 <thead className="bg-base-100/60 text-base-900 font-semibold border-b border-base-200">
                   <tr>
                     <th className="p-3">Order Number</th>
+                    <th className="p-3">Type</th>
                     <th className="p-3">Merchant</th>
                     <th className="p-3 text-right">Amount</th>
                     <th className="p-3">Status</th>
@@ -1548,7 +1588,7 @@ export default function QRProviderDetailPage() {
                 <tbody className="divide-y divide-[#e0f2fe]">
                   {assignedOrders.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="p-8 text-center text-slate-500">
+                      <td colSpan={8} className="p-8 text-center text-slate-500">
                         No orders currently assigned to this QR provider.
                       </td>
                     </tr>
@@ -1557,6 +1597,22 @@ export default function QRProviderDetailPage() {
                       <tr key={o.id} className="hover:bg-[#ffffff] transition">
                         <td className="p-3 font-mono font-bold text-base-900">
                           {o.orderNumber}
+                        </td>
+                        <td className="p-3 whitespace-nowrap">
+                          <span
+                            className={`inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                              (o.type || "PAYIN") === "PAYIN"
+                                ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                                : "bg-rose-100 text-rose-800 border border-rose-300"
+                            }`}
+                          >
+                            {(o.type || "PAYIN") === "PAYIN" ? (
+                              <ArrowDownLeft className="w-3 h-3 text-emerald-700" />
+                            ) : (
+                              <ArrowUpRight className="w-3 h-3 text-rose-700" />
+                            )}
+                            <span>{(o.type || "PAYIN") === "PAYIN" ? "Deposit" : "Withdrawal"}</span>
+                          </span>
                         </td>
                         <td className="p-3 font-medium text-base-900">
                           {o.merchant?.name || "--"}

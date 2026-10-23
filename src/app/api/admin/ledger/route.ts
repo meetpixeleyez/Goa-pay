@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     const session = await getSession();
@@ -9,14 +11,10 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
-    const entries = await prisma.ledgerEntry.findMany({
+    const entries = await prisma.transaction.findMany({
       include: {
-        wallet: {
-          include: {
-            user: {
-              select: { id: true, name: true, role: true },
-            },
-          },
+        user: {
+          select: { id: true, name: true, role: true },
         },
         order: {
           select: { id: true, orderNumber: true, amount: true, status: true },

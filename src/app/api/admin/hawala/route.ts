@@ -31,19 +31,13 @@ export async function GET() {
         balance: true,
         exposure: true,
         availableBalance: true,
-        wallet: {
-          select: {
-            id: true,
-            balance: true,
-          },
-        },
       },
       orderBy: [{ role: "asc" }, { name: "asc" }],
     });
 
     // Format user response
     const formattedUsers = users.map((u) => {
-      const balance = Number((u.balance ?? u.wallet?.balance ?? 0).toFixed(2));
+      const balance = Number((u.balance ?? 0).toFixed(2));
       const exposure = Number((u.exposure ?? 0).toFixed(2));
       const availableBalance =
         u.role === "QR_PROVIDER"
@@ -58,7 +52,6 @@ export async function GET() {
         balance,
         exposure,
         availableBalance,
-        walletId: u.wallet?.id,
       };
     });
 
@@ -106,7 +99,7 @@ export async function GET() {
   } catch (error: any) {
     console.error("GET /api/admin/hawala error:", error);
     return NextResponse.json(
-      { error: error.message || "Failed to fetch Hawala accounts and history" },
+      { error: error.message || "Failed to fetch Hawala transfer data" },
       { status: 500 }
     );
   }
@@ -114,38 +107,46 @@ export async function GET() {
 
 /**
  * POST /api/admin/hawala
- * Execute an atomic inter-account Hawala balance transfer.
+ * Execute an atomic Hawala balance transfer between any two accounts.
  */
-export async function POST(request: Request) {
+export async function POST(req: Request) {
   try {
     const session = await getSession();
     if (!session || session.role !== "ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
-    const body = await request.json();
-    const fromUserId = parseInt(body.fromUserId, 10);
-    const toUserId = parseInt(body.toUserId, 10);
-    const amount = parseFloat(body.amount);
+    const body = await req.json();
+    const fromUserId = Number(body.fromUserId);
+    const toUserId = Number(body.toUserId);
+    const amount = Number(body.amount);
     const remarks = typeof body.remarks === "string" ? body.remarks.trim() : "";
 
-    if (isNaN(fromUserId) || isNaN(toUserId)) {
+    // Validation
+    if (!fromUserId || isNaN(fromUserId)) {
       return NextResponse.json(
-        { error: "Please select both a valid From account and To account" },
+        { error: "Sender account (From) is required" },
+        { status: 400 }
+      );
+    }
+
+    if (!toUserId || isNaN(toUserId)) {
+      return NextResponse.json(
+        { error: "Recipient account (To) is required" },
         { status: 400 }
       );
     }
 
     if (fromUserId === toUserId) {
       return NextResponse.json(
-        { error: "Source and destination accounts cannot be the same" },
+        { error: "Sender and recipient accounts cannot be the same" },
         { status: 400 }
       );
     }
 
-    if (isNaN(amount) || amount <= 0) {
+    if (!amount || isNaN(amount) || amount <= 0) {
       return NextResponse.json(
-        { error: "Transfer amount must be greater than ₹0" },
+        { error: "Transfer amount must be a positive number greater than 0" },
         { status: 400 }
       );
     }
@@ -154,11 +155,9 @@ export async function POST(request: Request) {
     const [fromUser, toUser] = await Promise.all([
       prisma.user.findUnique({
         where: { id: fromUserId },
-        include: { wallet: true },
       }),
       prisma.user.findUnique({
         where: { id: toUserId },
-        include: { wallet: true },
       }),
     ]);
 
@@ -177,9 +176,7 @@ export async function POST(request: Request) {
     }
 
     // 2. Strict Balance Cap for Non-Merchant accounts
-    const fromCurrentBalance = Number(
-      (fromUser.balance ?? fromUser.wallet?.balance ?? 0).toFixed(2)
-    );
+    const fromCurrentBalance = Number((fromUser.balance ?? 0).toFixed(2));
     const fromExposure = Number((fromUser.exposure ?? 0).toFixed(2));
     const fromAvailable =
       fromUser.role === "QR_PROVIDER"
@@ -195,7 +192,7 @@ export async function POST(request: Request) {
               fromAvailable
             ).toLocaleString("en-IN", {
               minimumFractionDigits: 2,
-            })}. `,
+            })}.`,
           },
           { status: 400 }
         );
@@ -208,25 +205,8 @@ export async function POST(request: Request) {
     )}`;
 
     const result = await prisma.$transaction(async (tx) => {
-      // Ensure Wallets exist for both
-      let fromWallet = fromUser.wallet;
-      if (!fromWallet) {
-        fromWallet = await tx.wallet.create({
-          data: { userId: fromUser.id, balance: fromCurrentBalance },
-        });
-      }
-
-      let toWallet = toUser.wallet;
-      const toCurrentBalance = Number(
-        (toUser.balance ?? toUser.wallet?.balance ?? 0).toFixed(2)
-      );
+      const toCurrentBalance = Number((toUser.balance ?? 0).toFixed(2));
       const toExposure = Number((toUser.exposure ?? 0).toFixed(2));
-
-      if (!toWallet) {
-        toWallet = await tx.wallet.create({
-          data: { userId: toUser.id, balance: toCurrentBalance },
-        });
-      }
 
       // Compute new balances
       const newFromBalance = Number((fromCurrentBalance - amount).toFixed(2));
@@ -236,10 +216,6 @@ export async function POST(request: Request) {
       const newToAvailable = Number((newToBalance - toExposure).toFixed(2));
 
       // Update From Party
-      await tx.wallet.update({
-        where: { id: fromWallet.id },
-        data: { balance: newFromBalance },
-      });
       const updatedFromUser = await tx.user.update({
         where: { id: fromUser.id },
         data: {
@@ -249,10 +225,6 @@ export async function POST(request: Request) {
       });
 
       // Update To Party
-      await tx.wallet.update({
-        where: { id: toWallet.id },
-        data: { balance: newToBalance },
-      });
       const updatedToUser = await tx.user.update({
         where: { id: toUser.id },
         data: {
@@ -261,32 +233,32 @@ export async function POST(request: Request) {
         },
       });
 
-      // Ledger Debit for From Party
+      // Transaction Debit for From Party
       const fromDescription = `Hawala Transfer OUT to ${toUser.name} (${toUser.role})${
         remarks ? ` | Note: ${remarks}` : ""
       } [Ref: ${hawalaRef}]`;
 
-      await tx.ledgerEntry.create({
+      await tx.transaction.create({
         data: {
-          walletId: fromWallet.id,
-          type: "DR",
-          category: "HAWALA",
+          userId: fromUser.id,
+          type: "WITHDRAWAL",
+          category: "HAWALA_TRANSFER",
           amount,
           balanceAfter: newFromBalance,
           description: fromDescription,
         },
       });
 
-      // Ledger Credit for To Party
+      // Transaction Credit for To Party
       const toDescription = `Hawala Transfer IN from ${fromUser.name} (${fromUser.role})${
         remarks ? ` | Note: ${remarks}` : ""
       } [Ref: ${hawalaRef}]`;
 
-      await tx.ledgerEntry.create({
+      await tx.transaction.create({
         data: {
-          walletId: toWallet.id,
-          type: "CR",
-          category: "HAWALA",
+          userId: toUser.id,
+          type: "DEPOSIT",
+          category: "HAWALA_RECEIPT",
           amount,
           balanceAfter: newToBalance,
           description: toDescription,
@@ -298,7 +270,7 @@ export async function POST(request: Request) {
         data: {
           userId: session.userId,
           action: "HAWALA_TRANSFER",
-          entity: "Wallet",
+          entity: "User",
           entityId: hawalaRef,
           metadata: JSON.stringify({
             hawalaRef,

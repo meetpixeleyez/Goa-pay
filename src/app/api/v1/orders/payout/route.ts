@@ -132,12 +132,8 @@ export async function POST(request: Request) {
       merchantFeeConfiguration: feeConfig,
     });
 
-    // Verify Merchant Wallet Balance: balance >= amount + totalFees
-    const merchantWallet = await prisma.wallet.findUnique({
-      where: { userId: merchant.id },
-    });
-
-    const currentBalance = merchantWallet?.balance ?? 0;
+    // Verify Merchant Balance: balance >= amount + totalFees
+    const currentBalance = merchant.balance ?? 0;
     const requiredBalance = orderAmount + feeSnapshot.totalFees;
 
     if (currentBalance < requiredBalance) {
@@ -173,7 +169,7 @@ export async function POST(request: Request) {
         clientOrderId: clientOrderId?.trim() || null,
         webhookUrl: effectiveWebhookUrl,
         beneficiaryDetails,
-        payoutBroadcast: false,
+        payoutBroadcast: true,
         status: "pending",
         checkoutState: "ACTIVE",
         merchantFeeRate: feeSnapshot.merchantFeeRate,

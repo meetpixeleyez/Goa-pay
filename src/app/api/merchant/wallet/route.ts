@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     const session = await getSession();
@@ -11,10 +13,10 @@ export async function GET() {
 
     const userId = session.userId;
 
-    const wallet = await prisma.wallet.findUnique({
-      where: { userId },
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
       include: {
-        entries: {
+        transactions: {
           include: {
             order: {
               select: {
@@ -32,9 +34,9 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
-      balance: wallet?.balance || 0.0,
-      walletId: wallet?.id,
-      entries: wallet?.entries || [],
+      balance: user?.balance || 0.0,
+      walletId: user?.id,
+      entries: user?.transactions || [],
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

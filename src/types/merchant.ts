@@ -3,32 +3,24 @@ import { PaginationMeta } from "./api";
 export interface MerchantBrokerInfo {
   id: number | string;
   name: string;
-  email?: string;
   commissionPercent?: number;
-}
-
-export interface MerchantWalletInfo {
-  id?: number | string;
-  balance: number;
 }
 
 export interface MerchantListItem {
   id: number | string;
   name: string;
-  email?: string;
   phone?: string | null;
-  address?: string | null;
-  telegramId?: string | null;
   upiId?: string | null;
   qrCodeUrl?: string | null;
   status: "ACTIVE" | "INACTIVE" | string;
   portalAccess: boolean;
   transactionAllowed: boolean;
+  balance: number;
+  availableBalance: number;
   payinMerchantFee: number;
   payoutMerchantFee: number;
   payinBrokerFee?: number;
   payoutBrokerFee?: number;
-  wallet?: MerchantWalletInfo | null;
   brokerId?: number | string | null;
   broker?: MerchantBrokerInfo | null;
   _count?: {
@@ -61,11 +53,8 @@ export interface MerchantQueryParams {
 
 export interface CreateMerchantInput {
   name: string;
-  email?: string;
   password?: string;
   phone?: string | null;
-  address?: string | null;
-  telegramId?: string | null;
   upiId?: string | null;
   qrCodeUrl?: string | null;
   payinMerchantFee?: number | string;
@@ -80,10 +69,7 @@ export interface CreateMerchantInput {
 
 export interface UpdateMerchantInput {
   name?: string;
-  email?: string;
   phone?: string | null;
-  address?: string | null;
-  telegramId?: string | null;
   upiId?: string | null;
   qrCodeUrl?: string | null;
   payinMerchantFee?: number | string;
@@ -98,8 +84,8 @@ export interface UpdateMerchantInput {
 }
 
 export interface MerchantSummaryStats {
-  balance: number;
-  completedCount: number;
-  totalOrdersCount: number;
+  totalOrders: number;
   totalVolume: number;
+  totalFeesPaid: number;
+  netSettledBalance: number;
 }
